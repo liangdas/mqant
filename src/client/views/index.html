@@ -1,0 +1,73 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>WebSoket Demo</title>
+    <script src="mqttws31.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        //验证浏览器是否支持WebSocket协议
+        if (!window.WebSocket) {
+            alert("WebSocket not supported by this browser!");
+        }
+        function display() {
+            client = new Paho.MQTT.Client("127.0.0.1", 3653, "111");//建立客户端实例
+            client.connect({
+                onSuccess: onConnect,
+                onFailure: onFailure,
+                mqttVersion: 3,
+                cleanSession: true,
+            });//连接服务器并注册连接成功处理事件
+            function onConnect() {
+                console.log("onConnected");
+                log("onConnected")
+                //开始登陆
+                payload=JSON.stringify({"userName": "liangdas", "passWord": "Hello,anyone!"})
+                client.send("Login/Handler_Login/1",payload , 1);
+            }
+            function onFailure() {
+                console.log("onConnected");
+                log("Connect fail to 127.0.0.1:3653")
+            }
+            client.onConnectionLost = onConnectionLost;//注册连接断开处理事件
+            client.onMessageArrived = onMessageArrived;//注册消息接收处理事件
+            function onConnectionLost(responseObject) {
+                if (responseObject.errorCode !== 0) {
+                    console.log("onConnectionLost:" + responseObject.errorMessage);
+                    console.log("连接已断开");
+                }
+            }
+
+            function onMessageArrived(message) {
+
+                log("-------------")
+                log("topic      :"+message.destinationName)
+                log("payload :"+message.payloadString)
+            }
+
+        }
+        var log = function(s) {
+            if (document.readyState !== "complete") {
+                log.buffer.push(s);
+            } else {
+                document.getElementById("contentId").innerHTML += (s + "\n");
+            }
+        }
+        function sendMsg(){
+            var msg=document.getElementById("messageId");
+            if(msg.value=="join"){
+                payload=JSON.stringify({"roomName": "abc"})
+                client.send("Chat/Handler_JoinChat/2",payload ,1);
+            }else{
+                payload=JSON.stringify({"roomName": "abc","say": msg.value})
+                client.send("Chat/Handler_Say/2",payload ,1);
+            }
+        }
+    </script>
+</head>
+<body onload="display();">
+<div id="valueLabel"></div>
+<textarea rows="20" cols="30" id="contentId" style="width: 500px"></textarea>
+<br/>
+<input name="message" id="messageId" placeholder="请先输入'join'加入房间,然后输入任意聊天字符" style="width: 400px"/>
+<button id="sendButton" onClick="javascript:sendMsg()" >Send</button>
+</body>
+</html>
