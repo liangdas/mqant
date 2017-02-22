@@ -20,8 +20,10 @@ func main() {
 	confPath:= flag.String("path","conf/server.conf", "")
 	conf.LoadConfig(*confPath) //加载配置文件
 	app:=mqant.CreateApp()
-	app.Configure(conf.Conf)
+	app.Configure(conf.Conf)  //配置信息
 	//app.Route("Chat",ChatRoute)
-	app.Run(gate.Module(),login.Module(),chat.Module())
+	app.Run(gate.Module(),	//这是默认网关模块,是必须的支持 TCP,websocket,MQTT协议
+		login.Module(), //这是用户登录验证模块
+		chat.Module())  //这是聊天模块
 
 }
