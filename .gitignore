@@ -1,4 +1,6 @@
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
+bin
+pkg
 *.o
 *.a
 *.so
