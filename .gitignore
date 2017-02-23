@@ -1,4 +1,5 @@
 # Compiled Object files, Static and Dynamic libs (Shared Objects)
+.idea
 bin
 pkg
 *.o
@@ -26,3 +27,5 @@ _testmain.go
 *.prof
 
 server.conf.bat
+
+src/hitball

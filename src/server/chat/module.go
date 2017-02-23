@@ -67,8 +67,7 @@ func (m *Chat) joinChat(s map[string]interface{},msg map[string]interface{})(res
 	}
 	roomName:=msg["roomName"].(string)
 
-	login,_:=m.app.GetRouteServersByType("Login")
-	r,_:=login.Call("getRand",roomName)
+	r,_:=m.app.RpcInvoke("Login","getRand",roomName)
 
 	log.Debug("演示模块间RPC调用 :",r)
 

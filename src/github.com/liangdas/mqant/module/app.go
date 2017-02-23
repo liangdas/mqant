@@ -57,6 +57,8 @@ type App interface {
 	GetRouteServersByType(string)(*ServerSession,error)	//获取经过筛选过的服务
 	GetServersByType(Type string)([]*ServerSession)
 	GetSettings()(conf.Config) //获取配置信息
+	RpcInvoke(moduleType string,_func string,params ...interface{})(interface{},string)
+	RpcInvokeNR(moduleType string,_func string,params ...interface{})(error)
 }
 
 type ServerSession struct {
@@ -216,4 +218,21 @@ func (app *DefaultApp)GetRouteServersByType(Type string)(s *ServerSession,err er
 
 func (app *DefaultApp)GetSettings()(conf.Config){
 	return app.settings
+}
+
+func (app *DefaultApp)RpcInvoke(moduleType string,_func string,params ...interface{})(result interface{},err string)  {
+	server,e:=app.GetRouteServersByType(moduleType)
+	if e!=nil{
+		err=e.Error()
+		return
+	}
+	return server.Call(_func,params...)
+}
+
+func (app *DefaultApp)RpcInvokeNR(moduleType string,_func string,params ...interface{})(err error)  {
+	server,err:=app.GetRouteServersByType(moduleType)
+	if err!=nil{
+		return
+	}
+	return server.CallNR(_func,params...)
 }
