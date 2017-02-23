@@ -13,7 +13,9 @@ QQ交流群 :463735103
 
 #	文档
 
- 	[快速上手](https://github.com/liangdas/mqantserver)
+ 快速上手:
+ 
+ [https://github.com/liangdas/mqantserver](https://github.com/liangdas/mqantserver)
  
 
 #	框架架构
