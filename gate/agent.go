@@ -142,10 +142,10 @@ func (a *agent) OnRecover(pack *mqtt.Pack){
 			}
 			return
 		}
-		startsWith := strings.HasPrefix(topics[1], "Handler")
+		startsWith := strings.HasPrefix(topics[1], "HD_")
 		if !startsWith{
 			if msgid!=""{
-				toResult(a,*pub.GetTopic(),nil,fmt.Sprintf("Method(%s) must begin with 'Handler_'",topics[1]))
+				toResult(a,*pub.GetTopic(),nil,fmt.Sprintf("Method(%s) must begin with 'HD_'",topics[1]))
 			}
 			return
 		}
