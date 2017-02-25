@@ -72,3 +72,10 @@ func (s *Server) RegisterGO(id string, f interface{}) {
 	s.server.RegisterGO(id, f)
 }
 
+
+func (s *Server) GetRPCServer()(*mqrpc.RPCServer){
+	if s.server == nil {
+		panic("invalid RPCServer")
+	}
+	return s.server
+}

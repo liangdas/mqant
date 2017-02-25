@@ -21,6 +21,19 @@ import (
 	"sync"
 	"github.com/liangdas/mqant/conf"
 )
+type RPCListener interface {
+	OnTimeOut(fn string ,Expired int64)
+	OnError(fn string,params []interface{},err error)
+	/**
+	fn 		方法名
+	params		参数
+	result		执行结果
+	exec_time 	方法执行时间 单位为 Nano 纳秒  1000000纳秒等于1毫秒
+	 */
+	OnComplete(fn string,params []interface{},result *ResultInfo,exec_time int64)
+}
+
+
 type CallInfo struct {
 	Cid string	//Correlation_id
 	Fn      string
@@ -47,13 +60,15 @@ type MQServer interface{
 }
 
 type RPCServer struct{
-	functions map[string]FunctionInfo
-	remote_server *AMQPServer
-	local_server *LocalServer
-	mq_chan	  chan CallInfo	//接收到请求信息的队列
-	callback_chan chan CallInfo //信息处理完成的队列
+	functions 		map[string]FunctionInfo
+	remote_server 		*AMQPServer
+	local_server 		*LocalServer
+	mq_chan	  		chan CallInfo	//接收到请求信息的队列
+	callback_chan 		chan CallInfo //信息处理完成的队列
 	wg sync.WaitGroup	//任务阻塞
-	call_chan_done    chan error
+	call_chan_done  	chan error
+	listener		RPCListener
+	executing		int64		//正在执行的goroutine数量
 }
 
 func NewRPCServer() (*RPCServer,error){
@@ -86,6 +101,16 @@ func (s *RPCServer) NewRemoteRPCServer(info *conf.Rabbitmq) (err error){
 	}
 	s.remote_server = remote_server
 	return
+}
+
+func (s *RPCServer) SetListener(listener RPCListener){
+	s.listener=listener
+}
+/**
+获取当前正在执行的goroutine 数量
+ */
+func (s *RPCServer) GetExecuting()(int64){
+	return s.executing
 }
 
 // you must call the function before calling Open and Go
@@ -170,7 +195,11 @@ func (s *RPCServer)on_call_handle(calls <-chan CallInfo,callbacks chan <-CallInf
 			} else {
 				if callInfo.Expired<(time.Now().UnixNano()/ 1000000){
 					//请求超时了,无需再处理
-					fmt.Println("timeout: This is Call",callInfo.Fn,callInfo.Expired,time.Now().UnixNano()/ 1000000)
+					if s.listener!=nil{
+						s.listener.OnTimeOut(callInfo.Fn,callInfo.Expired)
+					}else{
+						fmt.Println("timeout: This is Call",callInfo.Fn,callInfo.Expired,time.Now().UnixNano()/ 1000000)
+					}
 				}else{
 					s.runFunc(callInfo,callbacks)
 				}
@@ -187,13 +216,28 @@ func (s *RPCServer)on_call_handle(calls <-chan CallInfo,callbacks chan <-CallInf
 func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 	defer func() {
 		if r := recover(); r != nil {
+			var lerr error;
+			var rn=""
+			switch r.(type){
+
+			case string:
+				rn=r.(string)
+				lerr=fmt.Errorf(rn)
+			case error:
+				rn=r.(error).Error()
+				lerr=r.(error)
+			}
 			resultInfo:=&ResultInfo{
 				Cid:callInfo.Cid,
-				Error:r.(string),
+				Error:rn,
 				Result:nil,
 			}
 			callInfo.Result=*resultInfo
 			callbacks<-callInfo
+
+			if s.listener!=nil{
+				s.listener.OnError(callInfo.Fn,callInfo.Args,lerr)
+			}
 		}
 	}()
 
@@ -206,6 +250,9 @@ func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 		}
 		callInfo.Result=*resultInfo
 		callbacks<-callInfo
+		if s.listener!=nil{
+			s.listener.OnError(callInfo.Fn,callInfo.Args,fmt.Errorf("function not found"))
+		}
 		return
 	}
 	_func:=functionInfo.function
@@ -220,6 +267,9 @@ func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 		}
 		callInfo.Result=*resultInfo
 		callbacks<-callInfo
+		if s.listener!=nil{
+			s.listener.OnError(callInfo.Fn,callInfo.Args,fmt.Errorf("The number of params is not adapted."))
+		}
 		return
 	}
 
@@ -308,20 +358,21 @@ func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 			}
 		}
 	}
-
 	s.wg.Add(1)
-
+	s.executing++
 	_runFunc:=func(){
 		defer func() {
 			if r := recover(); r != nil {
+				var lerr error;
 				var rn=""
 				switch r.(type){
 
 				case string:
 					rn=r.(string)
-
+					lerr=fmt.Errorf(rn)
 				case error:
 					rn=r.(error).Error()
+					lerr=r.(error)
 				}
 				resultInfo:=&ResultInfo{
 					Cid:callInfo.Cid,
@@ -330,9 +381,14 @@ func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 				}
 				callInfo.Result=*resultInfo
 				callbacks<-callInfo
+				if s.listener!=nil{
+					s.listener.OnError(callInfo.Fn,callInfo.Args,lerr)
+				}
 			}
 			s.wg.Add(-1)
+			s.executing--
 		}()
+		exec_time :=time.Now().UnixNano()
 		//t:=RandInt64(2,3)
 		//time.Sleep(time.Second*time.Duration(t))
 		// f 为函数地址
@@ -361,6 +417,9 @@ func (s *RPCServer)runFunc(callInfo CallInfo,callbacks  chan<- CallInfo)  {
 		}
 		callInfo.Result=*resultInfo
 		callbacks<-callInfo
+		if s.listener!=nil{
+			s.listener.OnComplete(callInfo.Fn,callInfo.Args,resultInfo,time.Now().UnixNano()-exec_time)
+		}
 	}
 
 	if functionInfo.goroutine{
