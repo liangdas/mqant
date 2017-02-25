@@ -232,7 +232,7 @@ func (c *client) WriteMsg(topic  string,body []byte) error {
 	if c.isStop{
 		return fmt.Errorf("connection is closed")
 	}
-	pack := mqtt.GetPubPack(0, 0,c.getOnlineMsgId(), &topic, body)
+	pack := mqtt.GetPubPack(1, 0,c.getOnlineMsgId(), &topic, body)
 	return c.pushMsg(pack)
 	//return nil
 }
