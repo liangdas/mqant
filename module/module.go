@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"flag"
 )
 
 type Module interface {
@@ -55,15 +56,16 @@ func (mer *ModuleManager)Register(mi Module) {
 }
 
 func (mer *ModuleManager)Init(app App) {
-	myHost:=getMySelfHost()
-	log.Release("MySelfHost %s",myHost)
+	group := flag.String("group", "development", "Server group?")
+	flag.Parse() //解析输入的参数
+	log.Release("This service belongs to [%s]",*group)
 	for i := 0; i < len(mer.mods); i++ {
 		for Type,modSettings:=range conf.Conf.Module {
 			if mer.mods[i].mi.GetType()==Type{
 				//匹配
 				for _,setting:=range modSettings{
 					//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
-					if myHost==setting.Host||"127.0.0.1"==setting.Host{
+					if *group==setting.Group{
 						mer.runMods = append(mer.runMods, mer.mods[i])	//这里加入能够运行的组件
 						mer.mods[i].mi.OnInit(app,setting)
 					}
