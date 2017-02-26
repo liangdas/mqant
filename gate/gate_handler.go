@@ -15,6 +15,7 @@ package gate
 
 import (
 	"github.com/liangdas/mqant/utils"
+	"github.com/liangdas/mqant/log"
 )
 
 type handler struct {
@@ -67,6 +68,30 @@ func (h *handler)Bind(Sessionid	string,Userid string)(result interface{},err str
 		return
 	}
 	agent.(Agent).GetSession().Userid=Userid
+
+	if h.gate.storage!=nil&&agent.(Agent).GetSession().Userid!=""{
+		//可以持久化
+		settings,err:=h.gate.storage.Query(Userid)
+		if err==nil&&settings!=nil{
+			//有已持久化的数据,可能是上一次连接保存的
+			if agent.(Agent).GetSession().Settings==nil{
+				agent.(Agent).GetSession().Settings=settings
+			}else{
+				//合并两个map 并且以 agent.(Agent).GetSession().Settings 已有的优先
+				for k, v := range settings {
+					if _, ok := agent.(Agent).GetSession().Settings[k]; ok {
+						//不用替换
+					}else{
+						agent.(Agent).GetSession().Settings[k]=v
+					}
+				}
+				//数据持久化
+				h.gate.storage.Storage(Userid,agent.(Agent).GetSession().Settings)
+
+			}
+		}
+	}
+
 	result=agent.(Agent).GetSession().ExportMap()
 	return
 }
@@ -86,7 +111,7 @@ func (h *handler)UnBind(Sessionid string)(result interface{},err string) {
 }
 
 /**
- *UnBind the session with the the Userid.
+ *Push the session with the the Userid.
  */
 func (h *handler)Push(Sessionid string,Settings map[string]interface{})(result interface{},err string) {
 	agent:=h.sessions.Get(Sessionid)
@@ -96,6 +121,13 @@ func (h *handler)Push(Sessionid string,Settings map[string]interface{})(result i
 	}
 	agent.(Agent).GetSession().Settings=Settings
 	result=agent.(Agent).GetSession().ExportMap()
+	if h.gate.storage!=nil&&agent.(Agent).GetSession().Userid!=""{
+		err:=h.gate.storage.Storage(agent.(Agent).GetSession().Userid,agent.(Agent).GetSession().Settings)
+		if err!=nil{
+			log.Error("gate session storage failure")
+		}
+	}
+
 	return
 }
 
@@ -110,6 +142,14 @@ func (h *handler)Set(Sessionid string,key string, value interface{})(result inte
 	}
 	agent.(Agent).GetSession().Settings[key]=value
 	result=agent.(Agent).GetSession().ExportMap()
+
+	if h.gate.storage!=nil&&agent.(Agent).GetSession().Userid!=""{
+		err:=h.gate.storage.Storage(agent.(Agent).GetSession().Userid,agent.(Agent).GetSession().Settings)
+		if err!=nil{
+			log.Error("gate session storage failure")
+		}
+	}
+
 	return
 }
 
@@ -124,6 +164,14 @@ func (h *handler)Remove(Sessionid string,key string)(result interface{},err stri
 	}
 	delete(agent.(Agent).GetSession().Settings,key)
 	result=agent.(Agent).GetSession().ExportMap()
+
+	if h.gate.storage!=nil&&agent.(Agent).GetSession().Userid!=""{
+		err:=h.gate.storage.Storage(agent.(Agent).GetSession().Userid,agent.(Agent).GetSession().Settings)
+		if err!=nil{
+			log.Error("gate session storage failure")
+		}
+	}
+
 	return
 }
 

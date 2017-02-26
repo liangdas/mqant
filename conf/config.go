@@ -27,7 +27,7 @@ var (
 	LogLevel="debug"
 	LogPath=""
 	LogFlag=0
-	RpcExpired=10
+	RpcExpired=5   //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
 	Conf = Config{}
 )
 
@@ -55,6 +55,7 @@ type Rabbitmq struct {
 type ModuleSettings struct {
 	Id 		string
 	Host 		string
+	Group 		string
 	Settings 	map[string]interface{}
 	Rabbitmq 	*Rabbitmq
 }

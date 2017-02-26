@@ -26,10 +26,19 @@ import (
 
 type Module interface {
 	GetType()(string)	//模块类型
+	GetServerId()(string)	//模块类型
+	RpcInvoke(moduleType string,_func string,params ...interface{})(interface{},string)
+	RpcInvokeNR(moduleType string,_func string,params ...interface{})(error)
+	GetModuleSettings()(settings *conf.ModuleSettings)
+	GetRouteServersByType(moduleType string)(*ServerSession,error)	//获取经过筛选过的服务
+
 	OnInit(app App,settings *conf.ModuleSettings)
 	OnDestroy()
 	Run(closeSig chan bool)
 }
+
+
+
 
 type module struct {
 	mi       Module

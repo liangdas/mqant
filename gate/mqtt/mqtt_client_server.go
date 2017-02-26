@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gate
+package mqtt
 
 import (
 	"bufio"
 	"errors"
 	"sync"
 	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/mqtt"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/conf"
 	"math"
@@ -29,10 +28,10 @@ import (
 var notAlive = errors.New("Connection was dead")
 
 type PackRecover interface {
-	OnRecover(*mqtt.Pack)
+	OnRecover(*Pack)
 }
 
-type client struct {
+type Client struct {
 	queue *PackQueue
 
 
@@ -51,9 +50,9 @@ type client struct {
 	curr_id int
 }
 
-func newClient(conf conf.Mqtt ,recover PackRecover,r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *client {
+func NewClient(conf conf.Mqtt ,recover PackRecover,r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
 	readChan:=make(chan *packAndErr,conf.ReadPackLoop)
-	return &client{
+	return &Client{
 		readChan:	readChan,
 		queue:     	NewPackQueue(conf,r, w, conn,readChan,alive),
 		recover:	recover,
@@ -64,7 +63,7 @@ func newClient(conf conf.Mqtt ,recover PackRecover,r *bufio.Reader, w *bufio.Wri
 }
 
 // Push the msg and response the heart beat
-func (c *client) listen_loop() (e error) {
+func (c *Client) Listen_loop() (e error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if c.isSendClose {
@@ -114,7 +113,7 @@ func (c *client) listen_loop() (e error) {
 }
 
 // Setting a mqtt pack's id.
-func (c *client) getOnlineMsgId() int {
+func (c *Client) getOnlineMsgId() int {
 	if c.curr_id == math.MaxUint16 {
 		c.curr_id = 1
 		return c.curr_id
@@ -124,7 +123,7 @@ func (c *client) getOnlineMsgId() int {
 	}
 }
 
-func (c *client) waitPack(pAndErr *packAndErr) (err error) {
+func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	// If connetion has a error, should break
 	// if it return a timeout error, illustrate
 	// hava not recive a heart beat pack at an
@@ -137,8 +136,8 @@ func (c *client) waitPack(pAndErr *packAndErr) (err error) {
 
 	// Choose the requst type
 	switch pAndErr.pack.GetType() {
-	case mqtt.CONNECT:
-		info, ok := (pAndErr.pack.GetVariable()).(*mqtt.Connect)
+	case CONNECT:
+		info, ok := (pAndErr.pack.GetVariable()).(*Connect)
 		if !ok {
 			err = errors.New("It's not a mqtt connection package.")
 			return
@@ -146,9 +145,9 @@ func (c *client) waitPack(pAndErr *packAndErr) (err error) {
 		//id := info.GetUserName()
 		//psw := info.GetPassword()
 		c.queue.SetAlive(info.GetKeepAlive())
-		err = c.queue.WritePack(mqtt.GetConnAckPack(0))
-	case mqtt.PUBLISH:
-		pub := pAndErr.pack.GetVariable().(*mqtt.Publish)
+		err = c.queue.WritePack(GetConnAckPack(0))
+	case PUBLISH:
+		pub := pAndErr.pack.GetVariable().(*Publish)
 		//// Del the msg
 		//c.delMsg(ack.GetMid())
 		//这里向上层转发消息
@@ -156,56 +155,57 @@ func (c *client) waitPack(pAndErr *packAndErr) (err error) {
 		if pAndErr.pack.GetQos()==1{
 			//回复已收到
 			//log.Debug("Ack To Client By PUBACK \n")
-			err = c.queue.WritePack(mqtt.GetPubAckPack(pub.GetMid()))
+			err = c.queue.WritePack(GetPubAckPack(pub.GetMid()))
 			if err!=nil{
 				//log.Debug("PUBACK error(%s) \n",err.Error())
 			}
 		}else if(pAndErr.pack.GetQos()==2) {
 			//log.Debug("Ack To Client By PUBREC \n")
-			err = c.queue.WritePack(mqtt.GetPubRECPack(pub.GetMid()))
+			err = c.queue.WritePack(GetPubRECPack(pub.GetMid()))
 		}
-		//目前这个版本暂时先不保证消息的Qos 默认用Qos=0吧
+		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
-	case mqtt.PUBACK:	//4
+	case PUBACK:	//4
 		//用于 Qos =1 的消息
 		//ack := pAndErr.pack.GetVariable().(*mqtt.Puback)
 		//log.Debug("Client Ack Qos(%d) Dup(%d) mid(%d) \n",pAndErr.pack.GetQos(),pAndErr.pack.GetDup(), ack.GetMid())
-	case mqtt.PUBREC:	//5
+	case PUBREC:	//5
 		//log.Debug("Ack To Client By PUBREL \n")
 		//用于 Qos =2 的消息 回复 PUBREL
-		ack := pAndErr.pack.GetVariable().(*mqtt.Puback)
-		err = c.queue.WritePack(mqtt.GetPubRELPack(ack.GetMid()))
-	case mqtt.PUBREL:	//6
+		ack := pAndErr.pack.GetVariable().(*Puback)
+		err = c.queue.WritePack(GetPubRELPack(ack.GetMid()))
+	case PUBREL:	//6
 		//log.Debug("Ack To Client By PUBCOMP \n")
 		//用于 Qos =2 的消息 回复 PUBCOMP
-		ack := pAndErr.pack.GetVariable().(*mqtt.Puback)
-		err = c.queue.WritePack(mqtt.GetPubCOMPPack(ack.GetMid()))
-	case mqtt.PUBCOMP:	//7
+		ack := pAndErr.pack.GetVariable().(*Puback)
+		err = c.queue.WritePack(GetPubCOMPPack(ack.GetMid()))
+	case PUBCOMP:	//7
 		//消息发送端最终确认这条消息
 		//log.Debug("消息最终确认")
-	case mqtt.SUBSCRIBE:	//7
+	case SUBSCRIBE:	//7
 		//消息发送端最终确认这条消息
-		sub := pAndErr.pack.GetVariable().(*mqtt.Subscribe)
+		sub := pAndErr.pack.GetVariable().(*Subscribe)
 		for _,top:=range sub.GetTopics(){
 			//log.Debug("Subscribe %s",*top.GetName())
 			if top.Qos==2{
 				//log.Debug("Ack To Client By Suback \n")
 				//用于 Qos =2 的消息 回复 PUBCOMP
-				err = c.queue.WritePack(mqtt.GetSubAckPack(sub.GetMid()))
+				err = c.queue.WritePack(GetSubAckPack(sub.GetMid()))
 			}
 		}
-		//目前这个版本暂时先不保证消息的Qos 默认用Qos=0吧
+		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
-	case mqtt.UNSUBSCRIBE:	//7
+	case UNSUBSCRIBE:	//7
 		//消息发送端最终确认这条消息
-		sub := pAndErr.pack.GetVariable().(*mqtt.UNSubscribe)
-		err = c.queue.WritePack(mqtt.GetUNSubAckPack(sub.GetMid()))
-		//目前这个版本暂时先不保证消息的Qos 默认用Qos=0吧
+		sub := pAndErr.pack.GetVariable().(*UNSubscribe)
+		err = c.queue.WritePack(GetUNSubAckPack(sub.GetMid()))
+		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
-	case mqtt.PINGREQ:
+	case PINGREQ:
 		// Reply the heart beat
 		//log.Debug("hb msg")
-		err = c.queue.WritePack(mqtt.GetPingResp(1, pAndErr.pack.GetDup()))
+		err = c.queue.WritePack(GetPingResp(1, pAndErr.pack.GetDup()))
+		c.recover.OnRecover(pAndErr.pack)
 	default:
 		// Not define pack type
 		//log.Debug("其他类型的数据包")
@@ -215,24 +215,24 @@ func (c *client) waitPack(pAndErr *packAndErr) (err error) {
 }
 
 
-func (c *client) waitQuit() {
+func (c *Client) waitQuit() {
 	// Start close
 	log.Debug("Will break new relogin")
 	c.isSendClose = true
 }
 
 
-func (c *client) pushMsg(pack *mqtt.Pack) error {
+func (c *Client) pushMsg(pack *Pack) error {
 	// Write this pack
 	err := c.queue.WritePack(pack)
 	return err
 }
 
-func (c *client) WriteMsg(topic  string,body []byte) error {
+func (c *Client) WriteMsg(topic  string,body []byte) error {
 	if c.isStop{
 		return fmt.Errorf("connection is closed")
 	}
-	pack := mqtt.GetPubPack(1, 0,c.getOnlineMsgId(), &topic, body)
+	pack := GetPubPack(1, 0,c.getOnlineMsgId(), &topic, body)
 	return c.pushMsg(pack)
 	//return nil
 }

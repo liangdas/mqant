@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gate
+package mqtt
 
 import (
 	"bufio"
 	"fmt"
 	"time"
 	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/mqtt"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/conf"
 )
@@ -44,7 +43,7 @@ type PackQueue struct {
 }
 
 type packAndErr struct {
-	pack *mqtt.Pack
+	pack *Pack
 	err  error
 }
 
@@ -56,7 +55,7 @@ const (
 )
 
 type pakcAdnType struct {
-	pack *mqtt.Pack
+	pack *Pack
 	typ  byte
 }
 
@@ -99,9 +98,9 @@ loop:
 			}
 			switch pt.typ {
 			case NO_DELAY:
-				err = mqtt.WritePack(pt.pack, queue.w)
+				err = WritePack(pt.pack, queue.w)
 			case DELAY:
-				err = mqtt.DelayWritePack(pt.pack, queue.w)
+				err = DelayWritePack(pt.pack, queue.w)
 			case FLUSH:
 				err = queue.w.Flush()
 			}
@@ -119,7 +118,7 @@ loop:
 }
 
 // Write a pack , and get the last error
-func (queue *PackQueue) WritePack(pack *mqtt.Pack) error {
+func (queue *PackQueue) WritePack(pack *Pack) error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
@@ -127,7 +126,7 @@ func (queue *PackQueue) WritePack(pack *mqtt.Pack) error {
 	return nil
 }
 
-func (queue *PackQueue) WriteDelayPack(pack *mqtt.Pack) error {
+func (queue *PackQueue) WriteDelayPack(pack *Pack) error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
@@ -191,7 +190,7 @@ func (queue *PackQueue) ReadPackInLoop()  {
 				queue.conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(queue.alive)))
 			}
 			if is_continue {
-				p.pack, p.err = mqtt.ReadPack(queue.r)
+				p.pack, p.err = ReadPack(queue.r)
 				if p.err != nil {
 					is_continue = false
 				}

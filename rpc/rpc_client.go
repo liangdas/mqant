@@ -102,7 +102,7 @@ func (c *RPCClient) Call(_func string,params ...interface{})(interface{},string)
 
 
 /**
-消息请求 需要回复
+消息请求 不需要回复
  */
 func (c *RPCClient) CallNR(_func string,params ...interface{})(err error)  {
 	var correlation_id  = uuid.Rand().Hex()

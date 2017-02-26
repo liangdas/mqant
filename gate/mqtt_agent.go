@@ -16,7 +16,6 @@ package gate
 import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"github.com/liangdas/mqant/mqtt"
 	"bufio"
 	"runtime"
 	"fmt"
@@ -24,6 +23,8 @@ import (
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/utils/uuid"
+	"github.com/liangdas/mqant/gate/mqtt"
+	"time"
 )
 
 type resultInfo struct {
@@ -38,8 +39,9 @@ type agent struct {
 	r  	*bufio.Reader
 	w  	*bufio.Writer
 	gate    *Gate
-	client 	*client
+	client 	*mqtt.Client
 	isclose  bool
+	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
 }
 func (a *agent) IsClosed()(bool){
 	return a.isclose
@@ -78,11 +80,11 @@ func (a *agent) Run() (err error){
 	//id := info.GetUserName()
 	//psw := info.GetPassword()
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
-	c := newClient(conf.Conf.Mqtt,a,a.r, a.w, a.conn,info.GetKeepAlive())
+	c := mqtt.NewClient(conf.Conf.Mqtt,a,a.r, a.w, a.conn,info.GetKeepAlive())
 	a.client=c
 	a.session=NewSession(a.gate.App,map[string]interface{}{
 		"Sessionid"	:Get_uuid(),
-		"Serverid"    	:a.gate.server.GetId(),
+		"Serverid"    	:a.gate.GetServerId(),
 		"Settings"	:make(map[string]interface{}),
 	})
 	a.gate.agentLearner.Connect(a) //发送连接成功的事件
@@ -93,7 +95,7 @@ func (a *agent) Run() (err error){
 		return
 	}
 
-	c.listen_loop()	//开始监听,直到连接中断
+	c.Listen_loop()	//开始监听,直到连接中断
 	return nil
 }
 
@@ -103,6 +105,12 @@ func (a *agent) OnClose() error{
 	return nil
 }
 func (a *agent) OnRecover(pack *mqtt.Pack){
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("Gate  OnRecover error [%s]",r)
+		}
+	}()
+
 	toResult:= func(a *agent,Topic string,Result interface{},Error string) (err error){
 		r:=&resultInfo{
 			Error:Error,
@@ -135,7 +143,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack){
 			}
 			return
 		}
-		serverSession,err:=a.gate.App.GetRouteServersByType(topics[0])
+		serverSession,err:=a.gate.GetRouteServersByType(topics[0])
 		if err!=nil{
 			if msgid!=""{
 				toResult(a,*pub.GetTopic(),nil,fmt.Sprintf("Service(type:%s) not found",topics[0]))
@@ -151,6 +159,31 @@ func (a *agent) OnRecover(pack *mqtt.Pack){
 		}
 		result,e:=serverSession.Call(topics[1],a.GetSession().ExportMap(),obj)
 		toResult(a,*pub.GetTopic(),result,e)
+
+		if a.GetSession().Userid!=""{
+			//这个链接已经绑定Userid
+			interval:=time.Now().UnixNano()/1000000/1000-a.last_storage_heartbeat_data_time //单位秒
+			if interval>a.gate.MinStorageHeartbeat{
+				//如果用户信息存储心跳包的时长已经大于一秒
+				if a.gate.storage!=nil{
+					a.gate.storage.Heartbeat(a.GetSession().Userid)
+					a.last_storage_heartbeat_data_time=time.Now().UnixNano()/1000000/1000
+				}
+			}
+		}
+	case mqtt.PINGREQ:
+		//客户端发送的心跳包
+		if a.GetSession().Userid!=""{
+			//这个链接已经绑定Userid
+			interval:=time.Now().UnixNano()/1000000/1000-a.last_storage_heartbeat_data_time //单位秒
+			if interval>a.gate.MinStorageHeartbeat{
+				//如果用户信息存储心跳包的时长已经大于60秒
+				if a.gate.storage!=nil{
+					a.gate.storage.Heartbeat(a.GetSession().Userid)
+					a.last_storage_heartbeat_data_time=time.Now().UnixNano()/1000000/1000
+				}
+			}
+		}
 	}
 }
 

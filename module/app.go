@@ -54,11 +54,11 @@ type App interface {
 	serverId   调用者服务ID
 	Type	   想要调用的服务类型
 	 */
-	GetRouteServersByType(string)(*ServerSession,error)	//获取经过筛选过的服务
+	GetRouteServersByType(module Module,moduleType string)(*ServerSession,error)	//获取经过筛选过的服务
 	GetServersByType(Type string)([]*ServerSession)
 	GetSettings()(conf.Config) //获取配置信息
-	RpcInvoke(moduleType string,_func string,params ...interface{})(interface{},string)
-	RpcInvokeNR(moduleType string,_func string,params ...interface{})(error)
+	RpcInvoke(module Module,moduleType string,_func string,params ...interface{})(interface{},string)
+	RpcInvokeNR(module Module,moduleType string,_func string,params ...interface{})(error)
 }
 
 type ServerSession struct {
@@ -207,11 +207,11 @@ func (app *DefaultApp)GetServersByType(Type string)([]*ServerSession)  {
 	return sessions
 }
 
-func (app *DefaultApp)GetRouteServersByType(Type string)(s *ServerSession,err error)  {
-	route:=app.getRoute(Type)
-	s=route(app,"","",Type)
+func (app *DefaultApp)GetRouteServersByType(module Module,moduleType string)(s *ServerSession,err error)  {
+	route:=app.getRoute(moduleType)
+	s=route(app,module.GetType(),module.GetModuleSettings().Id,moduleType)
 	if s==nil{
-		err=fmt.Errorf("Server(type : %s) Not Found",Type)
+		err=fmt.Errorf("Server(type : %s) Not Found",moduleType)
 	}
 	return
 }
@@ -220,8 +220,8 @@ func (app *DefaultApp)GetSettings()(conf.Config){
 	return app.settings
 }
 
-func (app *DefaultApp)RpcInvoke(moduleType string,_func string,params ...interface{})(result interface{},err string)  {
-	server,e:=app.GetRouteServersByType(moduleType)
+func (app *DefaultApp)RpcInvoke(module Module,moduleType string,_func string,params ...interface{})(result interface{},err string)  {
+	server,e:=app.GetRouteServersByType(module,moduleType)
 	if e!=nil{
 		err=e.Error()
 		return
@@ -229,8 +229,8 @@ func (app *DefaultApp)RpcInvoke(moduleType string,_func string,params ...interfa
 	return server.Call(_func,params...)
 }
 
-func (app *DefaultApp)RpcInvokeNR(moduleType string,_func string,params ...interface{})(err error)  {
-	server,err:=app.GetRouteServersByType(moduleType)
+func (app *DefaultApp)RpcInvokeNR(module Module,moduleType string,_func string,params ...interface{})(err error)  {
+	server,err:=app.GetRouteServersByType(module,moduleType)
 	if err!=nil{
 		return
 	}

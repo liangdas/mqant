@@ -21,16 +21,11 @@ import (
 	"github.com/liangdas/mqant/conf"
 )
 
-var Module = func() (module.Module){
-	gate := new(Gate)
-	return gate
-}
-
 type Gate struct {
-	App 		module.App
-	server 		*module.Server
+	module.BaseModule
 	MaxConnNum      int
 	MaxMsgLen       uint32
+	MinStorageHeartbeat int64 //Session持久化最短心跳包
 
 	// websocket
 	WSAddr      	string
@@ -44,23 +39,35 @@ type Gate struct {
 	//
 	handler		GateHandler
 	agentLearner	AgentLearner
+	storage		StorageHandler
 }
-func (gate *Gate) GetServer() (*module.Server){
-	if gate.server==nil{
-		gate.server = new(module.Server)
-	}
-	return gate.server
+/**
+设置Session信息持久化接口
+ */
+func (gate *Gate) SetStorageHandler(storage StorageHandler)(error){
+	gate.storage=storage
+	return nil
 }
-func (gate *Gate) GetType()(string){
-	return "Gate"
+
+func (gate *Gate) GetStorageHandler()(storage StorageHandler){
+	return gate.storage
 }
-func (gate *Gate) OnInit(app module.App,settings *conf.ModuleSettings) {
+
+func (gate *Gate) OnInit(subclass module.Module,app module.App,settings *conf.ModuleSettings) {
+	gate.BaseModule.OnInit(subclass,app,settings) //这是必须的
+
+
 	gate.MaxConnNum=int(settings.Settings["MaxConnNum"].(float64))
 	gate.MaxMsgLen=uint32(settings.Settings["MaxMsgLen"].(float64))
 	gate.WSAddr=settings.Settings["WSAddr"].(string)
 	gate.HTTPTimeout=time.Second*time.Duration(settings.Settings["HTTPTimeout"].(float64))
 	gate.TCPAddr=settings.Settings["TCPAddr"].(string)
-	gate.App=app
+	if MinHBStorage, ok := settings.Settings["MinHBStorage"]; ok {
+		gate.MinStorageHeartbeat=int64(MinHBStorage.(float64))
+	}else{
+		gate.MinStorageHeartbeat=60
+	}
+
 
 	handler:=NewGateHandler(gate)
 
@@ -68,7 +75,6 @@ func (gate *Gate) OnInit(app module.App,settings *conf.ModuleSettings) {
 	gate.handler=handler
 
 
-	gate.GetServer().OnInit(app,settings) //初始化net代理服务的RPC服务
 	gate.GetServer().RegisterGO("Update",gate.handler.Update)
 	gate.GetServer().RegisterGO("Bind",gate.handler.Bind)
 	gate.GetServer().RegisterGO("UnBind",gate.handler.UnBind)
@@ -132,6 +138,6 @@ func (gate *Gate) Run(closeSig chan bool) {
 }
 
 func (gate *Gate) OnDestroy() {
-	gate.GetServer().OnDestroy()
+	gate.BaseModule.OnDestroy() //这是必须的
 }
 
