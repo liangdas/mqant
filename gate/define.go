@@ -42,7 +42,7 @@ type StorageHandler interface {
 	Delete(Userid string)(err error)
 	/**
 	获取用户Session信息
-	用户登录以后会调用Query获取最新信息
+	Bind Userid时会调用Query获取最新信息
 	 */
 	Query(Userid string)(settings map[string]interface{},err error)
 	/**
