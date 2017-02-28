@@ -18,10 +18,14 @@ import (
 	"net"
 	"sync"
 	"time"
+	"crypto/tls"
 )
 
 type TCPServer struct {
 	Addr            string
+	Tls		bool	//是否支持tls
+	CertFile	string
+	KeyFile		string
 	MaxConnNum      int
 	NewAgent        func(*TCPConn) Agent
 	ln              net.Listener
@@ -51,11 +55,21 @@ func (server *TCPServer) init() {
 	if server.NewAgent == nil {
 		log.Fatal("NewAgent must not be nil")
 	}
+	if server.Tls {
+		tlsConf := new(tls.Config)
+		tlsConf.Certificates = make([]tls.Certificate, 1)
+		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
+		if err == nil {
+			ln = tls.NewListener(ln, tlsConf)
+			log.Release("TCP Listen TLS load success")
+		}else{
+			log.Error("tcp_server tls :%v",err)
+		}
+	}
 
 	server.ln = ln
 	server.conns = make(ConnSet)
 }
-
 func (server *TCPServer) run() {
 	server.wgLn.Add(1)
 	defer server.wgLn.Done()

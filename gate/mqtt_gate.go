@@ -33,9 +33,11 @@ type Gate struct {
 
 	// tcp
 	TCPAddr      	string
-	Tls		string
-	Cert		string
-	Key		string
+
+	//tls
+	Tls		bool
+	CertFile	string
+	KeyFile		string
 	//
 	handler		GateHandler
 	agentLearner	AgentLearner
@@ -62,6 +64,23 @@ func (gate *Gate) OnInit(subclass module.Module,app module.App,settings *conf.Mo
 	gate.WSAddr=settings.Settings["WSAddr"].(string)
 	gate.HTTPTimeout=time.Second*time.Duration(settings.Settings["HTTPTimeout"].(float64))
 	gate.TCPAddr=settings.Settings["TCPAddr"].(string)
+	if Tls,ok:=settings.Settings["Tls"];ok{
+		gate.Tls=Tls.(bool)
+	}else{
+		gate.Tls= false
+	}
+	if CertFile,ok:=settings.Settings["CertFile"];ok{
+		gate.CertFile=CertFile.(string)
+	}else{
+		gate.CertFile= ""
+	}
+	if KeyFile,ok:=settings.Settings["KeyFile"];ok{
+		gate.KeyFile=KeyFile.(string)
+	}else{
+		gate.KeyFile= ""
+	}
+
+
 	if MinHBStorage, ok := settings.Settings["MinHBStorage"]; ok {
 		gate.MinStorageHeartbeat=int64(MinHBStorage.(float64))
 	}else{
@@ -93,6 +112,9 @@ func (gate *Gate) Run(closeSig chan bool) {
 		wsServer.MaxConnNum = gate.MaxConnNum
 		wsServer.MaxMsgLen = gate.MaxMsgLen
 		wsServer.HTTPTimeout = gate.HTTPTimeout
+		wsServer.Tls=gate.Tls
+		wsServer.CertFile=gate.CertFile
+		wsServer.KeyFile=gate.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
 			a := &agent{
 				conn: conn,
@@ -110,6 +132,9 @@ func (gate *Gate) Run(closeSig chan bool) {
 		tcpServer = new(network.TCPServer)
 		tcpServer.Addr = gate.TCPAddr
 		tcpServer.MaxConnNum = gate.MaxConnNum
+		tcpServer.Tls=gate.Tls
+		tcpServer.CertFile=gate.CertFile
+		tcpServer.KeyFile=gate.KeyFile
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
 			a := &agent{
 				conn: conn,

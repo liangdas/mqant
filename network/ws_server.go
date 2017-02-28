@@ -20,10 +20,14 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"crypto/tls"
 )
 
 type WSServer struct {
 	Addr            string
+	Tls		bool	//是否支持tls
+	CertFile	string
+	KeyFile		string
 	MaxConnNum      int
 	MaxMsgLen       uint32
 	HTTPTimeout     time.Duration
@@ -105,7 +109,17 @@ func (server *WSServer) Start() {
 	if server.NewAgent == nil {
 		log.Fatal("NewAgent must not be nil")
 	}
-
+	if server.Tls {
+		tlsConf := new(tls.Config)
+		tlsConf.Certificates = make([]tls.Certificate, 1)
+		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
+		if err == nil {
+			ln = tls.NewListener(ln, tlsConf)
+			log.Release("WS Listen TLS load success")
+		}else{
+			log.Error("ws_server tls :%v",err)
+		}
+	}
 	server.ln = ln
 	server.handler = &WSHandler{
 		maxConnNum:      server.MaxConnNum,
