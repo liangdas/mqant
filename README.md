@@ -19,6 +19,8 @@ QQ交流群 :463735103
 
  [全平台聊天Demo](https://github.com/liangdas/mqantserver)
  
+ [在线Demo演示（随时可能关闭）](https://www.h5link.com/mqant/index.html)
+ 
 
 #	框架架构
 [mqant的设计动机](https://github.com/liangdas/mqant/wiki/mqant%E7%9A%84%E8%AE%BE%E8%AE%A1%E5%8A%A8%E6%9C%BA)
