@@ -1,0 +1,14 @@
+{
+  "Logger": {
+    "Targets": [
+      {
+        "type": "ConsoleTarget"
+      },
+      {
+        "type": "FileTarget",
+        "FileName": "app.log",
+        "MaxLevel": 4   // Warning or above
+      }
+    ]
+  }
+}
