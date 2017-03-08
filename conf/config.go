@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"fmt"
 )
 var (
 	LenStackBuf=1024
@@ -39,9 +40,11 @@ func LoadConfig(Path string) {
 
 }
 
+
 type Config struct {
-	Module    map[string][]*ModuleSettings
-	Mqtt      Mqtt
+	Module    	map[string][]*ModuleSettings
+	Mqtt      	Mqtt
+	Master		Master
 }
 
 type Rabbitmq struct {
@@ -55,7 +58,7 @@ type Rabbitmq struct {
 type ModuleSettings struct {
 	Id 		string
 	Host 		string
-	Group 		string
+	ProcessID 	string
 	Settings 	map[string]interface{}
 	Rabbitmq 	*Rabbitmq
 }
@@ -68,8 +71,48 @@ type Mqtt struct {
 	WriteTimeout     int // 写入超时
 }
 
+type SSH struct {
+	Host		string
+	Port		int
+	User		string
+	Password	string
+}
+/**
+host:port
+ */
+func (s *SSH)GetSSHHost() (string) {
+	return fmt.Sprintf("%s:%d",s.Host,s.Port)
+}
+type Process struct{
+	ProcessID	string
+	Host		string
+	//执行文件
+	Execfile	string
+	//日志文件目录
+	//pid.nohup.log
+	//pid.access.log
+	//pid.error.log
+	LogDir		string
+	//自定义的参数
+	Args		map[string]interface{}
+}
 
+type Master struct {
+	Enable		bool
+	WebRoot		string
+	WebHost		string
+	SSH		[]*SSH
+	Process    	[]*Process
+}
 
+func (m *Master)GetSSH(host string) (*SSH) {
+	for _,ssh:=range m.SSH{
+		if ssh.Host==host{
+			return ssh
+		}
+	}
+	return nil
+}
 
 
 

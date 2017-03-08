@@ -87,11 +87,11 @@ func (c *Client) Listen_loop() (e error) {
 		select {
 		case pAndErr ,ok:= <-c.readChan:
 			if !ok{
-				log.Error("Get a connection error")
+				log.Info("Get a connection error")
 				break loop
 			}
 			if err = c.waitPack(pAndErr); err != nil {
-				log.Error("Get a connection error , will break(%v)", err)
+				log.Info("Get a connection error , will break(%v)", err)
 				break loop
 			}
 		case <-c.closeChan:
@@ -108,7 +108,7 @@ func (c *Client) Listen_loop() (e error) {
 	// Close channels
 
 	close(c.closeChan)
-	log.Debug("listen_loop Groutine will esc.")
+	log.Info("listen_loop Groutine will esc.")
 	return
 }
 
@@ -217,7 +217,7 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 
 func (c *Client) waitQuit() {
 	// Start close
-	log.Debug("Will break new relogin")
+	log.Info("Will break new relogin")
 	c.isSendClose = true
 }
 

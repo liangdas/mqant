@@ -18,6 +18,7 @@ import (
 	"time"
 	"sync"
 	"github.com/liangdas/mqant/utils"
+	"github.com/liangdas/mqant/module/modules/timer"
 )
 type LocalClient struct{
 	//callinfos map[string]*ClinetCallInfo
@@ -36,7 +37,7 @@ func NewLocalClient(server *LocalServer) (*LocalClient,error){
 	client.done = make(chan error)
 	client.result_chan = make(chan ResultInfo)
 	go client.on_response_handle(client.result_chan, client.done)
-	go client.on_timeout_handle()	//处理超时请求的协程
+	client.on_timeout_handle(nil)	//处理超时请求的协程
 	return client,nil
 	//log.Printf("shutting down")
 	//
@@ -106,8 +107,8 @@ func (c *LocalClient) CallNR(callInfo CallInfo)(err error)  {
 	return nil
 }
 
-func (c *LocalClient)on_timeout_handle()  {
-	for c.callinfos!=nil{
+func (c *LocalClient)on_timeout_handle(args interface{})  {
+	if c.callinfos!=nil{
 		//处理超时的请求
 		for key,clinetCallInfo :=range c.callinfos.Items(){
 			if clinetCallInfo != nil {
@@ -128,7 +129,7 @@ func (c *LocalClient)on_timeout_handle()  {
 
 			}
 		}
-		time.Sleep(time.Second*1)
+		timer.SetTimer(1000, c.on_timeout_handle, nil)
 	}
 }
 

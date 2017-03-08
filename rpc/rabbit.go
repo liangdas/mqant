@@ -50,7 +50,7 @@ func NewConsumer(info *conf.Rabbitmq,amqpURI, exchange, exchangeType, ctag strin
 
 	var err error
 
-	log.Release("dialing %q", amqpURI)
+	log.Info("dialing %q", amqpURI)
 	c.conn, err = amqp.Dial(amqpURI) //打开连接
 	if err != nil {
 		return nil, fmt.Errorf("Dial: %s", err)

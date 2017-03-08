@@ -128,7 +128,7 @@ func (s *AMQPServer) response(props map[string]interface{},body []byte)(error)  
 			// a bunch of application/implementation-specific fields
 		},
 	); err != nil {
-		 log.Debug("Exchange Publish: %s", err)
+		 log.Warning("Exchange Publish: %s", err)
 		return err
 	}
 	return nil

@@ -84,6 +84,8 @@ func (a *agent) Run() (err error){
 	a.client=c
 	a.session=NewSession(a.gate.App,map[string]interface{}{
 		"Sessionid"	:Get_uuid(),
+		"Network"	:a.conn.RemoteAddr().Network(),
+		"IP"		:a.conn.RemoteAddr().String(),
 		"Serverid"    	:a.gate.GetServerId(),
 		"Settings"	:make(map[string]interface{}),
 	})
