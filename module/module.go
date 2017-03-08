@@ -14,78 +14,75 @@
 package module
 
 import (
+	"fmt"
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module/modules/timer"
+	"github.com/liangdas/mqant/rpc"
 	"runtime"
 	"sync"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/module/modules/timer"
-	"fmt"
 )
+
 type App interface {
-	Run(debug bool,mods ...Module)	error
+	Run(debug bool, mods ...Module) error
 	/**
 	当同一个类型的Module存在多个服务时,需要根据情况选择最终路由到哪一个服务去
 	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)
-	 */
-	Route(moduleType string,fn func( app App,moduleType string,serverId string,Type string) (*ServerSession)) error
-	Configure(settings conf.Config)error
+	*/
+	Route(moduleType string, fn func(app App, moduleType string, serverId string, Type string) *ServerSession) error
+	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
-	RegisterLocalClient(serverId string,server *mqrpc.RPCServer) error
-	GetServersById(id string)(*ServerSession,error)
+	RegisterLocalClient(serverId string, server *mqrpc.RPCServer) error
+	GetServersById(id string) (*ServerSession, error)
 	/**
 	moduleType 调用者服务类型
 	Type	   想要调用的服务类型
-	 */
-	GetRouteServersByType(module RPCModule,moduleType string)(*ServerSession,error)	//获取经过筛选过的服务
-	GetServersByType(Type string)([]*ServerSession)
-	GetSettings()(conf.Config) //获取配置信息
-	RpcInvoke(module RPCModule,moduleType string,_func string,params ...interface{})(interface{},string)
-	RpcInvokeNR(module RPCModule,moduleType string,_func string,params ...interface{})(error)
+	*/
+	GetRouteServersByType(module RPCModule, moduleType string) (*ServerSession, error) //获取经过筛选过的服务
+	GetServersByType(Type string) []*ServerSession
+	GetSettings() conf.Config //获取配置信息
+	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
+	RpcInvokeNR(module RPCModule, moduleType string, _func string, params ...interface{}) error
 }
 
 type ServerSession struct {
-	Id 	string
-	Stype   string
-	Rpc	*mqrpc.RPCClient
+	Id    string
+	Stype string
+	Rpc   *mqrpc.RPCClient
 }
 
 /**
 消息请求 需要回复
- */
-func (c *ServerSession) Call(_func string,params ...interface{})(interface{},string)  {
-	return c.Rpc.Call(_func,params...)
+*/
+func (c *ServerSession) Call(_func string, params ...interface{}) (interface{}, string) {
+	return c.Rpc.Call(_func, params...)
 }
-
 
 /**
 消息请求 需要回复
- */
-func (c *ServerSession) CallNR(_func string,params ...interface{})(err error)  {
-	return c.Rpc.CallNR(_func,params...)
+*/
+func (c *ServerSession) CallNR(_func string, params ...interface{}) (err error) {
+	return c.Rpc.CallNR(_func, params...)
 }
-
 
 type Module interface {
-	Version()(string)	//模块版本
-	GetType()(string)	//模块类型
-	OnInit(app App,settings *conf.ModuleSettings)
+	Version() string //模块版本
+	GetType() string //模块类型
+	OnInit(app App, settings *conf.ModuleSettings)
 	OnDestroy()
 	Run(closeSig chan bool)
 }
 type RPCModule interface {
 	Module
-	GetServerId()(string)	//模块类型
-	RpcInvoke(moduleType string,_func string,params ...interface{})(interface{},string)
-	RpcInvokeNR(moduleType string,_func string,params ...interface{})(error)
-	GetModuleSettings()(settings *conf.ModuleSettings)
-	GetRouteServersByType(moduleType string)(*ServerSession,error)	//获取经过筛选过的服务
-	GetStatistical()(statistical string,err error)
-	GetExecuting()int64
+	GetServerId() string //模块类型
+	RpcInvoke(moduleType string, _func string, params ...interface{}) (interface{}, string)
+	RpcInvokeNR(moduleType string, _func string, params ...interface{}) error
+	GetModuleSettings() (settings *conf.ModuleSettings)
+	GetRouteServersByType(moduleType string) (*ServerSession, error) //获取经过筛选过的服务
+	GetStatistical() (statistical string, err error)
+	GetExecuting() int64
 }
-
-
 
 type module struct {
 	mi       Module
@@ -94,25 +91,25 @@ type module struct {
 	wg       sync.WaitGroup
 }
 
-func NewModuleManager()(m *ModuleManager){
-	m=new(ModuleManager)
+func NewModuleManager() (m *ModuleManager) {
+	m = new(ModuleManager)
 	return
 }
 
 type ModuleManager struct {
-	app 	App
-	mods 	[]*module
+	app     App
+	mods    []*module
 	runMods []*module
 }
 
-func (mer *ModuleManager)Register(mi Module) {
+func (mer *ModuleManager) Register(mi Module) {
 	md := new(module)
 	md.mi = mi
 	md.closeSig = make(chan bool, 1)
 
 	mer.mods = append(mer.mods, md)
 }
-func (mer *ModuleManager)RegisterRunMod(mi Module) {
+func (mer *ModuleManager) RegisterRunMod(mi Module) {
 	md := new(module)
 	md.mi = mi
 	md.closeSig = make(chan bool, 1)
@@ -120,61 +117,62 @@ func (mer *ModuleManager)RegisterRunMod(mi Module) {
 	mer.runMods = append(mer.runMods, md)
 }
 
-func (mer *ModuleManager)Init(app App,ProcessID string) {
-	log.Info("This service ProcessID is [%s]",ProcessID)
-	mer.app=app
+func (mer *ModuleManager) Init(app App, ProcessID string) {
+	log.Info("This service ProcessID is [%s]", ProcessID)
+	mer.app = app
 	mer.CheckModuleSettings() //配置文件规则检查
 	for i := 0; i < len(mer.mods); i++ {
-		for Type,modSettings:=range conf.Conf.Module {
-			if mer.mods[i].mi.GetType()==Type{
+		for Type, modSettings := range conf.Conf.Module {
+			if mer.mods[i].mi.GetType() == Type {
 				//匹配
-				for _,setting:=range modSettings{
+				for _, setting := range modSettings {
 					//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
-					if ProcessID==setting.ProcessID{
-						mer.runMods = append(mer.runMods, mer.mods[i])	//这里加入能够运行的组件
-						mer.mods[i].settings=setting
+					if ProcessID == setting.ProcessID {
+						mer.runMods = append(mer.runMods, mer.mods[i]) //这里加入能够运行的组件
+						mer.mods[i].settings = setting
 					}
 				}
-				break	//跳出内部循环
+				break //跳出内部循环
 			}
 		}
 	}
 
 	for i := 0; i < len(mer.runMods); i++ {
 		m := mer.runMods[i]
-		m.mi.OnInit(app,m.settings)
+		m.mi.OnInit(app, m.settings)
 		m.wg.Add(1)
 		go run(m)
 	}
-	timer.SetTimer(3000,mer.ReportStatistics,nil) //统计汇报定时任务
+	timer.SetTimer(3000, mer.ReportStatistics, nil) //统计汇报定时任务
 }
+
 /**
 module配置文件规则检查
 1. ID全局必须唯一
 2. 每一个类型的Module列表中ProcessID不能重复
- */
-func (mer *ModuleManager)CheckModuleSettings(){
-	gid:=map[string]string{} //用来保存全局ID-ModuleType
-	for Type,modSettings:=range conf.Conf.Module {
-		pid:=map[string]string{} //用来保存模块中的 ProcessID-ID
-		for _,setting:=range modSettings{
-			if Stype,ok:=gid[setting.Id];ok{
+*/
+func (mer *ModuleManager) CheckModuleSettings() {
+	gid := map[string]string{} //用来保存全局ID-ModuleType
+	for Type, modSettings := range conf.Conf.Module {
+		pid := map[string]string{} //用来保存模块中的 ProcessID-ID
+		for _, setting := range modSettings {
+			if Stype, ok := gid[setting.Id]; ok {
 				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("ID (%s) been used in modules of type [%s] and cannot be reused",setting.Id,Stype))
-			}else{
-				gid[setting.Id]=Type
+				panic(fmt.Sprintf("ID (%s) been used in modules of type [%s] and cannot be reused", setting.Id, Stype))
+			} else {
+				gid[setting.Id] = Type
 			}
 
-			if Id,ok:=pid[setting.ProcessID];ok{
+			if Id, ok := pid[setting.ProcessID]; ok {
 				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("In the list of modules of type [%s], ProcessID (%s) has been used for ID module for (%s)",Type,setting.ProcessID,Id))
-			}else{
-				pid[setting.ProcessID]=setting.Id
+				panic(fmt.Sprintf("In the list of modules of type [%s], ProcessID (%s) has been used for ID module for (%s)", Type, setting.ProcessID, Id))
+			} else {
+				pid[setting.ProcessID] = setting.Id
 			}
 		}
 	}
 }
-func (mer *ModuleManager)Destroy() {
+func (mer *ModuleManager) Destroy() {
 	for i := len(mer.runMods) - 1; i >= 0; i-- {
 		m := mer.runMods[i]
 		m.closeSig <- true
@@ -214,7 +212,7 @@ func destroy(m *module) {
 	m.mi.OnDestroy()
 }
 
-func (mer *ModuleManager)ReportStatistics(args interface{}){
+func (mer *ModuleManager) ReportStatistics(args interface{}) {
 	if mer.app.GetSettings().Master.Enable {
 		for _, m := range mer.runMods {
 			mi := m.mi
@@ -224,9 +222,9 @@ func (mer *ModuleManager)ReportStatistics(args interface{}){
 				servers := mer.app.GetServersByType("Master")
 				if len(servers) == 1 {
 					b, _ := value.GetStatistical()
-					_,err:=servers[0].Call("ReportForm", value.GetType(), m.settings.ProcessID, m.settings.Id,value.Version(), b, value.GetExecuting())
-					if err!=""{
-						log.Warning("Report To Master error :",err)
+					_, err := servers[0].Call("ReportForm", value.GetType(), m.settings.ProcessID, m.settings.Id, value.Version(), b, value.GetExecuting())
+					if err != "" {
+						log.Warning("Report To Master error :", err)
 					}
 				}
 			default:

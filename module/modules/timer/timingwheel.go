@@ -1,9 +1,9 @@
 package timer
 
 import (
+	"github.com/liangdas/mqant/log"
 	"sync"
 	"time"
-	"github.com/liangdas/mqant/log"
 )
 
 const wheel_cnt uint8 = 5                                                                   //时间轮数量5个
@@ -12,8 +12,8 @@ var right_shift_per_wheel = [wheel_cnt]uint32{8, 6, 6, 6, 6}                    
 var base_per_wheel = [wheel_cnt]uint32{1, 256, 256 * 64, 256 * 64 * 64, 256 * 64 * 64 * 64} //记录每个时间轮指针当前指向的位置
 var mutex sync.Mutex                                                                        //加锁
 var rwmutex sync.RWMutex
-var newest [wheel_cnt]uint32                           //每个时间轮当前指针所指向的位置
-var timewheels [5][]*Node                              //定义5个时间轮
+var newest [wheel_cnt]uint32 //每个时间轮当前指针所指向的位置
+var timewheels [5][]*Node    //定义5个时间轮
 //var TimerMap map[string]*Node = make(map[string]*Node) //保存待执行的计时器，方便按链表节点指针地址直接删除定时器
 
 type mtimer struct {

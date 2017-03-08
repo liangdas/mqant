@@ -12,40 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package mqrpc
+
 import (
+	"fmt"
+	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/streadway/amqp"
-	"github.com/liangdas/mqant/conf"
-	"fmt"
 )
+
 type Consumer struct {
-	info    *conf.Rabbitmq
-	conn    *amqp.Connection
-	channel *amqp.Channel
+	info           *conf.Rabbitmq
+	conn           *amqp.Connection
+	channel        *amqp.Channel
 	callback_queue string
-	tag     string
+	tag            string
 }
 
 type RabbitMQInfo struct {
-	uri           string
-	exchange      string
-	exchangeType  string
-	queue         string
+	uri            string
+	exchange       string
+	exchangeType   string
+	queue          string
 	callback_queue string
-	bindingKey    string	//
-	consumerTag   string	//消费者TAG
+	bindingKey     string //
+	consumerTag    string //消费者TAG
 }
 
-
-
-
-func NewConsumer(info *conf.Rabbitmq,amqpURI, exchange, exchangeType, ctag string) (*Consumer, error) {
+func NewConsumer(info *conf.Rabbitmq, amqpURI, exchange, exchangeType, ctag string) (*Consumer, error) {
 	c := &Consumer{
-		info:	info,
-		conn:    nil,
-		channel: nil,
-		callback_queue:"",
-		tag:     ctag,
+		info:           info,
+		conn:           nil,
+		channel:        nil,
+		callback_queue: "",
+		tag:            ctag,
 	}
 
 	var err error
@@ -79,8 +78,6 @@ func NewConsumer(info *conf.Rabbitmq,amqpURI, exchange, exchangeType, ctag strin
 	); err != nil {
 		return nil, fmt.Errorf("Exchange Declare: %s", err)
 	}
-
-
 
 	return c, nil
 }

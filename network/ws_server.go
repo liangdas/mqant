@@ -14,36 +14,36 @@
 package network
 
 import (
+	"crypto/tls"
 	"github.com/gorilla/websocket"
 	"github.com/liangdas/mqant/log"
 	"net"
 	"net/http"
 	"sync"
 	"time"
-	"crypto/tls"
 )
 
 type WSServer struct {
-	Addr            string
-	Tls		bool	//是否支持tls
-	CertFile	string
-	KeyFile		string
-	MaxConnNum      int
-	MaxMsgLen       uint32
-	HTTPTimeout     time.Duration
-	NewAgent        func(*WSConn) Agent
-	ln              net.Listener
-	handler         *WSHandler
+	Addr        string
+	Tls         bool //是否支持tls
+	CertFile    string
+	KeyFile     string
+	MaxConnNum  int
+	MaxMsgLen   uint32
+	HTTPTimeout time.Duration
+	NewAgent    func(*WSConn) Agent
+	ln          net.Listener
+	handler     *WSHandler
 }
 
 type WSHandler struct {
-	maxConnNum      int
-	maxMsgLen       uint32
-	newAgent        func(*WSConn) Agent
-	upgrader        websocket.Upgrader
-	conns           WebsocketConnSet
-	mutexConns      sync.Mutex
-	wg              sync.WaitGroup
+	maxConnNum int
+	maxMsgLen  uint32
+	newAgent   func(*WSConn) Agent
+	upgrader   websocket.Upgrader
+	conns      WebsocketConnSet
+	mutexConns sync.Mutex
+	wg         sync.WaitGroup
 }
 
 func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -116,19 +116,19 @@ func (server *WSServer) Start() {
 		if err == nil {
 			ln = tls.NewListener(ln, tlsConf)
 			log.Info("WS Listen TLS load success")
-		}else{
-			log.Warning("ws_server tls :%v",err)
+		} else {
+			log.Warning("ws_server tls :%v", err)
 		}
 	}
 	server.ln = ln
 	server.handler = &WSHandler{
-		maxConnNum:      server.MaxConnNum,
-		maxMsgLen:       server.MaxMsgLen,
-		newAgent:        server.NewAgent,
-		conns:           make(WebsocketConnSet),
+		maxConnNum: server.MaxConnNum,
+		maxMsgLen:  server.MaxMsgLen,
+		newAgent:   server.NewAgent,
+		conns:      make(WebsocketConnSet),
 		upgrader: websocket.Upgrader{
 			HandshakeTimeout: server.HTTPTimeout,
-			Subprotocols:	[]string{"mqttv3.1"},
+			Subprotocols:     []string{"mqttv3.1"},
 			CheckOrigin:      func(_ *http.Request) bool { return true },
 		},
 	}
@@ -140,7 +140,7 @@ func (server *WSServer) Start() {
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,
 	}
-	log.Info("WS Listen :",server.Addr)
+	log.Info("WS Listen :", server.Addr)
 	go httpServer.Serve(ln)
 }
 

@@ -15,7 +15,7 @@
 package utils
 
 import (
-"sync"
+	"sync"
 )
 
 // BeeMap is a map with lock

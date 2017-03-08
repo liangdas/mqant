@@ -14,26 +14,26 @@
 package mqrpc
 
 import (
-	"time"
-	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/utils/uuid"
+	"time"
 )
 
-type RPCClient struct{
+type RPCClient struct {
 	remote_client *AMQPClient
-	local_client *LocalClient
+	local_client  *LocalClient
 }
 
-func NewRPCClient() (*RPCClient,error){
-	rpc_client:=new(RPCClient)
-	return rpc_client,nil
+func NewRPCClient() (*RPCClient, error) {
+	rpc_client := new(RPCClient)
+	return rpc_client, nil
 }
 
-func (c *RPCClient)NewRemoteClient(info *conf.Rabbitmq)(err error){
+func (c *RPCClient) NewRemoteClient(info *conf.Rabbitmq) (err error) {
 	//创建本地连接
-	if info!=nil&&c.remote_client==nil{
-		c.remote_client,err=NewAMQPClient(info)
+	if info != nil && c.remote_client == nil {
+		c.remote_client, err = NewAMQPClient(info)
 		if err != nil {
 			log.Error("Dial: %s", err)
 		}
@@ -41,10 +41,10 @@ func (c *RPCClient)NewRemoteClient(info *conf.Rabbitmq)(err error){
 	return
 }
 
-func (c *RPCClient)NewLocalClient(server *RPCServer)(err error){
+func (c *RPCClient) NewLocalClient(server *RPCServer) (err error) {
 	//创建本地连接
-	if server!=nil&&server.local_server!=nil&&c.local_client==nil{
-		c.local_client,err=NewLocalClient(server.local_server)
+	if server != nil && server.local_server != nil && c.local_client == nil {
+		c.local_client, err = NewLocalClient(server.local_server)
 		if err != nil {
 			log.Error("Dial: %s", err)
 		}
@@ -52,79 +52,76 @@ func (c *RPCClient)NewLocalClient(server *RPCServer)(err error){
 	return
 }
 
-func (c *RPCClient) Done() (err error){
-	if c.remote_client!=nil{
-		err=c.remote_client.Done()
+func (c *RPCClient) Done() (err error) {
+	if c.remote_client != nil {
+		err = c.remote_client.Done()
 	}
-	if c.local_client!=nil{
-		err=c.local_client.Done()
+	if c.local_client != nil {
+		err = c.local_client.Done()
 	}
 	return
 }
 
 /**
 消息请求 需要回复
- */
-func (c *RPCClient) Call(_func string,params ...interface{})(interface{},string)  {
-	var correlation_id  = uuid.Rand().Hex()
-	callInfo :=&CallInfo{
-		Fn:_func,
-		Args:params,
-		Reply:true,//客户端是否需要结果
-		Expired:(time.Now().UTC().Add(time.Second*time.Duration(conf.RpcExpired)).UnixNano())/ 1000000 ,//超时日期 unix 时间戳 单位/毫秒 要求服务端与客户端时间精准同步
-		Cid:correlation_id,
+*/
+func (c *RPCClient) Call(_func string, params ...interface{}) (interface{}, string) {
+	var correlation_id = uuid.Rand().Hex()
+	callInfo := &CallInfo{
+		Fn:      _func,
+		Args:    params,
+		Reply:   true,                                                                                      //客户端是否需要结果
+		Expired: (time.Now().UTC().Add(time.Second * time.Duration(conf.RpcExpired)).UnixNano()) / 1000000, //超时日期 unix 时间戳 单位/毫秒 要求服务端与客户端时间精准同步
+		Cid:     correlation_id,
 	}
 
-	callback:=make(chan ResultInfo,1)
+	callback := make(chan ResultInfo, 1)
 	var err error
 
 	//优先使用本地rpc
-	if c.local_client!=nil{
-		err=c.local_client.Call(*callInfo,callback)
-	}else{
-		if c.remote_client!=nil{
-			err=c.remote_client.Call(*callInfo,callback)
-		}else{
-			return nil,"rpc service connection failed"
+	if c.local_client != nil {
+		err = c.local_client.Call(*callInfo, callback)
+	} else {
+		if c.remote_client != nil {
+			err = c.remote_client.Call(*callInfo, callback)
+		} else {
+			return nil, "rpc service connection failed"
 		}
 	}
 
 	if err != nil {
-		return nil,err.Error()
+		return nil, err.Error()
 	}
 
-	resultInfo,ok:=<-callback
-	if !ok{
-		return nil,"client closed"
+	resultInfo, ok := <-callback
+	if !ok {
+		return nil, "client closed"
 	}
-	return resultInfo.Result,resultInfo.Error
+	return resultInfo.Result, resultInfo.Error
 }
-
 
 /**
 消息请求 不需要回复
- */
-func (c *RPCClient) CallNR(_func string,params ...interface{})(err error)  {
-	var correlation_id  = uuid.Rand().Hex()
-	callInfo :=&CallInfo{
-		Fn:_func,
-		Args:params,
-		Reply:false,//客户端是否需要结果
-		Expired:(time.Now().UTC().Add(time.Second*time.Duration(conf.RpcExpired)).UnixNano())/ 1000000 ,//超时日期 unix 时间戳 单位/毫秒 要求服务端与客户端时间精准同步
-		Cid:correlation_id,
+*/
+func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
+	var correlation_id = uuid.Rand().Hex()
+	callInfo := &CallInfo{
+		Fn:      _func,
+		Args:    params,
+		Reply:   false,                                                                                     //客户端是否需要结果
+		Expired: (time.Now().UTC().Add(time.Second * time.Duration(conf.RpcExpired)).UnixNano()) / 1000000, //超时日期 unix 时间戳 单位/毫秒 要求服务端与客户端时间精准同步
+		Cid:     correlation_id,
 	}
 
 	//优先使用本地rpc
-	if c.local_client!=nil{
-		err=c.local_client.CallNR(*callInfo)
-	}else{
-		err=c.remote_client.CallNR(*callInfo)
+	if c.local_client != nil {
+		err = c.local_client.CallNR(*callInfo)
+	} else {
+		err = c.remote_client.CallNR(*callInfo)
 	}
-
 
 	if err != nil {
 		return err
 	}
 	return nil
 }
-

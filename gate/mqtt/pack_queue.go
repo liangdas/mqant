@@ -17,10 +17,10 @@ package mqtt
 import (
 	"bufio"
 	"fmt"
-	"time"
+	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"github.com/liangdas/mqant/conf"
+	"time"
 )
 
 // Tcp write queue
@@ -32,7 +32,7 @@ type PackQueue struct {
 	errorChan chan error
 	noticeFin chan byte
 	writeChan chan *pakcAdnType
-	readChan  chan <- *packAndErr
+	readChan  chan<- *packAndErr
 	// Pack connection
 	r *bufio.Reader
 	w *bufio.Writer
@@ -60,18 +60,18 @@ type pakcAdnType struct {
 }
 
 // Init a pack queue
-func NewPackQueue(conf conf.Mqtt ,r *bufio.Reader, w *bufio.Writer, conn network.Conn,readChan chan <- *packAndErr, alive int) *PackQueue {
+func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, readChan chan<- *packAndErr, alive int) *PackQueue {
 	if alive < 1 {
 		alive = conf.ReadTimeout
 	}
 	alive = int(float32(alive)*1.5 + 1)
 	return &PackQueue{
-		conf:	   conf,
+		conf:      conf,
 		alive:     alive,
 		r:         r,
 		w:         w,
 		conn:      conn,
-		noticeFin : make(chan byte, 2),
+		noticeFin: make(chan byte, 2),
 		writeChan: make(chan *pakcAdnType, conf.WirteLoopChanNum),
 		readChan:  readChan,
 		errorChan: make(chan error, 1),
@@ -86,8 +86,8 @@ func (queue *PackQueue) writeLoop() {
 loop:
 	for {
 		select {
-		case pt ,ok:= <-queue.writeChan:
-			if !ok{
+		case pt, ok := <-queue.writeChan:
+			if !ok {
 				break loop
 			}
 			if pt == nil {
@@ -142,7 +142,7 @@ func (queue *PackQueue) SetAlive(alive int) error {
 		alive = queue.conf.ReadTimeout
 	}
 	alive = int(float32(alive)*1.5 + 1)
-	queue.alive =	alive
+	queue.alive = alive
 	return nil
 }
 
@@ -178,7 +178,7 @@ func (queue *PackQueue) Flush() error {
 
 // Get a read pack queue
 // Only call once
-func (queue *PackQueue) ReadPackInLoop()  {
+func (queue *PackQueue) ReadPackInLoop() {
 
 	go func() {
 		// defer recover()

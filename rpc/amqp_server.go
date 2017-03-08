@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package mqrpc
+
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/streadway/amqp"
-	"github.com/liangdas/mqant/conf"
-	"fmt"
-	"encoding/json"
 )
 
-
-type AMQPServer struct{
-	call_chan   chan CallInfo
-	Consumer    *Consumer
-	done    chan error
+type AMQPServer struct {
+	call_chan chan CallInfo
+	Consumer  *Consumer
+	done      chan error
 }
 
-func NewAMQPServer(info *conf.Rabbitmq ,call_chan chan CallInfo) (*AMQPServer,error){
-	var queueName=info.Queue
-	var key=info.BindingKey
-	var exchange=info.Exchange
-	c, err := NewConsumer(info,info.Uri, info.Exchange, info.ExchangeType, info.ConsumerTag)
+func NewAMQPServer(info *conf.Rabbitmq, call_chan chan CallInfo) (*AMQPServer, error) {
+	var queueName = info.Queue
+	var key = info.BindingKey
+	var exchange = info.Exchange
+	c, err := NewConsumer(info, info.Uri, info.Exchange, info.ExchangeType, info.ConsumerTag)
 	if err != nil {
 		log.Error("AMQPServer connect fail %s", err)
-		return nil,err
+		return nil, err
 	}
 
 	//log.Printf("declared Exchange, declaring Queue %q", queueName)
@@ -77,47 +77,47 @@ func NewAMQPServer(info *conf.Rabbitmq ,call_chan chan CallInfo) (*AMQPServer,er
 	}
 	server := new(AMQPServer)
 	server.call_chan = call_chan
-	server.Consumer=c
+	server.Consumer = c
 	server.done = make(chan error)
 	go server.on_request_handle(deliveries, server.done)
 
-	return server,nil
+	return server, nil
 	//log.Printf("shutting down")
 	//
 	//if err := c.Shutdown(); err != nil {
 	//	log.Fatalf("error during shutdown: %s", err)
 	//}
 }
+
 /**
-	停止接收请求
- */
-func (s *AMQPServer) StopConsume()(error) {
+停止接收请求
+*/
+func (s *AMQPServer) StopConsume() error {
 	return s.Consumer.Cancel()
 }
 
 /**
-	注销消息队列
- */
-func (s *AMQPServer) Shutdown()(error) {
+注销消息队列
+*/
+func (s *AMQPServer) Shutdown() error {
 	return s.Consumer.Shutdown()
 }
 
-
-func (s *AMQPServer) Callback(callinfo CallInfo)(error){
-	body,_:=json.Marshal(callinfo.Result)
-	return s.response(callinfo.props,body)
+func (s *AMQPServer) Callback(callinfo CallInfo) error {
+	body, _ := json.Marshal(callinfo.Result)
+	return s.response(callinfo.props, body)
 }
 
 /**
 消息应答
- */
-func (s *AMQPServer) response(props map[string]interface{},body []byte)(error)  {
+*/
+func (s *AMQPServer) response(props map[string]interface{}, body []byte) error {
 	var err error
 	if err = s.Consumer.channel.Publish(
-		"",   // publish to an exchange
+		"", // publish to an exchange
 		props["reply_to"].(string), // routing to 0 or more queues
-		false,      // mandatory
-		false,      // immediate
+		false, // mandatory
+		false, // immediate
 		amqp.Publishing{
 			Headers:         amqp.Table{},
 			ContentType:     "text/plain",
@@ -128,15 +128,16 @@ func (s *AMQPServer) response(props map[string]interface{},body []byte)(error)  
 			// a bunch of application/implementation-specific fields
 		},
 	); err != nil {
-		 log.Warning("Exchange Publish: %s", err)
+		log.Warning("Exchange Publish: %s", err)
 		return err
 	}
 	return nil
 }
+
 /**
 接收请求信息
- */
-func (s *AMQPServer)on_request_handle(deliveries <-chan amqp.Delivery, done chan error) {
+*/
+func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done chan error) {
 	for {
 		select {
 		case d, ok := <-deliveries:
@@ -151,17 +152,17 @@ func (s *AMQPServer)on_request_handle(deliveries <-chan amqp.Delivery, done chan
 				//)
 
 				d.Ack(false)
-				callInfo,err:=s.Unmarshal(d.Body)
-				if err==nil{
-					callInfo.props=map[string]interface{}{
+				callInfo, err := s.Unmarshal(d.Body)
+				if err == nil {
+					callInfo.props = map[string]interface{}{
 						"reply_to": d.Headers["reply_to"],
 					}
 
-					callInfo.agent=s	//设置代理为AMQPServer
+					callInfo.agent = s //设置代理为AMQPServer
 
-					s.call_chan<-*callInfo
-				}else{
-					fmt.Println("error ",err)
+					s.call_chan <- *callInfo
+				} else {
+					fmt.Println("error ", err)
 				}
 
 			}
@@ -181,9 +182,9 @@ func (s *AMQPServer) Unmarshal(data []byte) (*CallInfo, error) {
 	var callInfo CallInfo
 	err := json.Unmarshal(data, &callInfo)
 	if err != nil {
-		return nil,err
+		return nil, err
 	} else {
-		return &callInfo,err
+		return &callInfo, err
 	}
 
 	panic("bug")
@@ -191,7 +192,6 @@ func (s *AMQPServer) Unmarshal(data []byte) (*CallInfo, error) {
 
 // goroutine safe
 func (s *AMQPServer) Marshal(callInfo *CallInfo) ([]byte, error) {
-	b,err:=json.Marshal(callInfo)
+	b, err := json.Marshal(callInfo)
 	return b, err
 }
-

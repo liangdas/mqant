@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/liangdas/mqant/utils/x/crypto/ssh/agent"
 	"github.com/liangdas/mqant/utils/x/crypto/ssh"
+	"github.com/liangdas/mqant/utils/x/crypto/ssh/agent"
 )
 
 func TestAgentForward(t *testing.T) {

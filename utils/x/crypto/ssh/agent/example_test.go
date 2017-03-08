@@ -6,20 +6,20 @@ package agent_test
 
 import (
 	"log"
-	"os"
 	"net"
+	"os"
 
-	"github.com/liangdas/mqant/utils/x/crypto/ssh/agent"
 	"github.com/liangdas/mqant/utils/x/crypto/ssh"
+	"github.com/liangdas/mqant/utils/x/crypto/ssh/agent"
 )
 
 func ExampleClientAgent() {
 	// ssh-agent has a UNIX socket under $SSH_AUTH_SOCK
 	socket := os.Getenv("SSH_AUTH_SOCK")
-        conn, err := net.Dial("unix", socket)
-        if err != nil {
-                log.Fatalf("net.Dial: %v", err)
-        }
+	conn, err := net.Dial("unix", socket)
+	if err != nil {
+		log.Fatalf("net.Dial: %v", err)
+	}
 	agentClient := agent.NewClient(conn)
 	config := &ssh.ClientConfig{
 		User: "username",

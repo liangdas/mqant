@@ -19,43 +19,42 @@ import (
 	"github.com/liangdas/mqant/rpc"
 )
 
-
 type Server struct {
-	settings      *conf.ModuleSettings
-	server	      *mqrpc.RPCServer
+	settings *conf.ModuleSettings
+	server   *mqrpc.RPCServer
 }
 
-func (s *Server) GetId()(string){
+func (s *Server) GetId() string {
 	return s.settings.Id
 }
-func (s *Server) OnInit(app App,settings *conf.ModuleSettings) {
-	s.settings=settings
-	server,err:=mqrpc.NewRPCServer()	//默认会创建一个本地的RPC
+func (s *Server) OnInit(app App, settings *conf.ModuleSettings) {
+	s.settings = settings
+	server, err := mqrpc.NewRPCServer() //默认会创建一个本地的RPC
 	if err != nil {
 		log.Warning("Dial: %s", err)
 	}
 
-	if settings.Rabbitmq!=nil{
+	if settings.Rabbitmq != nil {
 		//存在远程rpc的配置
 		server.NewRemoteRPCServer(settings.Rabbitmq)
 	}
 
-	s.server=server
-	err=app.RegisterLocalClient(settings.Id,server)
+	s.server = server
+	err = app.RegisterLocalClient(settings.Id, server)
 	if err != nil {
-		log.Warning("RegisterLocalClient: id(%s) error(%s)",settings.Id,err)
+		log.Warning("RegisterLocalClient: id(%s) error(%s)", settings.Id, err)
 	}
-	log.Info("RPCServer init success id(%s)",s.settings.Id)
+	log.Info("RPCServer init success id(%s)", s.settings.Id)
 }
-func (s *Server) OnDestroy(){
-	if s.server!=nil{
-		err:=s.server.Done()
-		if err!=nil{
-			log.Warning("RPCServer close fail id(%s) error(%s)",s.settings.Id,err)
-		}else{
-			log.Info("RPCServer close success id(%s)",s.settings.Id)
+func (s *Server) OnDestroy() {
+	if s.server != nil {
+		err := s.server.Done()
+		if err != nil {
+			log.Warning("RPCServer close fail id(%s) error(%s)", s.settings.Id, err)
+		} else {
+			log.Info("RPCServer close success id(%s)", s.settings.Id)
 		}
-		s.server=nil
+		s.server = nil
 	}
 }
 
@@ -73,8 +72,7 @@ func (s *Server) RegisterGO(id string, f interface{}) {
 	s.server.RegisterGO(id, f)
 }
 
-
-func (s *Server) GetRPCServer()(*mqrpc.RPCServer){
+func (s *Server) GetRPCServer() *mqrpc.RPCServer {
 	if s.server == nil {
 		panic("invalid RPCServer")
 	}

@@ -25,8 +25,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/liangdas/mqant/utils/x/crypto/ssh"
 	"github.com/liangdas/mqant/utils/x/crypto/ed25519"
+	"github.com/liangdas/mqant/utils/x/crypto/ssh"
 )
 
 // Agent represents the capabilities of an ssh-agent.

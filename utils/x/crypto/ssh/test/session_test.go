@@ -11,10 +11,10 @@ package test
 import (
 	"bytes"
 	"errors"
+	"github.com/liangdas/mqant/utils/x/crypto/ssh"
 	"io"
 	"strings"
 	"testing"
-	"github.com/liangdas/mqant/utils/x/crypto/ssh"
 )
 
 func TestRunCommandSuccess(t *testing.T) {

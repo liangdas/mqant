@@ -14,44 +14,45 @@
 package gate
 
 import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/gate/mqtt"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"bufio"
-	"runtime"
-	"fmt"
-	"strings"
-	"encoding/json"
-	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/utils/uuid"
-	"github.com/liangdas/mqant/gate/mqtt"
+	"runtime"
+	"strings"
 	"time"
 )
 
 type resultInfo struct {
-	Error   string  //错误结果 如果为nil表示请求正确
-	Result  interface{}	//结果
+	Error  string      //错误结果 如果为nil表示请求正确
+	Result interface{} //结果
 }
 
 type agent struct {
 	Agent
-	session *Session
-	conn    network.Conn
-	r  	*bufio.Reader
-	w  	*bufio.Writer
-	gate    *Gate
-	client 	*mqtt.Client
-	isclose  bool
+	session                          *Session
+	conn                             network.Conn
+	r                                *bufio.Reader
+	w                                *bufio.Writer
+	gate                             *Gate
+	client                           *mqtt.Client
+	isclose                          bool
 	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
 }
-func (a *agent) IsClosed()(bool){
+
+func (a *agent) IsClosed() bool {
 	return a.isclose
 }
 
-func (a *agent) GetSession()(*Session){
+func (a *agent) GetSession() *Session {
 	return a.session
 }
 
-func (a *agent) Run() (err error){
+func (a *agent) Run() (err error) {
 	defer func() {
 		if err := recover(); err != nil {
 			buff := make([]byte, 4096)
@@ -65,7 +66,7 @@ func (a *agent) Run() (err error){
 	var pack *mqtt.Pack
 	pack, err = mqtt.ReadPack(a.r)
 	if err != nil {
-		log.Error("Read login pack error",err)
+		log.Error("Read login pack error", err)
 		return
 	}
 	if pack.GetType() != mqtt.CONNECT {
@@ -80,14 +81,14 @@ func (a *agent) Run() (err error){
 	//id := info.GetUserName()
 	//psw := info.GetPassword()
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
-	c := mqtt.NewClient(conf.Conf.Mqtt,a,a.r, a.w, a.conn,info.GetKeepAlive())
-	a.client=c
-	a.session=NewSession(a.gate.App,map[string]interface{}{
-		"Sessionid"	:Get_uuid(),
-		"Network"	:a.conn.RemoteAddr().Network(),
-		"IP"		:a.conn.RemoteAddr().String(),
-		"Serverid"    	:a.gate.GetServerId(),
-		"Settings"	:make(map[string]interface{}),
+	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
+	a.client = c
+	a.session = NewSession(a.gate.App, map[string]interface{}{
+		"Sessionid": Get_uuid(),
+		"Network":   a.conn.RemoteAddr().Network(),
+		"IP":        a.conn.RemoteAddr().String(),
+		"Serverid":  a.gate.GetServerId(),
+		"Settings":  make(map[string]interface{}),
 	})
 	a.gate.agentLearner.Connect(a) //发送连接成功的事件
 
@@ -97,30 +98,30 @@ func (a *agent) Run() (err error){
 		return
 	}
 
-	c.Listen_loop()	//开始监听,直到连接中断
+	c.Listen_loop() //开始监听,直到连接中断
 	return nil
 }
 
-func (a *agent) OnClose() error{
-	a.isclose=true
+func (a *agent) OnClose() error {
+	a.isclose = true
 	a.gate.agentLearner.DisConnect(a) //发送连接断开的事件
 	return nil
 }
-func (a *agent) OnRecover(pack *mqtt.Pack){
+func (a *agent) OnRecover(pack *mqtt.Pack) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Gate  OnRecover error [%s]",r)
+			log.Error("Gate  OnRecover error [%s]", r)
 		}
 	}()
 
-	toResult:= func(a *agent,Topic string,Result interface{},Error string) (err error){
-		r:=&resultInfo{
-			Error:Error,
-			Result:Result,
+	toResult := func(a *agent, Topic string, Result interface{}, Error string) (err error) {
+		r := &resultInfo{
+			Error:  Error,
+			Result: Result,
 		}
-		b,err:=json.Marshal(r)
-		if err==nil{
-			a.WriteMsg(Topic,b)
+		b, err := json.Marshal(r)
+		if err == nil {
+			a.WriteMsg(Topic, b)
 		}
 		return
 	}
@@ -128,71 +129,70 @@ func (a *agent) OnRecover(pack *mqtt.Pack){
 	switch pack.GetType() {
 	case mqtt.PUBLISH:
 		pub := pack.GetVariable().(*mqtt.Publish)
-		topics:=strings.Split(*pub.GetTopic(),"/")
+		topics := strings.Split(*pub.GetTopic(), "/")
 		var msgid string
-		if len(topics)<2{
+		if len(topics) < 2 {
 			log.Error("Topic must be [serverType]/[handler]|[serverType]/[handler]/[msgid]")
 			return
-		}else if len(topics)==3{
-			msgid=topics[2]
+		} else if len(topics) == 3 {
+			msgid = topics[2]
 		}
 
 		var obj interface{} // var obj map[string]interface{}
-		err:=json.Unmarshal(pub.GetMsg(), &obj)
-		if err!=nil{
-			if msgid!=""{
-				toResult(a,*pub.GetTopic(),nil,"body must be JSON format")
+		err := json.Unmarshal(pub.GetMsg(), &obj)
+		if err != nil {
+			if msgid != "" {
+				toResult(a, *pub.GetTopic(), nil, "body must be JSON format")
 			}
 			return
 		}
-		serverSession,err:=a.gate.GetRouteServersByType(topics[0])
-		if err!=nil{
-			if msgid!=""{
-				toResult(a,*pub.GetTopic(),nil,fmt.Sprintf("Service(type:%s) not found",topics[0]))
+		serverSession, err := a.gate.GetRouteServersByType(topics[0])
+		if err != nil {
+			if msgid != "" {
+				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
 			}
 			return
 		}
 		startsWith := strings.HasPrefix(topics[1], "HD_")
-		if !startsWith{
-			if msgid!=""{
-				toResult(a,*pub.GetTopic(),nil,fmt.Sprintf("Method(%s) must begin with 'HD_'",topics[1]))
+		if !startsWith {
+			if msgid != "" {
+				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Method(%s) must begin with 'HD_'", topics[1]))
 			}
 			return
 		}
-		result,e:=serverSession.Call(topics[1],a.GetSession().ExportMap(),obj)
-		toResult(a,*pub.GetTopic(),result,e)
+		result, e := serverSession.Call(topics[1], a.GetSession().ExportMap(), obj)
+		toResult(a, *pub.GetTopic(), result, e)
 
-		if a.GetSession().Userid!=""{
+		if a.GetSession().Userid != "" {
 			//这个链接已经绑定Userid
-			interval:=time.Now().UnixNano()/1000000/1000-a.last_storage_heartbeat_data_time //单位秒
-			if interval>a.gate.MinStorageHeartbeat{
+			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
+			if interval > a.gate.MinStorageHeartbeat {
 				//如果用户信息存储心跳包的时长已经大于一秒
-				if a.gate.storage!=nil{
+				if a.gate.storage != nil {
 					a.gate.storage.Heartbeat(a.GetSession().Userid)
-					a.last_storage_heartbeat_data_time=time.Now().UnixNano()/1000000/1000
+					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}
 		}
 	case mqtt.PINGREQ:
 		//客户端发送的心跳包
-		if a.GetSession().Userid!=""{
+		if a.GetSession().Userid != "" {
 			//这个链接已经绑定Userid
-			interval:=time.Now().UnixNano()/1000000/1000-a.last_storage_heartbeat_data_time //单位秒
-			if interval>a.gate.MinStorageHeartbeat{
+			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
+			if interval > a.gate.MinStorageHeartbeat {
 				//如果用户信息存储心跳包的时长已经大于60秒
-				if a.gate.storage!=nil{
+				if a.gate.storage != nil {
 					a.gate.storage.Heartbeat(a.GetSession().Userid)
-					a.last_storage_heartbeat_data_time=time.Now().UnixNano()/1000000/1000
+					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}
 		}
 	}
 }
 
-func (a *agent) WriteMsg(topic  string,body []byte) error{
-	return a.client.WriteMsg(topic,body)
+func (a *agent) WriteMsg(topic string, body []byte) error {
+	return a.client.WriteMsg(topic, body)
 }
-
 
 func (a *agent) Close() {
 	a.conn.Close()
@@ -201,7 +201,6 @@ func (a *agent) Close() {
 func (a *agent) Destroy() {
 	a.conn.Destroy()
 }
-
 
 func Get_uuid() string {
 	return uuid.Rand().Hex()

@@ -12,25 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package aes
+
 import (
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
 )
 
-func NewAesEncrypt(key string)(aes *AesEncrypt,err error){
+func NewAesEncrypt(key string) (aes *AesEncrypt, err error) {
 	keyLen := len(key)
 	if keyLen < 16 {
-		err=fmt.Errorf("The length of res key shall not be less than 16")
+		err = fmt.Errorf("The length of res key shall not be less than 16")
 		return
 	}
-	aes=&AesEncrypt{
-		StrKey:key,
+	aes = &AesEncrypt{
+		StrKey: key,
 	}
-	return aes,nil
+	return aes, nil
 }
+
 type AesEncrypt struct {
-	StrKey	string
+	StrKey string
 }
 
 func (this *AesEncrypt) getKey() []byte {

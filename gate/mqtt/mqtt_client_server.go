@@ -17,12 +17,12 @@ package mqtt
 import (
 	"bufio"
 	"errors"
-	"sync"
+	"fmt"
+	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"github.com/liangdas/mqant/conf"
 	"math"
-	"fmt"
+	"sync"
 )
 
 var notAlive = errors.New("Connection was dead")
@@ -34,10 +34,8 @@ type PackRecover interface {
 type Client struct {
 	queue *PackQueue
 
-
-	recover	 PackRecover //消息接收者,从上层接口传过来的 只接收正式消息(心跳包,回复包等都不要)
+	recover  PackRecover        //消息接收者,从上层接口传过来的 只接收正式消息(心跳包,回复包等都不要)
 	readChan <-chan *packAndErr //读取底层接收到的所有数据包包
-
 
 	closeChan   chan byte // Other gorountine Call notice exit
 	isSendClose bool      // Wheather has a new login user.
@@ -50,15 +48,15 @@ type Client struct {
 	curr_id int
 }
 
-func NewClient(conf conf.Mqtt ,recover PackRecover,r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
-	readChan:=make(chan *packAndErr,conf.ReadPackLoop)
+func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
+	readChan := make(chan *packAndErr, conf.ReadPackLoop)
 	return &Client{
-		readChan:	readChan,
-		queue:     	NewPackQueue(conf,r, w, conn,readChan,alive),
-		recover:	recover,
-		closeChan: 	make(chan byte),
-		lock:      	new(sync.Mutex),
-		curr_id: 	0,
+		readChan:  readChan,
+		queue:     NewPackQueue(conf, r, w, conn, readChan, alive),
+		recover:   recover,
+		closeChan: make(chan byte),
+		lock:      new(sync.Mutex),
+		curr_id:   0,
 	}
 }
 
@@ -72,7 +70,7 @@ func (c *Client) Listen_loop() (e error) {
 		}
 	}()
 	var (
-		err     error
+		err error
 		// wg        = new(sync.WaitGroup)
 	)
 
@@ -82,11 +80,11 @@ func (c *Client) Listen_loop() (e error) {
 	c.queue.ReadPackInLoop()
 
 	// Start push 读取数据包
-	loop:
+loop:
 	for {
 		select {
-		case pAndErr ,ok:= <-c.readChan:
-			if !ok{
+		case pAndErr, ok := <-c.readChan:
+			if !ok {
 				log.Info("Get a connection error")
 				break loop
 			}
@@ -152,42 +150,42 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 		//c.delMsg(ack.GetMid())
 		//这里向上层转发消息
 		//log.Debug("Ack To Client Qos(%d) mid(%d) Topic(%v) msg(%s) \n",pAndErr.pack.GetQos(),pub.GetMid(), *pub.GetTopic(),pub.GetMsg())
-		if pAndErr.pack.GetQos()==1{
+		if pAndErr.pack.GetQos() == 1 {
 			//回复已收到
 			//log.Debug("Ack To Client By PUBACK \n")
 			err = c.queue.WritePack(GetPubAckPack(pub.GetMid()))
-			if err!=nil{
+			if err != nil {
 				//log.Debug("PUBACK error(%s) \n",err.Error())
 			}
-		}else if(pAndErr.pack.GetQos()==2) {
+		} else if pAndErr.pack.GetQos() == 2 {
 			//log.Debug("Ack To Client By PUBREC \n")
 			err = c.queue.WritePack(GetPubRECPack(pub.GetMid()))
 		}
 		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
-	case PUBACK:	//4
+	case PUBACK: //4
 		//用于 Qos =1 的消息
 		//ack := pAndErr.pack.GetVariable().(*mqtt.Puback)
 		//log.Debug("Client Ack Qos(%d) Dup(%d) mid(%d) \n",pAndErr.pack.GetQos(),pAndErr.pack.GetDup(), ack.GetMid())
-	case PUBREC:	//5
+	case PUBREC: //5
 		//log.Debug("Ack To Client By PUBREL \n")
 		//用于 Qos =2 的消息 回复 PUBREL
 		ack := pAndErr.pack.GetVariable().(*Puback)
 		err = c.queue.WritePack(GetPubRELPack(ack.GetMid()))
-	case PUBREL:	//6
+	case PUBREL: //6
 		//log.Debug("Ack To Client By PUBCOMP \n")
 		//用于 Qos =2 的消息 回复 PUBCOMP
 		ack := pAndErr.pack.GetVariable().(*Puback)
 		err = c.queue.WritePack(GetPubCOMPPack(ack.GetMid()))
-	case PUBCOMP:	//7
+	case PUBCOMP: //7
 		//消息发送端最终确认这条消息
 		//log.Debug("消息最终确认")
-	case SUBSCRIBE:	//7
+	case SUBSCRIBE: //7
 		//消息发送端最终确认这条消息
 		sub := pAndErr.pack.GetVariable().(*Subscribe)
-		for _,top:=range sub.GetTopics(){
+		for _, top := range sub.GetTopics() {
 			//log.Debug("Subscribe %s",*top.GetName())
-			if top.Qos==2{
+			if top.Qos == 2 {
 				//log.Debug("Ack To Client By Suback \n")
 				//用于 Qos =2 的消息 回复 PUBCOMP
 				err = c.queue.WritePack(GetSubAckPack(sub.GetMid()))
@@ -195,7 +193,7 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 		}
 		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
-	case UNSUBSCRIBE:	//7
+	case UNSUBSCRIBE: //7
 		//消息发送端最终确认这条消息
 		sub := pAndErr.pack.GetVariable().(*UNSubscribe)
 		err = c.queue.WritePack(GetUNSubAckPack(sub.GetMid()))
@@ -214,13 +212,11 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	return
 }
 
-
 func (c *Client) waitQuit() {
 	// Start close
 	log.Info("Will break new relogin")
 	c.isSendClose = true
 }
-
 
 func (c *Client) pushMsg(pack *Pack) error {
 	// Write this pack
@@ -228,12 +224,11 @@ func (c *Client) pushMsg(pack *Pack) error {
 	return err
 }
 
-func (c *Client) WriteMsg(topic  string,body []byte) error {
-	if c.isStop{
+func (c *Client) WriteMsg(topic string, body []byte) error {
+	if c.isStop {
 		return fmt.Errorf("connection is closed")
 	}
-	pack := GetPubPack(1, 0,c.getOnlineMsgId(), &topic, body)
+	pack := GetPubPack(1, 0, c.getOnlineMsgId(), &topic, body)
 	return c.pushMsg(pack)
 	//return nil
 }
-

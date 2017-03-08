@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
 )
 
 // startAgent executes ssh-agent, and returns a Agent interface to it.

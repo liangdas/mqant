@@ -16,21 +16,21 @@ package network
 import (
 	"github.com/gorilla/websocket"
 	//"github.com/liangdas/mqant/log"
+	"bytes"
+	"io"
 	"net"
 	"sync"
-	"io"
-	"bytes"
 	"time"
 )
 
 type WebsocketConnSet map[*websocket.Conn]struct{}
 
 type WSConn struct {
-	io.Reader	//Read(p []byte) (n int, err error)
-	io.Writer	//Write(p []byte) (n int, err error)
+	io.Reader //Read(p []byte) (n int, err error)
+	io.Writer //Write(p []byte) (n int, err error)
 	sync.Mutex
-	buf_lock chan bool	//当有写入一次数据设置一次
-	buffer bytes.Buffer
+	buf_lock  chan bool //当有写入一次数据设置一次
+	buffer    bytes.Buffer
 	conn      *websocket.Conn
 	closeFlag bool
 }
@@ -38,17 +38,17 @@ type WSConn struct {
 func newWSConn(conn *websocket.Conn) *WSConn {
 	wsConn := new(WSConn)
 	wsConn.conn = conn
-	wsConn.buf_lock=make(chan bool)
+	wsConn.buf_lock = make(chan bool)
 
 	go func() {
-		for  {
+		for {
 			_, b, err := wsConn.conn.ReadMessage()
-			if err!=nil{
+			if err != nil {
 				//log.Error("读取数据失败 %s",err.Error())
-				wsConn.buf_lock<-false
-			}else{
+				wsConn.buf_lock <- false
+			} else {
 				wsConn.buffer.Write(b)
-				wsConn.buf_lock<-true
+				wsConn.buf_lock <- true
 			}
 		}
 
@@ -77,24 +77,23 @@ func (wsConn *WSConn) Destroy() {
 	wsConn.doDestroy()
 }
 
-func (wsConn *WSConn) Close() (error){
+func (wsConn *WSConn) Close() error {
 	wsConn.Lock()
 	defer wsConn.Unlock()
 	if wsConn.closeFlag {
-		return	nil
+		return nil
 	}
 	wsConn.closeFlag = true
 	return wsConn.conn.Close()
 }
 
-func (wsConn *WSConn) Write(p []byte) (n int, err error){
+func (wsConn *WSConn) Write(p []byte) (n int, err error) {
 	err = wsConn.conn.WriteMessage(websocket.BinaryMessage, p)
 	if err != nil {
-		return 0,err
+		return 0, err
 	}
-	return len(p),nil
+	return len(p), nil
 }
-
 
 // goroutine not safe
 func (wsConn *WSConn) Read(p []byte) (n int, err error) {
@@ -111,9 +110,9 @@ func (wsConn *WSConn) RemoteAddr() net.Addr {
 }
 
 // A zero value for t means I/O operations will not time out.
-func (wsConn *WSConn) SetDeadline(t time.Time) error{
-	err:= wsConn.conn.SetWriteDeadline(t)
-	if err!=nil{
+func (wsConn *WSConn) SetDeadline(t time.Time) error {
+	err := wsConn.conn.SetWriteDeadline(t)
+	if err != nil {
 		return err
 	}
 	return wsConn.conn.SetWriteDeadline(t)
@@ -121,7 +120,7 @@ func (wsConn *WSConn) SetDeadline(t time.Time) error{
 
 // SetReadDeadline sets the deadline for future Read calls.
 // A zero value for t means Read will not time out.
-func (wsConn *WSConn) SetReadDeadline(t time.Time) error{
+func (wsConn *WSConn) SetReadDeadline(t time.Time) error {
 	return wsConn.conn.SetReadDeadline(t)
 }
 
@@ -129,8 +128,6 @@ func (wsConn *WSConn) SetReadDeadline(t time.Time) error{
 // Even if write times out, it may return n > 0, indicating that
 // some of the data was successfully written.
 // A zero value for t means Write will not time out.
-func (wsConn *WSConn) SetWriteDeadline(t time.Time) error{
+func (wsConn *WSConn) SetWriteDeadline(t time.Time) error {
 	return wsConn.conn.SetWriteDeadline(t)
 }
-
-

@@ -14,28 +14,28 @@
 package log
 
 var mqlog *MqantLog
-func Init(debug bool,ProcessID string,Logdir string)  {
-	mqlog=NewMqantLog(debug,ProcessID,Logdir)
-}
 
+func Init(debug bool, ProcessID string, Logdir string) {
+	mqlog = NewMqantLog(debug, ProcessID, Logdir)
+}
 
 func Debug(format string, a ...interface{}) {
 	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
-	mqlog.Debug(format,a...)
+	mqlog.Debug(format, a...)
 }
 func Info(format string, a ...interface{}) {
 	//gLogger.doPrintf(releaseLevel, printReleaseLevel, format, a...)
-	mqlog.Info(format,a...)
+	mqlog.Info(format, a...)
 }
 
 func Error(format string, a ...interface{}) {
 	//gLogger.doPrintf(errorLevel, printErrorLevel, format, a...)
-	mqlog.Error(format,a...)
+	mqlog.Error(format, a...)
 }
 
 func Warning(format string, a ...interface{}) {
 	//gLogger.doPrintf(fatalLevel, printFatalLevel, format, a...)
-	mqlog.Warning(format,a...)
+	mqlog.Warning(format, a...)
 }
 
 func Close() {

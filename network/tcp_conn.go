@@ -14,21 +14,21 @@
 package network
 
 import (
+	"bytes"
+	"io"
 	"net"
 	"sync"
-	"io"
 	"time"
-	"bytes"
 )
 
 type ConnSet map[net.Conn]struct{}
 
 type TCPConn struct {
-	io.Reader	//Read(p []byte) (n int, err error)
-	io.Writer	//Write(p []byte) (n int, err error)
+	io.Reader //Read(p []byte) (n int, err error)
+	io.Writer //Write(p []byte) (n int, err error)
 	sync.Mutex
-	buf_lock chan bool	//当有写入一次数据设置一次
-	buffer bytes.Buffer
+	buf_lock  chan bool //当有写入一次数据设置一次
+	buffer    bytes.Buffer
 	conn      net.Conn
 	closeFlag bool
 }
@@ -36,7 +36,6 @@ type TCPConn struct {
 func newTCPConn(conn net.Conn) *TCPConn {
 	tcpConn := new(TCPConn)
 	tcpConn.conn = conn
-
 
 	return tcpConn
 }
@@ -57,11 +56,11 @@ func (tcpConn *TCPConn) Destroy() {
 	tcpConn.doDestroy()
 }
 
-func (tcpConn *TCPConn) Close() (error){
+func (tcpConn *TCPConn) Close() error {
 	tcpConn.Lock()
 	defer tcpConn.Unlock()
 	if tcpConn.closeFlag {
-		return	nil
+		return nil
 	}
 
 	tcpConn.closeFlag = true
@@ -69,7 +68,7 @@ func (tcpConn *TCPConn) Close() (error){
 }
 
 // b must not be modified by the others goroutines
-func (tcpConn *TCPConn) Write(b []byte) (n int, err error){
+func (tcpConn *TCPConn) Write(b []byte) (n int, err error) {
 	tcpConn.Lock()
 	defer tcpConn.Unlock()
 	if tcpConn.closeFlag || b == nil {
@@ -92,13 +91,13 @@ func (tcpConn *TCPConn) RemoteAddr() net.Addr {
 }
 
 // A zero value for t means I/O operations will not time out.
-func (tcpConn *TCPConn) SetDeadline(t time.Time) error{
+func (tcpConn *TCPConn) SetDeadline(t time.Time) error {
 	return tcpConn.conn.SetDeadline(t)
 }
 
 // SetReadDeadline sets the deadline for future Read calls.
 // A zero value for t means Read will not time out.
-func (tcpConn *TCPConn) SetReadDeadline(t time.Time) error{
+func (tcpConn *TCPConn) SetReadDeadline(t time.Time) error {
 	return tcpConn.conn.SetReadDeadline(t)
 }
 
@@ -106,6 +105,6 @@ func (tcpConn *TCPConn) SetReadDeadline(t time.Time) error{
 // Even if write times out, it may return n > 0, indicating that
 // some of the data was successfully written.
 // A zero value for t means Write will not time out.
-func (tcpConn *TCPConn) SetWriteDeadline(t time.Time) error{
+func (tcpConn *TCPConn) SetWriteDeadline(t time.Time) error {
 	return tcpConn.conn.SetWriteDeadline(t)
 }

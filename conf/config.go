@@ -18,18 +18,19 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
-	"fmt"
 )
+
 var (
-	LenStackBuf=1024
-	LogLevel="debug"
-	LogPath=""
-	LogFlag=0
-	RpcExpired=5   //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
-	Conf = Config{}
+	LenStackBuf = 1024
+	LogLevel    = "debug"
+	LogPath     = ""
+	LogFlag     = 0
+	RpcExpired  = 5 //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+	Conf        = Config{}
 )
 
 func LoadConfig(Path string) {
@@ -40,29 +41,27 @@ func LoadConfig(Path string) {
 
 }
 
-
 type Config struct {
-	Module    	map[string][]*ModuleSettings
-	Mqtt      	Mqtt
-	Master		Master
+	Module map[string][]*ModuleSettings
+	Mqtt   Mqtt
+	Master Master
 }
 
 type Rabbitmq struct {
 	Uri          string
 	Exchange     string
 	ExchangeType string
-	Queue	     string
-	BindingKey   string	//
-	ConsumerTag  string	//消费者TAG
+	Queue        string
+	BindingKey   string //
+	ConsumerTag  string //消费者TAG
 }
 type ModuleSettings struct {
-	Id 		string
-	Host 		string
-	ProcessID 	string
-	Settings 	map[string]interface{}
-	Rabbitmq 	*Rabbitmq
+	Id        string
+	Host      string
+	ProcessID string
+	Settings  map[string]interface{}
+	Rabbitmq  *Rabbitmq
 }
-
 
 type Mqtt struct {
 	WirteLoopChanNum int // Should > 1 	    // 最大写入包队列缓存
@@ -72,49 +71,49 @@ type Mqtt struct {
 }
 
 type SSH struct {
-	Host		string
-	Port		int
-	User		string
-	Password	string
+	Host     string
+	Port     int
+	User     string
+	Password string
 }
+
 /**
 host:port
- */
-func (s *SSH)GetSSHHost() (string) {
-	return fmt.Sprintf("%s:%d",s.Host,s.Port)
+*/
+func (s *SSH) GetSSHHost() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
 }
-type Process struct{
-	ProcessID	string
-	Host		string
+
+type Process struct {
+	ProcessID string
+	Host      string
 	//执行文件
-	Execfile	string
+	Execfile string
 	//日志文件目录
 	//pid.nohup.log
 	//pid.access.log
 	//pid.error.log
-	LogDir		string
+	LogDir string
 	//自定义的参数
-	Args		map[string]interface{}
+	Args map[string]interface{}
 }
 
 type Master struct {
-	Enable		bool
-	WebRoot		string
-	WebHost		string
-	SSH		[]*SSH
-	Process    	[]*Process
+	Enable  bool
+	WebRoot string
+	WebHost string
+	SSH     []*SSH
+	Process []*Process
 }
 
-func (m *Master)GetSSH(host string) (*SSH) {
-	for _,ssh:=range m.SSH{
-		if ssh.Host==host{
+func (m *Master) GetSSH(host string) *SSH {
+	for _, ssh := range m.SSH {
+		if ssh.Host == host {
 			return ssh
 		}
 	}
 	return nil
 }
-
-
 
 func readFileInto(path string) error {
 	var data []byte
@@ -141,8 +140,6 @@ func readFileInto(path string) error {
 	//fmt.Print(string(data))
 	return json.Unmarshal(data, &Conf)
 }
-
-
 
 // If read the file has an error,it will throws a panic.
 func fileToStruct(path string, ptr *[]byte) {

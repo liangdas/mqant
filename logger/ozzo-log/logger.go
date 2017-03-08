@@ -54,12 +54,12 @@ func (l Level) String() string {
 
 // Entry represents a log entry.
 type Entry struct {
-	Level     	Level
-	Category  	string
-	Message   	string
-	Time      	time.Time
-	CallStack 	string
-	ShortFile	string
+	Level            Level
+	Category         string
+	Message          string
+	Time             time.Time
+	CallStack        string
+	ShortFile        string
 	FormattedMessage string
 }
 
@@ -198,7 +198,7 @@ func (l *Logger) Log(level Level, format string, a ...interface{}) {
 		Time:     time.Now(),
 	}
 	if l.CallStackDepth > 0 {
-		entry.CallStack,entry.ShortFile = GetCallStack(4, l.CallStackDepth, l.CallStackFilter)
+		entry.CallStack, entry.ShortFile = GetCallStack(4, l.CallStackDepth, l.CallStackFilter)
 	}
 	entry.FormattedMessage = l.Formatter(l, entry)
 	l.entries <- entry
@@ -278,25 +278,25 @@ func DefaultFormatter(l *Logger, e *Entry) string {
 // GetCallStack returns the current call stack information as a string.
 // The skip parameter specifies how many top frames should be skipped, while
 // the frames parameter specifies at most how many frames should be returned.
-func GetCallStack(skip int, frames int, filter string) (CallStack,sf string ){
+func GetCallStack(skip int, frames int, filter string) (CallStack, sf string) {
 	buf := new(bytes.Buffer)
 	for i, count := skip, 0; count < frames; i++ {
 		_, file, line, ok := runtime.Caller(i)
 		if !ok {
 			break
 		}
-		moduleOf:=moduleOf(file)
-		shortfile:=shortfile(file)
-		if sf==""{
-			sf=shortfile
+		moduleOf := moduleOf(file)
+		shortfile := shortfile(file)
+		if sf == "" {
+			sf = shortfile
 		}
-		file=moduleOf+"/"+shortfile
+		file = moduleOf + "/" + shortfile
 		if filter == "" || strings.Contains(file, filter) {
 			fmt.Fprintf(buf, "\n%s:%d", file, line)
 			count++
 		}
 	}
-	return buf.String(),sf
+	return buf.String(), sf
 }
 func moduleOf(file string) string {
 	pos := strings.LastIndex(file, "/")

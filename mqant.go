@@ -18,7 +18,6 @@ import (
 	"github.com/liangdas/mqant/module"
 )
 
-func CreateApp()(module.App){
+func CreateApp() module.App {
 	return app.NewApp(Version)
 }
-

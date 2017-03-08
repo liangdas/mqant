@@ -14,31 +14,30 @@
 package network
 
 import (
+	"crypto/tls"
 	"github.com/liangdas/mqant/log"
 	"net"
 	"sync"
 	"time"
-	"crypto/tls"
 )
 
 type TCPServer struct {
-	Addr            string
-	Tls		bool	//是否支持tls
-	CertFile	string
-	KeyFile		string
-	MaxConnNum      int
-	NewAgent        func(*TCPConn) Agent
-	ln              net.Listener
-	conns           ConnSet
-	mutexConns      sync.Mutex
-	wgLn            sync.WaitGroup
-	wgConns         sync.WaitGroup
-
+	Addr       string
+	Tls        bool //是否支持tls
+	CertFile   string
+	KeyFile    string
+	MaxConnNum int
+	NewAgent   func(*TCPConn) Agent
+	ln         net.Listener
+	conns      ConnSet
+	mutexConns sync.Mutex
+	wgLn       sync.WaitGroup
+	wgConns    sync.WaitGroup
 }
 
 func (server *TCPServer) Start() {
 	server.init()
-	log.Info("TCP Listen :",server.Addr)
+	log.Info("TCP Listen :", server.Addr)
 	go server.run()
 }
 
@@ -62,8 +61,8 @@ func (server *TCPServer) init() {
 		if err == nil {
 			ln = tls.NewListener(ln, tlsConf)
 			log.Info("TCP Listen TLS load success")
-		}else{
-			log.Warning("tcp_server tls :%v",err)
+		} else {
+			log.Warning("tcp_server tls :%v", err)
 		}
 	}
 
