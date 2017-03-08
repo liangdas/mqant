@@ -38,22 +38,22 @@ type TCPServer struct {
 
 func (server *TCPServer) Start() {
 	server.init()
-	log.Release("TCP Listen :",server.Addr)
+	log.Info("TCP Listen :",server.Addr)
 	go server.run()
 }
 
 func (server *TCPServer) init() {
 	ln, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		log.Fatal("%v", err)
+		log.Warning("%v", err)
 	}
 
 	if server.MaxConnNum <= 0 {
 		server.MaxConnNum = 100
-		log.Release("invalid MaxConnNum, reset to %v", server.MaxConnNum)
+		log.Warning("invalid MaxConnNum, reset to %v", server.MaxConnNum)
 	}
 	if server.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		log.Warning("NewAgent must not be nil")
 	}
 	if server.Tls {
 		tlsConf := new(tls.Config)
@@ -61,9 +61,9 @@ func (server *TCPServer) init() {
 		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
 		if err == nil {
 			ln = tls.NewListener(ln, tlsConf)
-			log.Release("TCP Listen TLS load success")
+			log.Info("TCP Listen TLS load success")
 		}else{
-			log.Error("tcp_server tls :%v",err)
+			log.Warning("tcp_server tls :%v",err)
 		}
 	}
 
@@ -87,7 +87,7 @@ func (server *TCPServer) run() {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Release("accept error: %v; retrying in %v", err, tempDelay)
+				log.Info("accept error: %v; retrying in %v", err, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -99,14 +99,13 @@ func (server *TCPServer) run() {
 		if len(server.conns) >= server.MaxConnNum {
 			server.mutexConns.Unlock()
 			conn.Close()
-			log.Debug("too many connections")
+			log.Warning("too many connections")
 			continue
 		}
 		server.conns[conn] = struct{}{}
 		server.mutexConns.Unlock()
 
 		server.wgConns.Add(1)
-
 		tcpConn := newTCPConn(conn)
 		agent := server.NewAgent(tcpConn)
 		go func() {

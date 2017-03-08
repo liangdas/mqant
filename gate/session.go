@@ -20,6 +20,8 @@ import (
 
 type Session struct{
 	app 		module.App
+	IP		string	//客户端IP
+	Network		string  //网络类型 TCP UDP websocket
 	Userid		string
 	Sessionid	string
 	Serverid    	string
@@ -39,6 +41,14 @@ func (session *Session)update(s map[string]interface{}) {
 	if Userid!=nil{
 		session.Userid=Userid.(string)
 	}
+	IP:=s["IP"]
+	if IP!=nil{
+		session.IP=IP.(string)
+	}
+	Network:=s["Network"]
+	if Network!=nil{
+		session.Network=Network.(string)
+	}
 	Sessionid:=s["Sessionid"]
 	if Sessionid!=nil{
 		session.Sessionid=Sessionid.(string)
@@ -57,6 +67,12 @@ func (session *Session)ExportMap()(map[string]interface{}) {
 	s:= map[string]interface{}{}
 	if session.Userid!=""{
 		s["Userid"]=session.Userid
+	}
+	if session.IP!=""{
+		s["IP"]=session.IP
+	}
+	if session.Network!=""{
+		s["Network"]=session.Network
 	}
 	if session.Sessionid!=""{
 		s["Sessionid"]=session.Sessionid

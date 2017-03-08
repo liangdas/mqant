@@ -199,13 +199,13 @@ func (queue *PackQueue) ReadPackInLoop()  {
 					// Without anything to do
 				case <-queue.noticeFin:
 					//queue.Close()
-					log.Debug("Queue FIN")
+					log.Info("Queue FIN")
 					break loop
 				}
 			} else {
 				<-queue.noticeFin
 				//
-				log.Debug("Queue FIN")
+				log.Info("Queue FIN")
 				break loop
 			}
 

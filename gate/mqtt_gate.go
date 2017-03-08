@@ -55,7 +55,7 @@ func (gate *Gate) GetStorageHandler()(storage StorageHandler){
 	return gate.storage
 }
 
-func (gate *Gate) OnInit(subclass module.Module,app module.App,settings *conf.ModuleSettings) {
+func (gate *Gate) OnInit(subclass module.RPCModule,app module.App,settings *conf.ModuleSettings) {
 	gate.BaseModule.OnInit(subclass,app,settings) //这是必须的
 
 

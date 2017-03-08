@@ -26,16 +26,12 @@ QQ交流群 :463735103
 [mqant的设计动机](https://github.com/liangdas/mqant/wiki/mqant%E7%9A%84%E8%AE%BE%E8%AE%A1%E5%8A%A8%E6%9C%BA)
 
 [框架架构](https://github.com/liangdas/mqant/wiki/mqant%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0)
-	
 
 ##下一步计划
-1. 插件系统
-2. 日志模块
-3. 讨论社区
-4. 分布式架构管理工具
-5. 可伸缩服务器部署
-。。。
-
+1. 讨论社区
+2. 分布式架构管理模块(Master)
+3. 做一下多进程内存共享方面的实验性研究
+4. 。。。
 
 ##贡献者
 
@@ -44,3 +40,16 @@ QQ交流群 :463735103
 bug请直接通过issue提交
 
 凡提交代码和建议, bug的童鞋, 均会在下列贡献者名单者出现
+
+1. [xlionet](https://github.com/xlionet)
+
+
+
+##版本日志
+###[v1.1.0新特性](https://github.com/liangdas/mqant/wiki/v1.1.0)
+
+		
+###v1.0.0
+
+	mqant第一个版本
+	

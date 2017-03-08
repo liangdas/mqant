@@ -53,7 +53,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	conn, err := handler.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Debug("upgrade error: %v", err)
+		log.Warning("upgrade error: %v", err)
 		return
 	}
 	conn.SetReadLimit(int64(handler.maxMsgLen))
@@ -70,7 +70,7 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(handler.conns) >= handler.maxConnNum {
 		handler.mutexConns.Unlock()
 		conn.Close()
-		log.Debug("too many connections")
+		log.Warning("too many connections")
 		return
 	}
 	handler.conns[conn] = struct{}{}
@@ -91,23 +91,23 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (server *WSServer) Start() {
 	ln, err := net.Listen("tcp", server.Addr)
 	if err != nil {
-		log.Fatal("%v", err)
+		log.Warning("%v", err)
 	}
 
 	if server.MaxConnNum <= 0 {
 		server.MaxConnNum = 100
-		log.Release("invalid MaxConnNum, reset to %v", server.MaxConnNum)
+		log.Warning("invalid MaxConnNum, reset to %v", server.MaxConnNum)
 	}
 	if server.MaxMsgLen <= 0 {
 		server.MaxMsgLen = 4096
-		log.Release("invalid MaxMsgLen, reset to %v", server.MaxMsgLen)
+		log.Warning("invalid MaxMsgLen, reset to %v", server.MaxMsgLen)
 	}
 	if server.HTTPTimeout <= 0 {
 		server.HTTPTimeout = 10 * time.Second
-		log.Release("invalid HTTPTimeout, reset to %v", server.HTTPTimeout)
+		log.Warning("invalid HTTPTimeout, reset to %v", server.HTTPTimeout)
 	}
 	if server.NewAgent == nil {
-		log.Fatal("NewAgent must not be nil")
+		log.Warning("NewAgent must not be nil")
 	}
 	if server.Tls {
 		tlsConf := new(tls.Config)
@@ -115,9 +115,9 @@ func (server *WSServer) Start() {
 		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
 		if err == nil {
 			ln = tls.NewListener(ln, tlsConf)
-			log.Release("WS Listen TLS load success")
+			log.Info("WS Listen TLS load success")
 		}else{
-			log.Error("ws_server tls :%v",err)
+			log.Warning("ws_server tls :%v",err)
 		}
 	}
 	server.ln = ln
@@ -140,7 +140,7 @@ func (server *WSServer) Start() {
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,
 	}
-	log.Release("WS Listen :",server.Addr)
+	log.Info("WS Listen :",server.Addr)
 	go httpServer.Serve(ln)
 }
 

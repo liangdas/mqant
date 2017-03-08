@@ -32,7 +32,7 @@ func (s *Server) OnInit(app App,settings *conf.ModuleSettings) {
 	s.settings=settings
 	server,err:=mqrpc.NewRPCServer()	//默认会创建一个本地的RPC
 	if err != nil {
-		log.Error("Dial: %s", err)
+		log.Warning("Dial: %s", err)
 	}
 
 	if settings.Rabbitmq!=nil{
@@ -43,17 +43,17 @@ func (s *Server) OnInit(app App,settings *conf.ModuleSettings) {
 	s.server=server
 	err=app.RegisterLocalClient(settings.Id,server)
 	if err != nil {
-		log.Error("RegisterLocalClient: id(%s) error(%s)",settings.Id,err)
+		log.Warning("RegisterLocalClient: id(%s) error(%s)",settings.Id,err)
 	}
-	log.Release("RPCServer init success id(%s)",s.settings.Id)
+	log.Info("RPCServer init success id(%s)",s.settings.Id)
 }
 func (s *Server) OnDestroy(){
 	if s.server!=nil{
 		err:=s.server.Done()
 		if err!=nil{
-			log.Error("RPCServer close fail id(%s) error(%s)",s.settings.Id,err)
+			log.Warning("RPCServer close fail id(%s) error(%s)",s.settings.Id,err)
 		}else{
-			log.Release("RPCServer close success id(%s)",s.settings.Id)
+			log.Info("RPCServer close success id(%s)",s.settings.Id)
 		}
 		s.server=nil
 	}

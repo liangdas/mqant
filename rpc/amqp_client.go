@@ -21,6 +21,7 @@ import (
 	"time"
 	"sync"
 	"github.com/liangdas/mqant/utils"
+	"github.com/liangdas/mqant/module/modules/timer"
 )
 type AMQPClient struct{
 	//callinfos map[string]*ClinetCallInfo
@@ -75,7 +76,7 @@ func NewAMQPClient(info *conf.Rabbitmq) (client *AMQPClient,err error){
 	client.Consumer=c
 	client.done = make(chan error)
 	go client.on_response_handle(deliveries, client.done)
-	go client.on_timeout_handle()	//处理超时请求的协程
+	client.on_timeout_handle(nil)	//处理超时请求的协程
 	return client,nil
 	//log.Printf("shutting down")
 	//
@@ -137,7 +138,7 @@ func (c *AMQPClient) Call(callInfo CallInfo,callback chan ResultInfo)(error)  {
 			// a bunch of application/implementation-specific fields
 		},
 	); err != nil {
-		log.Debug("Exchange Publish: %s", err)
+		log.Warning("Exchange Publish: %s", err)
 		return err
 	}
 	return nil
@@ -168,14 +169,14 @@ func (c *AMQPClient) CallNR(callInfo CallInfo)(error)  {
 			// a bunch of application/implementation-specific fields
 		},
 	); err != nil {
-		log.Debug("Exchange Publish: %s", err)
+		log.Warning("Exchange Publish: %s", err)
 		return err
 	}
 	return nil
 }
 
-func (c *AMQPClient)on_timeout_handle()  {
-	for c.callinfos!=nil{
+func (c *AMQPClient)on_timeout_handle(args interface{})  {
+	if c.callinfos!=nil{
 		//处理超时的请求
 		for key,clinetCallInfo :=range c.callinfos.Items(){
 			if clinetCallInfo != nil {
@@ -196,7 +197,7 @@ func (c *AMQPClient)on_timeout_handle()  {
 
 			}
 		}
-		time.Sleep(time.Second*1)
+		timer.SetTimer(1000, c.on_timeout_handle, nil)
 	}
 }
 
