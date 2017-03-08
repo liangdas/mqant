@@ -82,18 +82,19 @@ bug请直接通过issue提交
 	4. module配置属性更改
 	
 		Group参数改成了ProcessID
+		
 		当前的分布式部署方案是:
 		
-		SSH 代表一台服务器
-			|- Host		主机IP
+			SSH 代表一台服务器
+				|- Host		主机IP
 		
-		Process 代表一个进程
-			|- Host		 主机IP
-			|- ProcessID  进程ID
-			
-		module
-		   |- Id			  模块ID
-		   |- ProcessID   所属进程
+			Process 代表一个进程
+				|- Host		 主机IP
+				|- ProcessID  进程ID
+				
+			module
+			   |- Id			  模块ID
+			   |- ProcessID   所属进程
 		   
 		1. 一个进程中一个类型的module只能启动一个
 		2. 模块的ProcessID约定了其属于哪一个进程
