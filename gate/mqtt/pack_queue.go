@@ -108,7 +108,6 @@ loop:
 			if err != nil {
 				// Tell listener the error
 				// Notice the read
-				log.Info(err.Error())
 				queue.writeError = err
 				queue.errorChan <- err
 				queue.noticeFin <- 0
