@@ -168,7 +168,9 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			return
 		}
 		result, e := serverSession.Call(topics[1], a.GetSession().ExportMap(), obj)
-		toResult(a, *pub.GetTopic(), result, e)
+		if msgid != "" {
+			toResult(a, *pub.GetTopic(), result, e)
+		}
 
 		if a.GetSession().Userid != "" {
 			//这个链接已经绑定Userid

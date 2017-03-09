@@ -161,6 +161,7 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 			//log.Debug("Ack To Client By PUBREC \n")
 			err = c.queue.WritePack(GetPubRECPack(pub.GetMid()))
 		}
+		//log.Debug("ss",string(pub.GetMsg()))
 		//目前这个版本暂时先不保证消息的Qos 默认用Qos=1吧
 		c.recover.OnRecover(pAndErr.pack)
 	case PUBACK: //4

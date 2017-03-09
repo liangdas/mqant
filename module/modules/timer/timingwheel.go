@@ -4,6 +4,7 @@ import (
 	"github.com/liangdas/mqant/log"
 	"sync"
 	"time"
+	"runtime"
 )
 
 const wheel_cnt uint8 = 5                                                                   //时间轮数量5个
@@ -80,7 +81,9 @@ func step() {
 							go func() {
 								defer func() {
 									if r := recover(); r != nil {
-										log.Error("TimerError %v", r)
+										buf := make([]byte, 1024)
+										l := runtime.Stack(buf, false)
+										log.Error("TimerError %v", buf[:l])
 									}
 								}()
 								doSomething(args)

@@ -384,7 +384,7 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 				if s.listener != nil {
 					buf := make([]byte, 1024)
 					l := runtime.Stack(buf, false)
-					errstr:=string(buf[:l])
+					errstr := string(buf[:l])
 					log.Error(errstr)
 					s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf(errstr))
 				}
