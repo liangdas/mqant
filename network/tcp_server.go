@@ -37,7 +37,7 @@ type TCPServer struct {
 
 func (server *TCPServer) Start() {
 	server.init()
-	log.Info("TCP Listen :", server.Addr)
+	log.Info("TCP Listen :%s", server.Addr)
 	go server.run()
 }
 

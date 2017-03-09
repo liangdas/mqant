@@ -140,7 +140,7 @@ func (server *WSServer) Start() {
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,
 	}
-	log.Info("WS Listen :", server.Addr)
+	log.Info("WS Listen :%s", server.Addr)
 	go httpServer.Serve(ln)
 }
 
