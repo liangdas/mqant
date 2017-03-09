@@ -29,17 +29,17 @@ type App interface {
 	当同一个类型的Module存在多个服务时,需要根据情况选择最终路由到哪一个服务去
 	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)
 	*/
-	Route(moduleType string, fn func(app App, moduleType string, serverId string, Type string) *ServerSession) error
+	Route(moduleType string, fn func(app App, Type string, hash string) *ServerSession) error
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
 	RegisterLocalClient(serverId string, server *mqrpc.RPCServer) error
 	GetServersById(id string) (*ServerSession, error)
 	/**
-	moduleType 调用者服务类型
-	Type	   想要调用的服务类型
+	filter		 调用者服务类型    moduleType|moduleType@moduleID
+	Type	   	想要调用的服务类型
 	*/
-	GetRouteServersByType(module RPCModule, moduleType string) (*ServerSession, error) //获取经过筛选过的服务
+	GetRouteServers(filter string, hash string) (*ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []*ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -79,7 +79,11 @@ type RPCModule interface {
 	RpcInvoke(moduleType string, _func string, params ...interface{}) (interface{}, string)
 	RpcInvokeNR(moduleType string, _func string, params ...interface{}) error
 	GetModuleSettings() (settings *conf.ModuleSettings)
-	GetRouteServersByType(moduleType string) (*ServerSession, error) //获取经过筛选过的服务
+	/**
+	filter		 调用者服务类型    moduleType|moduleType@moduleID
+	Type	   	想要调用的服务类型
+	*/
+	GetRouteServers(filter string, hash string) (*ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }

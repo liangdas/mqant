@@ -26,19 +26,20 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 )
 
 func NewApp(version string) module.App {
 	app := new(DefaultApp)
-	app.routes = map[string]func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession{}
+	app.routes = map[string]func(app module.App, Type string, hash string) *module.ServerSession{}
 	app.serverList = map[string]*module.ServerSession{}
-	app.defaultRoutes = func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession {
+	app.defaultRoutes = func(app module.App, Type string, hash string) *module.ServerSession {
 		//默认使用第一个Server
 		servers := app.GetServersByType(Type)
 		if len(servers) == 0 {
 			return nil
 		}
-		index := int(math.Abs(float64(crc32.ChecksumIEEE([]byte(serverId))))) % len(servers)
+		index := int(math.Abs(float64(crc32.ChecksumIEEE([]byte(hash))))) % len(servers)
 		return servers[index]
 	}
 	app.version = version
@@ -50,8 +51,8 @@ type DefaultApp struct {
 	version       string
 	serverList    map[string]*module.ServerSession
 	settings      conf.Config
-	routes        map[string]func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession
-	defaultRoutes func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession
+	routes        map[string]func(app module.App, Type string, hash string) *module.ServerSession
+	defaultRoutes func(app module.App, Type string, hash string) *module.ServerSession
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -100,11 +101,11 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	log.Info("mqant closing down (signal: %v)", sig)
 	return nil
 }
-func (app *DefaultApp) Route(moduleType string, fn func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession) error {
+func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) *module.ServerSession) error {
 	app.routes[moduleType] = fn
 	return nil
 }
-func (app *DefaultApp) getRoute(moduleType string) func(app module.App, moduleType string, serverId string, Type string) *module.ServerSession {
+func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type string, hash string) *module.ServerSession {
 	fn := app.routes[moduleType]
 	if fn == nil {
 		//如果没有设置的路由,则使用默认的
@@ -188,9 +189,17 @@ func (app *DefaultApp) GetServersByType(Type string) []*module.ServerSession {
 	return sessions
 }
 
-func (app *DefaultApp) GetRouteServersByType(module module.RPCModule, moduleType string) (s *module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServers(filter string, hash string) (s *module.ServerSession, err error) {
+	sl := strings.Split(filter, "@")
+	if len(sl) == 2 {
+		moduleID := sl[1]
+		if moduleID != "" {
+			return app.GetServersById(moduleID)
+		}
+	}
+	moduleType := sl[0]
 	route := app.getRoute(moduleType)
-	s = route(app, module.GetType(), module.GetModuleSettings().Id, moduleType)
+	s = route(app, moduleType, hash)
 	if s == nil {
 		err = fmt.Errorf("Server(type : %s) Not Found", moduleType)
 	}
@@ -202,7 +211,7 @@ func (app *DefaultApp) GetSettings() conf.Config {
 }
 
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := app.GetRouteServersByType(module, moduleType)
+	server, e := app.GetRouteServers(moduleType, module.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -211,7 +220,7 @@ func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _fu
 }
 
 func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := app.GetRouteServersByType(module, moduleType)
+	server, err := app.GetRouteServers(moduleType, module.GetServerId())
 	if err != nil {
 		return
 	}

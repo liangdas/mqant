@@ -86,12 +86,12 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
-func (m *BaseModule) GetRouteServersByType(moduleType string) (s *ServerSession, err error) {
-	return m.App.GetRouteServersByType(m.subclass, moduleType)
+func (m *BaseModule) GetRouteServers(moduleType string, hash string) (s *ServerSession, err error) {
+	return m.App.GetRouteServers(moduleType, hash)
 }
 
 func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := m.App.GetRouteServersByType(m.subclass, moduleType)
+	server, e := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -100,7 +100,7 @@ func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interf
 }
 
 func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := m.App.GetRouteServersByType(m.subclass, moduleType)
+	server, err := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
 	if err != nil {
 		return
 	}

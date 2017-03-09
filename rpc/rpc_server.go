@@ -18,6 +18,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"reflect"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -365,16 +366,13 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 	_runFunc := func() {
 		defer func() {
 			if r := recover(); r != nil {
-				var lerr error
 				var rn = ""
 				switch r.(type) {
 
 				case string:
 					rn = r.(string)
-					lerr = fmt.Errorf(rn)
 				case error:
 					rn = r.(error).Error()
-					lerr = r.(error)
 				}
 				resultInfo := &ResultInfo{
 					Cid:    callInfo.Cid,
@@ -384,7 +382,11 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 				callInfo.Result = *resultInfo
 				callbacks <- callInfo
 				if s.listener != nil {
-					s.listener.OnError(callInfo.Fn, callInfo.Args, lerr)
+					buf := make([]byte, 1024)
+					l := runtime.Stack(buf, false)
+					errstr:=string(buf[:l])
+					log.Error(errstr)
+					s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf(errstr))
 				}
 			}
 			s.wg.Add(-1)

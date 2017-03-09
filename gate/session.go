@@ -251,7 +251,7 @@ func (session *Session) SendNR(topic string, body []byte) (err string) {
 	if e != nil {
 		err = e.Error()
 	}
-	return
+	return ""
 }
 
 func (session *Session) Close() (err string) {

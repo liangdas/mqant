@@ -132,7 +132,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		topics := strings.Split(*pub.GetTopic(), "/")
 		var msgid string
 		if len(topics) < 2 {
-			log.Error("Topic must be [serverType]/[handler]|[serverType]/[handler]/[msgid]")
+			log.Error("Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]")
 			return
 		} else if len(topics) == 3 {
 			msgid = topics[2]
@@ -146,7 +146,14 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			}
 			return
 		}
-		serverSession, err := a.gate.GetRouteServersByType(topics[0])
+		hash := ""
+		if a.session.Userid != "" {
+			hash = a.session.Userid
+		} else {
+			hash = a.gate.GetServerId()
+		}
+
+		serverSession, err := a.gate.GetRouteServers(topics[0], hash)
 		if err != nil {
 			if msgid != "" {
 				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))

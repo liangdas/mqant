@@ -288,7 +288,7 @@ func GetCallStack(skip int, frames int, filter string) (CallStack, sf string) {
 		moduleOf := moduleOf(file)
 		shortfile := shortfile(file)
 		if sf == "" {
-			sf = shortfile
+			sf = fmt.Sprintf("%s:%d", shortfile, line)
 		}
 		file = moduleOf + "/" + shortfile
 		if filter == "" || strings.Contains(file, filter) {
