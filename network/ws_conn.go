@@ -29,26 +29,28 @@ type WSConn struct {
 	io.Reader //Read(p []byte) (n int, err error)
 	io.Writer //Write(p []byte) (n int, err error)
 	sync.Mutex
-	buf_lock  chan bool //当有写入一次数据设置一次
+	buf_lock  chan error //当有写入一次数据设置一次
 	buffer    bytes.Buffer
 	conn      *websocket.Conn
+	readfirst bool
 	closeFlag bool
 }
 
 func newWSConn(conn *websocket.Conn) *WSConn {
 	wsConn := new(WSConn)
 	wsConn.conn = conn
-	wsConn.buf_lock = make(chan bool)
-
+	wsConn.buf_lock = make(chan error)
+	wsConn.readfirst=false
 	go func() {
 		for {
 			_, b, err := wsConn.conn.ReadMessage()
 			if err != nil {
 				//log.Error("读取数据失败 %s",err.Error())
-				wsConn.buf_lock <- false
+				wsConn.buf_lock <- err
 			} else {
 				wsConn.buffer.Write(b)
-				wsConn.buf_lock <- true
+				wsConn.readfirst=true
+				wsConn.buf_lock <- nil
 			}
 		}
 
@@ -97,7 +99,19 @@ func (wsConn *WSConn) Write(p []byte) (n int, err error) {
 
 // goroutine not safe
 func (wsConn *WSConn) Read(p []byte) (n int, err error) {
-	<-wsConn.buf_lock //等待写入数据
+	err=<-wsConn.buf_lock //等待写入数据
+	if err!=nil{
+		//读取数据出现异常了
+		return
+	}
+	if wsConn.buffer.Len()==0{
+		//再等一次
+		err=<-wsConn.buf_lock //等待写入数据
+		if err!=nil{
+			//读取数据出现异常了
+			return
+		}
+	}
 	return wsConn.buffer.Read(p)
 }
 
