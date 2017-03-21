@@ -104,7 +104,7 @@ func (s *AMQPServer) Shutdown() error {
 }
 
 func (s *AMQPServer) Callback(callinfo CallInfo) error {
-	body, _ := json.Marshal(callinfo.Result)
+	body, _ := s.MarshalResult(callinfo.Result)
 	return s.response(callinfo.props, body)
 }
 
@@ -150,12 +150,11 @@ func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done cha
 				//		d.DeliveryTag,
 				//		d.Body,
 				//)
-
 				d.Ack(false)
 				callInfo, err := s.Unmarshal(d.Body)
 				if err == nil {
 					callInfo.props = map[string]interface{}{
-						"reply_to": d.Headers["reply_to"],
+						"reply_to": callInfo.ReplyTo,
 					}
 
 					callInfo.agent = s //设置代理为AMQPServer
@@ -195,3 +194,10 @@ func (s *AMQPServer) Marshal(callInfo *CallInfo) ([]byte, error) {
 	b, err := json.Marshal(callInfo)
 	return b, err
 }
+// goroutine safe
+func (s *AMQPServer) MarshalResult(resultInfo ResultInfo) ([]byte, error) {
+	//log.Error("",map2)
+	b, err := json.Marshal(resultInfo)
+	return b, err
+}
+

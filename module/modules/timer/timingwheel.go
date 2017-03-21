@@ -83,7 +83,7 @@ func step() {
 									if r := recover(); r != nil {
 										buf := make([]byte, 1024)
 										l := runtime.Stack(buf, false)
-										log.Error("TimerError %v", buf[:l])
+										log.Error("TimerError %v", r,string(buf[:l]))
 									}
 								}()
 								doSomething(args)
@@ -105,7 +105,7 @@ func step() {
 }
 
 func Run(closeSig chan bool) {
-	tick := time.NewTicker(1 * time.Millisecond)
+	tick := time.NewTicker(1 * time.Second)
 	defer tick.Stop()
 	for {
 		select {

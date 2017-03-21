@@ -21,8 +21,18 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"encoding/base64"
 )
-
+var (
+	BOOL="bool"	//bool
+	INT="int"	//int
+	LONG="long"	//long64
+	FLOAT="float"	//float32
+	DOUBLE="double"	//float64
+	BYTES="bytes"	//[]byte
+	STRING="string" //string
+	MAP="map"	//map[string]interface{}
+)
 type RPCListener interface {
 	OnTimeOut(fn string, Expired int64)
 	OnError(fn string, params []interface{}, err error)
@@ -39,8 +49,10 @@ type CallInfo struct {
 	Cid     string //Correlation_id
 	Fn      string
 	Args    []interface{}
+	ArgsType[]string	//参数类型
 	Expired int64 //超时
 	Reply   bool  //客户端是否需要结果
+	ReplyTo   string
 	Result  ResultInfo
 	props   map[string]interface{}
 	agent   interface{} //代理者  AMQPServer / LocalServer 都继承 Callback(callinfo CallInfo)(error) 方法
@@ -260,6 +272,7 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 	}
 	_func := functionInfo.function
 	params := callInfo.Args
+	ArgsType:=callInfo.ArgsType
 	f := reflect.ValueOf(_func)
 	if len(params) != f.Type().NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
@@ -271,96 +284,199 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo
 		if s.listener != nil {
-			s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf("The number of params is not adapted."))
+			s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf("The number of params %s is not adapted.%s", params, f.String()))
+		}
+		return
+	}
+	if len(params) != len(callInfo.ArgsType) {
+		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
+		resultInfo := &ResultInfo{
+			Cid:    callInfo.Cid,
+			Error:  fmt.Sprintf("The number of params %s is not adapted ArgsType .%s", params, callInfo.ArgsType),
+			Result: nil,
+		}
+		callInfo.Result = *resultInfo
+		callbacks <- callInfo
+		if s.listener != nil {
+			s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf("The number of params %s is not adapted ArgsType .%s", params, callInfo.ArgsType))
 		}
 		return
 	}
 
-	typ := reflect.TypeOf(_func)
+	//typ := reflect.TypeOf(_func)
 	var in []reflect.Value
-	if len(params) > 0 { //prepare in paras
+	if len(ArgsType)>0{
 		in = make([]reflect.Value, len(params))
-		for k, param := range params {
-			field := typ.In(k)
-			if field != reflect.TypeOf(param) {
-				switch param.(type) { //多选语句switch
-				case int:
-					p := param.(int)
-					switch field.Kind().String() { //多选语句switch
-					case "int":
-						in[k] = reflect.ValueOf(int(p))
-					case "int32":
-						in[k] = reflect.ValueOf(int32(p))
-					case "int64":
-						in[k] = reflect.ValueOf(int64(p))
-					case "float32":
-						in[k] = reflect.ValueOf(float32(p))
-					case "float64":
-						in[k] = reflect.ValueOf(float64(p))
-					}
-				case int32:
-					p := param.(int32)
-					switch field.Kind().String() { //多选语句switch
-					case "int":
-						in[k] = reflect.ValueOf(int(p))
-					case "int32":
-						in[k] = reflect.ValueOf(int32(p))
-					case "int64":
-						in[k] = reflect.ValueOf(int64(p))
-					case "float32":
-						in[k] = reflect.ValueOf(float32(p))
-					case "float64":
-						in[k] = reflect.ValueOf(float64(p))
-					}
-				case int64:
-					p := param.(int64)
-					switch field.Kind().String() { //多选语句switch
-					case "int":
-						in[k] = reflect.ValueOf(int(p))
-					case "int32":
-						in[k] = reflect.ValueOf(int32(p))
-					case "int64":
-						in[k] = reflect.ValueOf(int64(p))
-					case "float32":
-						in[k] = reflect.ValueOf(float32(p))
-					case "float64":
-						in[k] = reflect.ValueOf(float64(p))
-					}
-				case float32:
-					p := param.(float32)
-					switch field.Kind().String() { //多选语句switch
-					case "int":
-						in[k] = reflect.ValueOf(int(p))
-					case "int32":
-						in[k] = reflect.ValueOf(int32(p))
-					case "int64":
-						in[k] = reflect.ValueOf(int64(p))
-					case "float32":
-						in[k] = reflect.ValueOf(float32(p))
-					case "float64":
-						in[k] = reflect.ValueOf(float64(p))
-					}
-				case float64:
-					p := param.(float64)
-					switch field.Kind().String() { //多选语句switch
-					case "int":
-						in[k] = reflect.ValueOf(int(p))
-					case "int32":
-						in[k] = reflect.ValueOf(int32(p))
-					case "int64":
-						in[k] = reflect.ValueOf(int64(p))
-					case "float32":
-						in[k] = reflect.ValueOf(float32(p))
-					case "float64":
-						in[k] = reflect.ValueOf(float64(p))
-					}
+		for k, Type := range ArgsType {
+			switch Type {
+			case STRING:
+				//params[k] = string(params[k])
+			case BOOL:
+				//params[k]= bool(params[k])
+			case INT:
+				if value, ok := params[k].(uint64); ok {
+					params[k]=int(value)
+				}else if value, ok := params[k].(float64); ok {
+					params[k]=int(value)
 				}
+			case LONG:
+				if value, ok := params[k].(uint64); ok {
+					params[k]=int64(value)
+				}else if value, ok := params[k].(float64); ok {
+					params[k]=int64(value)
+				}
+			case FLOAT:
+				if value, ok := params[k].(float64); ok {
+					params[k]=float32(value)
+				}else if value, ok := params[k].(float64); ok {
+					params[k]=float32(value)
+				}
+			case DOUBLE:
 
-			} else {
-				in[k] = reflect.ValueOf(param)
+			case BYTES:
+				//这里要把[]byte转base64
+				if base64str, ok := params[k].(string); ok {
+					uDec, err := base64.URLEncoding.DecodeString(base64str)
+					if err != nil {
+						resultInfo := &ResultInfo{
+							Cid:    callInfo.Cid,
+							Error:  fmt.Sprintf("args[%d] [%s] Not converted to Base64",k,reflect.TypeOf(params[k])),
+							Result: nil,
+						}
+						callInfo.Result = *resultInfo
+						callbacks <- callInfo
+						return
+					}
+					params[k]=uDec
+				}else{
+					resultInfo := &ResultInfo{
+						Cid:    callInfo.Cid,
+						Error:  fmt.Sprintf("args[%d] [%s] Not converted to Base64 string",k,reflect.TypeOf(params[k])),
+						Result: nil,
+					}
+					callInfo.Result = *resultInfo
+					callbacks <- callInfo
+					return
+				}
+			case MAP:
+
+			default:
+				resultInfo := &ResultInfo{
+					Cid:    callInfo.Cid,
+					Error:  fmt.Sprintf("args[%d] [%s] Types not allowed",k,reflect.TypeOf(params[k])),
+					Result: nil,
+				}
+				callInfo.Result = *resultInfo
+				callbacks <- callInfo
+				return
 			}
+			in[k] = reflect.ValueOf(params[k])
 		}
 	}
+
+	//if len(params) > 0 { //prepare in paras
+	//	in = make([]reflect.Value, len(params))
+	//	for k, param := range params {
+	//		switch v2 := param.(type) {
+	//			case string:
+	//				fmt.Println(k, "is string", v2)
+	//			case int:
+	//				fmt.Println(k, "is int", v2)
+	//			case int64:
+	//				fmt.Println(k, "is int64", v2)
+	//			case bool:
+	//				fmt.Println(k, "is bool", v2)
+	//			case map[string]interface{}:
+	//				fmt.Println(k, "is map", v2)
+	//				decodedMapValue := map[interface{}]interface{}{}
+	//				for key, v := range param.(map[string]interface{}) {
+	//					decodedMapValue[key]= v
+	//				}
+	//				param = decodedMapValue
+	//			default:
+	//				fmt.Println(k, "is another type not handle yet",v2,reflect.TypeOf(param))
+	//		}
+	//		in[k] = reflect.ValueOf(param)
+	//		//field := typ.In(k)
+	//		//if field != reflect.TypeOf(param) {
+	//		//	switch param.(type) { //多选语句switch
+	//		//	case int:
+	//		//		p := param.(int)
+	//		//		switch field.Kind().String() { //多选语句switch
+	//		//		case "int":
+	//		//			in[k] = reflect.ValueOf(int(p))
+	//		//		case "int32":
+	//		//			in[k] = reflect.ValueOf(int32(p))
+	//		//		case "int64":
+	//		//			in[k] = reflect.ValueOf(int64(p))
+	//		//		case "float32":
+	//		//			in[k] = reflect.ValueOf(float32(p))
+	//		//		case "float64":
+	//		//			in[k] = reflect.ValueOf(float64(p))
+	//		//		}
+	//		//	case int32:
+	//		//		p := param.(int32)
+	//		//		switch field.Kind().String() { //多选语句switch
+	//		//		case "int":
+	//		//			in[k] = reflect.ValueOf(int(p))
+	//		//		case "int32":
+	//		//			in[k] = reflect.ValueOf(int32(p))
+	//		//		case "int64":
+	//		//			in[k] = reflect.ValueOf(int64(p))
+	//		//		case "float32":
+	//		//			in[k] = reflect.ValueOf(float32(p))
+	//		//		case "float64":
+	//		//			in[k] = reflect.ValueOf(float64(p))
+	//		//		}
+	//		//	case int64:
+	//		//		p := param.(int64)
+	//		//		switch field.Kind().String() { //多选语句switch
+	//		//		case "int":
+	//		//			in[k] = reflect.ValueOf(int(p))
+	//		//		case "int32":
+	//		//			in[k] = reflect.ValueOf(int32(p))
+	//		//		case "int64":
+	//		//			in[k] = reflect.ValueOf(int64(p))
+	//		//		case "float32":
+	//		//			in[k] = reflect.ValueOf(float32(p))
+	//		//		case "float64":
+	//		//			in[k] = reflect.ValueOf(float64(p))
+	//		//		}
+	//		//	case float32:
+	//		//		p := param.(float32)
+	//		//		switch field.Kind().String() { //多选语句switch
+	//		//		case "int":
+	//		//			in[k] = reflect.ValueOf(int(p))
+	//		//		case "int32":
+	//		//			in[k] = reflect.ValueOf(int32(p))
+	//		//		case "int64":
+	//		//			in[k] = reflect.ValueOf(int64(p))
+	//		//		case "float32":
+	//		//			in[k] = reflect.ValueOf(float32(p))
+	//		//		case "float64":
+	//		//			in[k] = reflect.ValueOf(float64(p))
+	//		//		}
+	//		//	case float64:
+	//		//		p := param.(float64)
+	//		//		switch field.Kind().String() { //多选语句switch
+	//		//		case "int":
+	//		//			in[k] = reflect.ValueOf(int(p))
+	//		//		case "int32":
+	//		//			in[k] = reflect.ValueOf(int32(p))
+	//		//		case "int64":
+	//		//			in[k] = reflect.ValueOf(int64(p))
+	//		//		case "float32":
+	//		//			in[k] = reflect.ValueOf(float32(p))
+	//		//		case "float64":
+	//		//			in[k] = reflect.ValueOf(float64(p))
+	//		//		}
+	//		//	}
+	//		//
+	//		//} else {
+	//		//	in[k] = reflect.ValueOf(param)
+	//		//}
+	//	}
+	//}
 	s.wg.Add(1)
 	s.executing++
 	_runFunc := func() {
@@ -385,8 +501,8 @@ func (s *RPCServer) runFunc(callInfo CallInfo, callbacks chan<- CallInfo) {
 					buf := make([]byte, 1024)
 					l := runtime.Stack(buf, false)
 					errstr := string(buf[:l])
-					log.Error(errstr)
-					s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf(errstr))
+					log.Error(callInfo.Fn,reflect.TypeOf(_func).String(),rn,errstr)
+					s.listener.OnError(callInfo.Fn, callInfo.Args, fmt.Errorf(callInfo.Fn,reflect.TypeOf(_func).String(),rn,errstr))
 				}
 			}
 			s.wg.Add(-1)

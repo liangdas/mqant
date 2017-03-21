@@ -147,7 +147,7 @@ func (mer *ModuleManager) Init(app App, ProcessID string) {
 		m.wg.Add(1)
 		go run(m)
 	}
-	timer.SetTimer(3000, mer.ReportStatistics, nil) //统计汇报定时任务
+	timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
 }
 
 /**
@@ -234,6 +234,6 @@ func (mer *ModuleManager) ReportStatistics(args interface{}) {
 			default:
 			}
 		}
-		timer.SetTimer(3000, mer.ReportStatistics, nil)
+		timer.SetTimer(3, mer.ReportStatistics, nil)
 	}
 }

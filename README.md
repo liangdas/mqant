@@ -65,6 +65,7 @@ bug请直接通过issue提交
 
 
 ##版本日志
+###[v1.2.0新特性](https://github.com/liangdas/mqant/wiki/v1.2.0)
 ###[v1.1.0新特性](https://github.com/liangdas/mqant/wiki/v1.1.0)
 
 		

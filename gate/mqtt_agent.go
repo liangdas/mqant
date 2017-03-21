@@ -122,6 +122,8 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		b, err := json.Marshal(r)
 		if err == nil {
 			a.WriteMsg(Topic, b)
+		}else{
+			log.Error(err.Error())
 		}
 		return
 	}

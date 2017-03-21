@@ -61,7 +61,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	ApplicationDir, _ := filepath.Split(ApplicationPath)
 	defaultPath := fmt.Sprintf("%sconf/server.conf", ApplicationDir)
 	confPath := flag.String("conf", defaultPath, "Server configuration file path")
-	ProcessID := flag.String("pid", "development", "Server group?")
+	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", fmt.Sprintf("%slogs", ApplicationDir), "Log file directory?")
 	flag.Parse() //解析输入的参数
 

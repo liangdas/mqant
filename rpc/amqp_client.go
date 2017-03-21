@@ -111,7 +111,7 @@ func (c *AMQPClient) Call(callInfo CallInfo, callback chan ResultInfo) error {
 	if c.callinfos == nil {
 		return fmt.Errorf("AMQPClient is closed")
 	}
-
+	callInfo.ReplyTo=c.Consumer.callback_queue
 	var correlation_id = callInfo.Cid
 
 	clinetCallInfo := &ClinetCallInfo{
@@ -199,7 +199,7 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 
 			}
 		}
-		timer.SetTimer(1000, c.on_timeout_handle, nil)
+		timer.SetTimer(1, c.on_timeout_handle, nil)
 	}
 }
 
@@ -220,15 +220,14 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 				//	d.Body,
 				//)
 				d.Ack(false)
-				var resultInfo ResultInfo
-				err := json.Unmarshal(d.Body, &resultInfo)
+				resultInfo,err := c.UnmarshalResult(d.Body)
 				if err != nil {
 					log.Error("Unmarshal faild", err)
 				} else {
 					correlation_id := resultInfo.Cid
 					clinetCallInfo := c.callinfos.Get(correlation_id)
 					if clinetCallInfo != nil {
-						clinetCallInfo.(ClinetCallInfo).call <- resultInfo
+						clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
 					}
 					//删除
 					c.callinfos.Delete(correlation_id)
@@ -242,6 +241,20 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 			break
 		}
 	}
+}
+
+func (c *AMQPClient) UnmarshalResult(data []byte) (*ResultInfo, error) {
+	//fmt.Println(msg)
+	//保存解码后的数据，Value可以为任意数据类型
+	var resultInfo ResultInfo
+	err := json.Unmarshal(data, &resultInfo)
+	if err != nil {
+		return nil, err
+	} else {
+		return &resultInfo, err
+	}
+
+	panic("bug")
 }
 
 func (c *AMQPClient) Unmarshal(data []byte) (*CallInfo, error) {
@@ -260,6 +273,7 @@ func (c *AMQPClient) Unmarshal(data []byte) (*CallInfo, error) {
 
 // goroutine safe
 func (c *AMQPClient) Marshal(callInfo *CallInfo) ([]byte, error) {
+	//map2:= structs.Map(callInfo)
 	b, err := json.Marshal(callInfo)
 	return b, err
 }

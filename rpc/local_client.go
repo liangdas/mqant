@@ -14,7 +14,6 @@
 package mqrpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/module/modules/timer"
 	"github.com/liangdas/mqant/utils"
@@ -103,7 +102,7 @@ func (c *LocalClient) CallNR(callInfo CallInfo) (err error) {
 		}
 	}()
 	//发送消息
-	c.local_server.local_chan <- callInfo
+	c.local_server.Write(callInfo)
 
 	return nil
 }
@@ -130,7 +129,7 @@ func (c *LocalClient) on_timeout_handle(args interface{}) {
 
 			}
 		}
-		timer.SetTimer(1000, c.on_timeout_handle, nil)
+		timer.SetTimer(1, c.on_timeout_handle, nil)
 	}
 }
 
@@ -161,22 +160,4 @@ func (c *LocalClient) on_response_handle(deliveries <-chan ResultInfo, done chan
 	}
 }
 
-func (c *LocalClient) Unmarshal(data []byte) (*CallInfo, error) {
-	//fmt.Println(msg)
-	//保存解码后的数据，Value可以为任意数据类型
-	var callInfo CallInfo
-	err := json.Unmarshal(data, &callInfo)
-	if err != nil {
-		return nil, err
-	} else {
-		return &callInfo, err
-	}
 
-	panic("bug")
-}
-
-// goroutine safe
-func (c *LocalClient) Marshal(callInfo *CallInfo) ([]byte, error) {
-	b, err := json.Marshal(callInfo)
-	return b, err
-}
