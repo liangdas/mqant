@@ -21,6 +21,8 @@ pymqant是已经mqant相同的设计原理用python实现的，python版本设�
 # 社区
 QQ交流群 :463735103
 
+技术交流社区:[www.mqant.com](http://www.mqant.com)
+
 #	文档
 
  快速上手:
@@ -53,7 +55,7 @@ QQ交流群 :463735103
 [框架架构](https://github.com/liangdas/mqant/wiki/mqant%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0)
 
 ##下一步计划
-1. 讨论社区
+1. 增加grpc作为一种rpc通信管道
 2. 分布式架构管理模块(Master)
 3. 异常日志监控和汇报
 	1. 异常日志分类汇总
