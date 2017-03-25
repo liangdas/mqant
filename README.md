@@ -73,6 +73,7 @@ bug请直接通过issue提交
 凡提交代码和建议, bug的童鞋, 均会在下列贡献者名单者出现
 
 1. [xlionet](https://github.com/xlionet)
+2. [lulucas](https://github.com/lulucas/mqant-UnityExample)
 
 
 
