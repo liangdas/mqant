@@ -11,26 +11,28 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqrpc
+package defaultrpc
 
 import ()
 import (
 	"fmt"
 	"sync"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/rpc"
 )
 
 type LocalServer struct {
-	call_chan  chan CallInfo
-	local_chan chan CallInfo
+	call_chan  chan mqrpc.CallInfo
+	local_chan chan mqrpc.CallInfo
 	done       chan error
 	isclose    bool
 	lock       *sync.Mutex
 }
 
-func NewLocalServer(call_chan chan CallInfo) (*LocalServer, error) {
+func NewLocalServer(call_chan chan mqrpc.CallInfo) (*LocalServer, error) {
 	server := new(LocalServer)
 	server.call_chan = call_chan
-	server.local_chan = make(chan CallInfo, 5)
+	server.local_chan = make(chan mqrpc.CallInfo, 50)
 	server.isclose = false
 	server.lock = new(sync.Mutex)
 	go server.on_request_handle(server.local_chan)
@@ -47,7 +49,7 @@ func (s *LocalServer) IsClose() bool {
 /**
 停止接收请求
 */
-func (s *LocalServer) Write(callInfo CallInfo) error {
+func (s *LocalServer) Write(callInfo mqrpc.CallInfo) error {
 	if s.isclose {
 		return fmt.Errorf("LocalServer is closed")
 	}
@@ -81,8 +83,8 @@ func (s *LocalServer) Shutdown() (err error) {
 /**
 
  */
-func (s *LocalServer) Callback(callinfo CallInfo) error {
-	reply_to := callinfo.props["reply_to"].(chan ResultInfo)
+func (s *LocalServer) Callback(callinfo mqrpc.CallInfo) error {
+	reply_to := callinfo.Props["reply_to"].(chan rpcpb.ResultInfo)
 	reply_to <- callinfo.Result
 	return nil
 }
@@ -90,14 +92,14 @@ func (s *LocalServer) Callback(callinfo CallInfo) error {
 /**
 接收请求信息
 */
-func (s *LocalServer) on_request_handle(local_chan <-chan CallInfo) {
+func (s *LocalServer) on_request_handle(local_chan <-chan mqrpc.CallInfo) {
 	for {
 		select {
 		case callInfo, ok := <-local_chan:
 			if !ok {
 				local_chan = nil
 			} else {
-				callInfo.agent = s //设置代理为LocalServer
+				callInfo.Agent = s //设置代理为LocalServer
 				s.call_chan <- callInfo
 			}
 		}

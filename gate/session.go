@@ -15,167 +15,227 @@ package gate
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/module"
 )
 
-type Session struct {
+type sessionagent struct {
 	app       module.App
-	IP        string //客户端IP
-	Network   string //网络类型 TCP UDP websocket
-	Userid    string
-	Sessionid string
-	Serverid  string
-	Settings  map[string]interface{}
+	session   *session
 }
 
-func NewSession(app module.App, s map[string]interface{}) *Session {
-	se := &Session{
-		app: app,
+func NewSession(app module.App, data []byte) (Session,error) {
+	agent:=&sessionagent{
+		app:app,
 	}
-	se.update(s)
-	return se
+	se := &session{}
+	err := proto.Unmarshal(data, se)
+	if err != nil {
+		return nil,err
+	}    // 测试结果
+	agent.session=se
+	return agent,nil
 }
 
-func (session *Session) update(s map[string]interface{}) {
+func NewSessionByMap(app module.App, data map[string]interface{}) (Session,error) {
+	agent:=&sessionagent{
+		app:app,
+		session:new(session),
+	}
+	err:=agent.updateMap(data)
+	if err!=nil{
+		return nil,err
+	}
+	return agent,nil
+}
+
+func (session *sessionagent) GetIP() string {
+	return session.session.GetIP()
+}
+
+func (session *sessionagent) GetNetwork() string {
+	return session.session.GetNetwork()
+}
+
+func (session *sessionagent) GetUserid() string {
+	return session.session.GetUserid()
+}
+
+func (session *sessionagent) GetSessionid() string {
+	return session.session.GetSessionid()
+}
+
+func (session *sessionagent) GetServerid() string {
+	return session.session.GetServerid()
+}
+
+func (session *sessionagent) GetSettings() map[string]string {
+	return session.session.GetSettings()
+}
+
+
+func (session *sessionagent)SetIP(ip string){
+	session.session.IP=ip
+}
+func (session *sessionagent)SetNetwork(network string){
+	session.session.Network=network
+}
+func (session *sessionagent)SetUserid(userid string){
+	session.session.Userid=userid
+}
+func (session *sessionagent)SetSessionid(sessionid string){
+	session.session.Sessionid=sessionid
+}
+func (session *sessionagent)SetServerid(serverid string){
+	session.session.Serverid=serverid
+}
+func (session *sessionagent)SetSettings(settings map[string]string){
+	session.session.Settings=settings
+}
+
+func (session *sessionagent) updateMap(s map[string]interface{})error {
 	Userid := s["Userid"]
 	if Userid != nil {
-		session.Userid = Userid.(string)
+		session.session.Userid = Userid.(string)
 	}
 	IP := s["IP"]
 	if IP != nil {
-		session.IP = IP.(string)
+		session.session.IP = IP.(string)
 	}
 	Network := s["Network"]
 	if Network != nil {
-		session.Network = Network.(string)
+		session.session.Network = Network.(string)
 	}
 	Sessionid := s["Sessionid"]
 	if Sessionid != nil {
-		session.Sessionid = Sessionid.(string)
+		session.session.Sessionid = Sessionid.(string)
 	}
 	Serverid := s["Serverid"]
 	if Serverid != nil {
-		session.Serverid = Serverid.(string)
+		session.session.Serverid = Serverid.(string)
 	}
 	Settings := s["Settings"]
 	if Settings != nil {
-		session.Settings = Settings.(map[string]interface{})
+		session.session.Settings = Settings.(map[string]string)
 	}
+	return nil
 }
 
-func (session *Session) ExportMap() map[string]interface{} {
-	s := map[string]interface{}{}
-	if session.Userid != "" {
-		s["Userid"] = session.Userid
-	}
-	if session.IP != "" {
-		s["IP"] = session.IP
-	}
-	if session.Network != "" {
-		s["Network"] = session.Network
-	}
-	if session.Sessionid != "" {
-		s["Sessionid"] = session.Sessionid
-	}
-	if session.Serverid != "" {
-		s["Serverid"] = session.Serverid
-	}
-	if session.Settings != nil {
-		s["Settings"] = session.Settings
-	}
-	return s
+func (session *sessionagent) update(s Session)error {
+	Userid := s.GetUserid()
+	session.session.Userid = Userid
+	IP := s.GetIP()
+	session.session.IP = IP
+	Network := s.GetNetwork()
+	session.session.Network = Network
+	Sessionid := s.GetSessionid()
+	session.session.Sessionid = Sessionid
+	Serverid := s.GetServerid()
+	session.session.Serverid = Serverid
+	Settings := s.GetSettings()
+	session.session.Settings = Settings
+	return nil
 }
 
-func (session *Session) Update() (err string) {
+func (session *sessionagent)Serializable()([]byte,error){
+	data, err := proto.Marshal(session.session)
+	if err != nil {
+		return nil,err
+	}    // 进行解码
+	return data,nil
+}
+
+
+func (session *sessionagent) Update() (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	result, err := server.Call("Update", session.Sessionid)
+	result, err := server.Call("Update", session.session.Sessionid)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			session.update(result.(map[string]interface{}))
+			session.update(result.(Session))
 		}
 	}
 	return
 }
 
-func (session *Session) Bind(Userid string) (err string) {
+func (session *sessionagent) Bind(Userid string) (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	result, err := server.Call("Bind", session.Sessionid, Userid)
+	result, err := server.Call("Bind", session.session.Sessionid, Userid)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			session.update(result.(map[string]interface{}))
+			session.update(result.(Session))
 		}
 	}
 	return
 }
 
-func (session *Session) UnBind() (err string) {
+func (session *sessionagent) UnBind() (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	result, err := server.Call("UnBind", session.Sessionid)
+	result, err := server.Call("UnBind", session.session.Sessionid)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			session.update(result.(map[string]interface{}))
+			session.update(result.(Session))
 		}
 	}
 	return
 }
 
-func (session *Session) Push() (err string) {
+func (session *sessionagent) Push() (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	result, err := server.Call("Push", session.Sessionid, session.Settings)
+	result, err := server.Call("Push", session.session.Sessionid, session.session.Settings)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			session.update(result.(map[string]interface{}))
+			session.update(result.(Session))
 		}
 	}
 	return
 }
 
-func (session *Session) Set(key string, value interface{}) (err string) {
+func (session *sessionagent) Set(key string, value string) (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	if session.Settings == nil {
+	if session.session.Settings == nil {
 		err = fmt.Sprintf("Session.Settings is nil")
 		return
 	}
-	session.Settings[key] = value
+	session.session.Settings[key] = value
 	//server,e:=session.app.GetServersById(session.Serverid)
 	//if e!=nil{
 	//	err=fmt.Sprintf("Service not found id(%s)",session.Serverid)
@@ -191,24 +251,24 @@ func (session *Session) Set(key string, value interface{}) (err string) {
 	return
 }
 
-func (session *Session) Get(key string) (result interface{}) {
-	if session.Settings == nil {
+func (session *sessionagent) Get(key string) (result string) {
+	if session.session.Settings == nil {
 		return
 	}
-	result = session.Settings[key]
+	result = session.session.Settings[key]
 	return
 }
 
-func (session *Session) Remove(key string) (err string) {
+func (session *sessionagent) Remove(key string) (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	if session.Settings == nil {
+	if session.session.Settings == nil {
 		err = fmt.Sprintf("Session.Settings is nil")
 		return
 	}
-	delete(session.Settings, key)
+	delete(session.session.Settings, key)
 	//server,e:=session.app.GetServersById(session.Serverid)
 	//if e!=nil{
 	//	err=fmt.Sprintf("Service not found id(%s)",session.Serverid)
@@ -223,47 +283,47 @@ func (session *Session) Remove(key string) (err string) {
 	//}
 	return
 }
-func (session *Session) Send(topic string, body []byte) (err string) {
+func (session *sessionagent) Send(topic string, body []byte) (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	_, err = server.Call("Send", session.Sessionid, topic, body)
+	_, err = server.Call("Send", session.session.Sessionid, topic, body)
 	return
 }
 
-func (session *Session) SendNR(topic string, body []byte) (err string) {
+func (session *sessionagent) SendNR(topic string, body []byte) (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	e = server.CallNR("Send", session.Sessionid, topic, body)
+	e = server.CallNR("Send", session.session.Sessionid, topic, body)
 	if e != nil {
 		err = e.Error()
 	}
 	return ""
 }
 
-func (session *Session) Close() (err string) {
+func (session *sessionagent) Close() (err string) {
 	if session.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := session.app.GetServersById(session.Serverid)
+	server, e := session.app.GetServersById(session.session.Serverid)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", session.Serverid)
+		err = fmt.Sprintf("Service not found id(%s)", session.session.Serverid)
 		return
 	}
-	_, err = server.Call("Close", session.Sessionid)
+	_, err = server.Call("Close", session.session.Sessionid)
 	return
 }

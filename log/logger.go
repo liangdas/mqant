@@ -10,13 +10,21 @@ type MqantLog struct {
 	*log.Logger
 }
 
-func NewMqantLog(debug bool, ProcessID string, Logdir string) *MqantLog {
+func NewMqantLog(debug bool, ProcessID string, Logdir string) *log.Logger {
 	var Mqlog = &MqantLog{}
-	Mqlog.GetDefaultLogger(debug, ProcessID, Logdir)
-	return Mqlog
+	Mqlog.GetLogger(debug, ProcessID, Logdir)
+	return Mqlog.Logger
 }
-
-func (m *MqantLog) GetDefaultLogger(debug bool, ProcessID string, Logdir string) {
+func NewDefaultLogger()(*log.Logger)  {
+	logger := log.NewLogger()
+	logger.CallStackDepth = 3
+	t1 := log.NewConsoleTarget()
+	t1.MinLevel = log.LevelNotice
+	t1.MaxLevel = log.LevelDebug
+	logger.Targets = append(logger.Targets, t1)
+	return logger
+}
+func (m *MqantLog) GetLogger(debug bool, ProcessID string, Logdir string) {
 	// 创建根记录器(root logger)
 	logger := log.NewLogger()
 	logger.CallStackDepth = 3

@@ -95,7 +95,7 @@ func (server *WSServer) Start() {
 	}
 
 	if server.MaxConnNum <= 0 {
-		server.MaxConnNum = 100
+		server.MaxConnNum = 10000
 		log.Warning("invalid MaxConnNum, reset to %v", server.MaxConnNum)
 	}
 	if server.MaxMsgLen <= 0 {

@@ -11,23 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqrpc
+package defaultrpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/streadway/amqp"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/golang/protobuf/proto"
+	"github.com/liangdas/mqant/rpc"
+	"runtime"
 )
 
 type AMQPServer struct {
-	call_chan chan CallInfo
+	call_chan chan mqrpc.CallInfo
 	Consumer  *Consumer
 	done      chan error
 }
 
-func NewAMQPServer(info *conf.Rabbitmq, call_chan chan CallInfo) (*AMQPServer, error) {
+func NewAMQPServer(info *conf.Rabbitmq, call_chan chan mqrpc.CallInfo) (*AMQPServer, error) {
 	var queueName = info.Queue
 	var key = info.BindingKey
 	var exchange = info.Exchange
@@ -103,9 +106,9 @@ func (s *AMQPServer) Shutdown() error {
 	return s.Consumer.Shutdown()
 }
 
-func (s *AMQPServer) Callback(callinfo CallInfo) error {
+func (s *AMQPServer) Callback(callinfo mqrpc.CallInfo) error {
 	body, _ := s.MarshalResult(callinfo.Result)
-	return s.response(callinfo.props, body)
+	return s.response(callinfo.Props, body)
 }
 
 /**
@@ -138,6 +141,22 @@ func (s *AMQPServer) response(props map[string]interface{}, body []byte) error {
 接收请求信息
 */
 func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done chan error) {
+	defer func() {
+		if r := recover(); r != nil {
+			var rn = ""
+			switch r.(type) {
+
+			case string:
+				rn = r.(string)
+			case error:
+				rn = r.(error).Error()
+			}
+			buf := make([]byte, 1024)
+			l := runtime.Stack(buf, false)
+			errstr := string(buf[:l])
+			log.Error("%s\n ----Stack----\n%s",rn,errstr)
+		}
+	}()
 	for {
 		select {
 		case d, ok := <-deliveries:
@@ -151,13 +170,16 @@ func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done cha
 				//		d.Body,
 				//)
 				d.Ack(false)
-				callInfo, err := s.Unmarshal(d.Body)
+				rpcInfo, err := s.Unmarshal(d.Body)
 				if err == nil {
-					callInfo.props = map[string]interface{}{
-						"reply_to": callInfo.ReplyTo,
+					callInfo:=&mqrpc.CallInfo{
+						RpcInfo:*rpcInfo,
+					}
+					callInfo.Props = map[string]interface{}{
+						"reply_to": callInfo.RpcInfo.ReplyTo,
 					}
 
-					callInfo.agent = s //设置代理为AMQPServer
+					callInfo.Agent = s //设置代理为AMQPServer
 
 					s.call_chan <- *callInfo
 				} else {
@@ -175,29 +197,23 @@ func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done cha
 	}
 }
 
-func (s *AMQPServer) Unmarshal(data []byte) (*CallInfo, error) {
+func (s *AMQPServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
-	var callInfo CallInfo
-	err := json.Unmarshal(data, &callInfo)
+	var rpcInfo rpcpb.RPCInfo
+	err := proto.Unmarshal(data, &rpcInfo)
 	if err != nil {
 		return nil, err
 	} else {
-		return &callInfo, err
+		return &rpcInfo, err
 	}
 
 	panic("bug")
 }
-
 // goroutine safe
-func (s *AMQPServer) Marshal(callInfo *CallInfo) ([]byte, error) {
-	b, err := json.Marshal(callInfo)
-	return b, err
-}
-// goroutine safe
-func (s *AMQPServer) MarshalResult(resultInfo ResultInfo) ([]byte, error) {
+func (s *AMQPServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
 	//log.Error("",map2)
-	b, err := json.Marshal(resultInfo)
+	b, err := proto.Marshal(&resultInfo)
 	return b, err
 }
 

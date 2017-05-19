@@ -11,18 +11,21 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqrpc
+package defaultrpc
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module/modules/timer"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/utils"
 	"github.com/streadway/amqp"
 	"sync"
 	"time"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/util"
 )
 
 type AMQPClient struct {
@@ -36,7 +39,7 @@ type AMQPClient struct {
 type ClinetCallInfo struct {
 	correlation_id string
 	timeout        int64 //超时
-	call           chan ResultInfo
+	call           chan rpcpb.ResultInfo
 }
 
 func NewAMQPClient(info *conf.Rabbitmq) (client *AMQPClient, err error) {
@@ -106,22 +109,22 @@ func (c *AMQPClient) Done() (err error) {
 /**
 消息请求
 */
-func (c *AMQPClient) Call(callInfo CallInfo, callback chan ResultInfo) error {
+func (c *AMQPClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInfo) error {
 	var err error
 	if c.callinfos == nil {
 		return fmt.Errorf("AMQPClient is closed")
 	}
-	callInfo.ReplyTo=c.Consumer.callback_queue
-	var correlation_id = callInfo.Cid
+	callInfo.RpcInfo.ReplyTo=c.Consumer.callback_queue
+	var correlation_id = callInfo.RpcInfo.Cid
 
 	clinetCallInfo := &ClinetCallInfo{
 		correlation_id: correlation_id,
 		call:           callback,
-		timeout:        callInfo.Expired,
+		timeout:        callInfo.RpcInfo.Expired,
 	}
 	c.callinfos.Set(correlation_id, *clinetCallInfo)
 
-	body, err := c.Marshal(&callInfo)
+	body, err := c.Marshal(&callInfo.RpcInfo)
 	if err != nil {
 		return err
 	}
@@ -149,10 +152,10 @@ func (c *AMQPClient) Call(callInfo CallInfo, callback chan ResultInfo) error {
 /**
 消息请求 不需要回复
 */
-func (c *AMQPClient) CallNR(callInfo CallInfo) error {
+func (c *AMQPClient) CallNR(callInfo mqrpc.CallInfo) error {
 	var err error
 
-	body, err := c.Marshal(&callInfo)
+	body, err := c.Marshal(&callInfo.RpcInfo)
 	if err != nil {
 		return err
 	}
@@ -185,9 +188,10 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 				var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
 					//已经超时了
-					resultInfo := &ResultInfo{
+					resultInfo := &rpcpb.ResultInfo{
 						Result: nil,
 						Error:  "timeout: This is Call",
+						ResultType:argsutil.NULL,
 					}
 					//发送一个超时的消息
 					clinetCallInfo.call <- *resultInfo
@@ -243,37 +247,35 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 	}
 }
 
-func (c *AMQPClient) UnmarshalResult(data []byte) (*ResultInfo, error) {
+func (c *AMQPClient) UnmarshalResult(data []byte) (*rpcpb.ResultInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
-	var resultInfo ResultInfo
-	err := json.Unmarshal(data, &resultInfo)
+	var resultInfo rpcpb.ResultInfo
+	err := proto.Unmarshal(data, &resultInfo)
 	if err != nil {
 		return nil, err
 	} else {
 		return &resultInfo, err
 	}
-
-	panic("bug")
 }
 
-func (c *AMQPClient) Unmarshal(data []byte) (*CallInfo, error) {
+func (c *AMQPClient) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
-	var callInfo CallInfo
-	err := json.Unmarshal(data, &callInfo)
+	var rpcInfo rpcpb.RPCInfo
+	err := proto.Unmarshal(data, &rpcInfo)
 	if err != nil {
 		return nil, err
 	} else {
-		return &callInfo, err
+		return &rpcInfo, err
 	}
 
 	panic("bug")
 }
 
 // goroutine safe
-func (c *AMQPClient) Marshal(callInfo *CallInfo) ([]byte, error) {
+func (c *AMQPClient) Marshal(rpcInfo *rpcpb.RPCInfo) ([]byte, error) {
 	//map2:= structs.Map(callInfo)
-	b, err := json.Marshal(callInfo)
+	b, err := proto.Marshal(rpcInfo)
 	return b, err
 }

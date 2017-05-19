@@ -11,13 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package app
+package defaultApp
 
 import (
 	"flag"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"hash/crc32"
@@ -27,13 +28,16 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"github.com/liangdas/mqant/rpc/base"
+	"github.com/liangdas/mqant/module/modules"
 )
+
 
 func NewApp(version string) module.App {
 	app := new(DefaultApp)
-	app.routes = map[string]func(app module.App, Type string, hash string) *module.ServerSession{}
-	app.serverList = map[string]*module.ServerSession{}
-	app.defaultRoutes = func(app module.App, Type string, hash string) *module.ServerSession {
+	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
+	app.serverList = map[string]module.ServerSession{}
+	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		//默认使用第一个Server
 		servers := app.GetServersByType(Type)
 		if len(servers) == 0 {
@@ -42,6 +46,7 @@ func NewApp(version string) module.App {
 		index := int(math.Abs(float64(crc32.ChecksumIEEE([]byte(hash))))) % len(servers)
 		return servers[index]
 	}
+	app.rpcserializes=map[string]module.RPCSerialize{}
 	app.version = version
 	return app
 }
@@ -49,10 +54,11 @@ func NewApp(version string) module.App {
 type DefaultApp struct {
 	module.App
 	version       string
-	serverList    map[string]*module.ServerSession
+	serverList    map[string]module.ServerSession
 	settings      conf.Config
-	routes        map[string]func(app module.App, Type string, hash string) *module.ServerSession
-	defaultRoutes func(app module.App, Type string, hash string) *module.ServerSession
+	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
+	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
+	rpcserializes	map[string]module.RPCSerialize
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -84,8 +90,8 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	app.Configure(conf.Conf)  //配置信息
 
 	log.Info("mqant %v starting up", app.version)
-	manager := module.NewModuleManager()
-	manager.RegisterRunMod(module.TimerModule()) //注册时间轮模块 每一个进程都默认运行
+	manager := basemodule.NewModuleManager()
+	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
 	for i := 0; i < len(mods); i++ {
 		manager.Register(mods[i])
@@ -101,17 +107,30 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	log.Info("mqant closing down (signal: %v)", sig)
 	return nil
 }
-func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) *module.ServerSession) error {
+func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {
 	app.routes[moduleType] = fn
 	return nil
 }
-func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type string, hash string) *module.ServerSession {
+func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type string, hash string) module.ServerSession {
 	fn := app.routes[moduleType]
 	if fn == nil {
 		//如果没有设置的路由,则使用默认的
 		return app.defaultRoutes
 	}
 	return fn
+}
+
+
+func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerialize) error{
+	if _,ok:=app.rpcserializes[name];ok{
+		return fmt.Errorf("The name(%s) has been occupied",name)
+	}
+	app.rpcserializes[name]=Interface
+	return nil
+}
+
+func (app *DefaultApp)GetRPCSerialize()(map[string]module.RPCSerialize){
+	return app.rpcserializes
 }
 
 func (app *DefaultApp) Configure(settings conf.Config) error {
@@ -122,15 +141,15 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	app.serverList = make(map[string]*module.ServerSession)
+	app.serverList = make(map[string]module.ServerSession)
 	for Type, ModuleInfos := range settings.Module {
 		for _, moduel := range ModuleInfos {
 			m := app.serverList[moduel.Id]
 			if m != nil {
 				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.Id, m.Stype, moduel.Id, Type))
+				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.GetId(), m.GetType(), moduel.Id, Type))
 			}
-			client, err := mqrpc.NewRPCClient()
+			client, err := defaultrpc.NewRPCClient(app,moduel.Id)
 			if err != nil {
 				continue
 			}
@@ -138,11 +157,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 				//如果远程的rpc存在则创建一个对应的客户端
 				client.NewRemoteClient(moduel.Rabbitmq)
 			}
-			session := &module.ServerSession{
-				Id:    moduel.Id,
-				Stype: Type,
-				Rpc:   client,
-			}
+			session := basemodule.NewServerSession(moduel.Id,Type,client)
 			app.serverList[moduel.Id] = session
 			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
 		}
@@ -152,26 +167,26 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 
 func (app *DefaultApp) OnDestroy() error {
 	for id, session := range app.serverList {
-		err := session.Rpc.Done()
+		err := session.GetRpc().Done()
 		if err != nil {
-			log.Warning("RPCClient close fail type(%s) id(%s)", session.Stype, id)
+			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)
 		} else {
-			log.Info("RPCClient close success type(%s) id(%s)", session.Stype, id)
+			log.Info("RPCClient close success type(%s) id(%s)", session.GetType(), id)
 		}
 	}
 	return nil
 }
 
-func (app *DefaultApp) RegisterLocalClient(serverId string, server *mqrpc.RPCServer) error {
+func (app *DefaultApp) RegisterLocalClient(serverId string, server mqrpc.RPCServer) error {
 	if session, ok := app.serverList[serverId]; ok {
-		return session.Rpc.NewLocalClient(server)
+		return session.GetRpc().NewLocalClient(server)
 	} else {
 		return fmt.Errorf("Server(%s) Not Found", serverId)
 	}
 	return nil
 }
 
-func (app *DefaultApp) GetServersById(serverId string) (*module.ServerSession, error) {
+func (app *DefaultApp) GetServersById(serverId string) (module.ServerSession, error) {
 	if session, ok := app.serverList[serverId]; ok {
 		return session, nil
 	} else {
@@ -179,17 +194,17 @@ func (app *DefaultApp) GetServersById(serverId string) (*module.ServerSession, e
 	}
 }
 
-func (app *DefaultApp) GetServersByType(Type string) []*module.ServerSession {
-	sessions := make([]*module.ServerSession, 0)
+func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+	sessions := make([]module.ServerSession, 0)
 	for _, session := range app.serverList {
-		if session.Stype == Type {
+		if session.GetType() == Type {
 			sessions = append(sessions, session)
 		}
 	}
 	return sessions
 }
 
-func (app *DefaultApp) GetRouteServers(filter string, hash string) (s *module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServers(filter string, hash string) (s module.ServerSession, err error) {
 	sl := strings.Split(filter, "@")
 	if len(sl) == 2 {
 		moduleID := sl[1]
@@ -225,4 +240,21 @@ func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _
 		return
 	}
 	return server.CallNR(_func, params...)
+}
+
+func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string,args [][]byte) (result interface{}, err string) {
+	server, e := app.GetRouteServers(moduleType, module.GetServerId())
+	if e != nil {
+		err = e.Error()
+		return
+	}
+	return server.CallArgs(_func, ArgsType,args)
+}
+
+func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string,args [][]byte) (err error) {
+	server, err := app.GetRouteServers(moduleType, module.GetServerId())
+	if err != nil {
+		return
+	}
+	return server.CallNRArgs(_func, ArgsType,args)
 }

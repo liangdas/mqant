@@ -1,7 +1,7 @@
 /**
 一定要记得在confin.json配置这个模块的参数,否则无法使用
 */
-package module
+package modules
 
 import (
 	"encoding/json"
@@ -15,9 +15,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/base"
 )
 
-var MasterModule = func() Module {
+var MasterModule = func() module.Module {
 	master := new(Master)
 	return master
 }
@@ -66,18 +68,17 @@ type ModuleReport struct {
 	Version    string
 	ProcessID  string
 	Executing  int64                         //当前正在执行的函数数量,暂态的,下一次上报时刷新
-	ReportForm map[string]*StatisticalMethod //运行状态报表
+	ReportForm map[string]*basemodule.StatisticalMethod //运行状态报表
 }
 
 type Master struct {
-	BaseModule
-	app           App
+	basemodule.BaseModule
+	app           module.App
 	listener      net.Listener
 	ProcessMap    map[string]*master.Process
 	ModuleReports map[string]*ModuleReport //moduleID -- ModuleReport
 	rwmutex       sync.RWMutex
 }
-
 func (m *Master) GetType() string {
 	//很关键,需要与配置文件中的Module配置对应
 	return "Master"
@@ -86,7 +87,7 @@ func (m *Master) Version() string {
 	return "1.0.0"
 }
 
-func (m *Master) OnInit(app App, settings *conf.ModuleSettings) {
+func (m *Master) OnInit(app module.App, settings *conf.ModuleSettings) {
 	m.BaseModule.OnInit(m, app, settings)
 	m.app = app
 	m.ModuleReports = map[string]*ModuleReport{}
@@ -360,7 +361,7 @@ func (m *Master) stopProcess(s map[string]interface{}, msg map[string]interface{
 模块汇报
 */
 func (m *Master) ReportForm(moduleType string, ProcessID string, Id string, Version string, statistics string, Executing int64) (result string, err string) {
-	sm := LoadStatisticalMethod(statistics)
+	sm := basemodule.LoadStatisticalMethod(statistics)
 	if sm == nil {
 		err = "JSON format is not correct"
 	}

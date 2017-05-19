@@ -35,10 +35,11 @@ func NewBeeMap() *BeeMap {
 // Get from maps return the k's value
 func (m *BeeMap) Get(k interface{}) interface{} {
 	m.lock.RLock()
-	defer m.lock.RUnlock()
 	if val, ok := m.bm[k]; ok {
+		m.lock.RUnlock()
 		return val
 	}
+	m.lock.RUnlock()
 	return nil
 }
 
@@ -46,12 +47,14 @@ func (m *BeeMap) Get(k interface{}) interface{} {
 // if the key is already in the map and changes nothing.
 func (m *BeeMap) Set(k interface{}, v interface{}) bool {
 	m.lock.Lock()
-	defer m.lock.Unlock()
 	if val, ok := m.bm[k]; !ok {
 		m.bm[k] = v
+		m.lock.Unlock()
 	} else if val != v {
 		m.bm[k] = v
+		m.lock.Unlock()
 	} else {
+		m.lock.Unlock()
 		return false
 	}
 	return true
@@ -60,27 +63,28 @@ func (m *BeeMap) Set(k interface{}, v interface{}) bool {
 // Check Returns true if k is exist in the map.
 func (m *BeeMap) Check(k interface{}) bool {
 	m.lock.RLock()
-	defer m.lock.RUnlock()
 	if _, ok := m.bm[k]; !ok {
+		m.lock.RUnlock()
 		return false
 	}
+	m.lock.RUnlock()
 	return true
 }
 
 // Delete the given key and value.
 func (m *BeeMap) Delete(k interface{}) {
 	m.lock.Lock()
-	defer m.lock.Unlock()
 	delete(m.bm, k)
+	m.lock.Unlock()
 }
 
 // Items returns all items in safemap.
 func (m *BeeMap) Items() map[interface{}]interface{} {
 	m.lock.RLock()
-	defer m.lock.RUnlock()
 	r := make(map[interface{}]interface{})
 	for k, v := range m.bm {
 		r[k] = v
 	}
+	m.lock.RUnlock()
 	return r
 }

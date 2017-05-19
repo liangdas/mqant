@@ -205,7 +205,7 @@ func (queue *PackQueue) ReadPackInLoop() {
 			} else {
 				<-queue.noticeFin
 				//
-				log.Info("Queue FIN")
+				log.Info("Queue not continue")
 				break loop
 			}
 

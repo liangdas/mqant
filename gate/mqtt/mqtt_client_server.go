@@ -229,7 +229,7 @@ func (c *Client) WriteMsg(topic string, body []byte) error {
 	if c.isStop {
 		return fmt.Errorf("connection is closed")
 	}
-	pack := GetPubPack(1, 0, c.getOnlineMsgId(), &topic, body)
+	pack := GetPubPack(0, 0, c.getOnlineMsgId(), &topic, body)
 	return c.pushMsg(pack)
 	//return nil
 }
