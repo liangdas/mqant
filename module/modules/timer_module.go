@@ -1,20 +1,21 @@
 /**
 一定要记得在confin.json配置这个模块的参数,否则无法使用
 */
-package module
+package modules
 
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module/modules/timer"
+	"github.com/liangdas/mqant/module"
 )
 
-var TimerModule = func() Module {
+var TimerModule = func() module.Module {
 	Timer := new(Timer)
 	return Timer
 }
 
 type Timer struct {
-	Module
+	module.Module
 }
 
 func (m *Timer) GetType() string {
@@ -22,7 +23,7 @@ func (m *Timer) GetType() string {
 	return "Timer"
 }
 
-func (m *Timer) OnInit(app App, settings *conf.ModuleSettings) {
+func (m *Timer) OnInit(app module.App, settings *conf.ModuleSettings) {
 	// 定时器2，不传参数
 	//SetTimer("callback2", 100, m.callback2, time.Now().UnixNano())
 }

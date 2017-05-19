@@ -11,25 +11,27 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package module
+package basemodule
 
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc/base"
 )
 
-type Server struct {
+type rpcserver struct {
 	settings *conf.ModuleSettings
-	server   *mqrpc.RPCServer
+	server   mqrpc.RPCServer
 }
 
-func (s *Server) GetId() string {
+func (s *rpcserver) GetId() string {
 	return s.settings.Id
 }
-func (s *Server) OnInit(app App, settings *conf.ModuleSettings) {
+func (s *rpcserver) OnInit(app module.App, settings *conf.ModuleSettings) {
 	s.settings = settings
-	server, err := mqrpc.NewRPCServer() //默认会创建一个本地的RPC
+	server, err := defaultrpc.NewRPCServer(app) //默认会创建一个本地的RPC
 	if err != nil {
 		log.Warning("Dial: %s", err)
 	}
@@ -46,7 +48,7 @@ func (s *Server) OnInit(app App, settings *conf.ModuleSettings) {
 	}
 	log.Info("RPCServer init success id(%s)", s.settings.Id)
 }
-func (s *Server) OnDestroy() {
+func (s *rpcserver) OnDestroy() {
 	if s.server != nil {
 		err := s.server.Done()
 		if err != nil {
@@ -58,21 +60,21 @@ func (s *Server) OnDestroy() {
 	}
 }
 
-func (s *Server) Register(id string, f interface{}) {
+func (s *rpcserver) Register(id string, f interface{}) {
 	if s.server == nil {
 		panic("invalid RPCServer")
 	}
 	s.server.Register(id, f)
 }
 
-func (s *Server) RegisterGO(id string, f interface{}) {
+func (s *rpcserver) RegisterGO(id string, f interface{}) {
 	if s.server == nil {
 		panic("invalid RPCServer")
 	}
 	s.server.RegisterGO(id, f)
 }
 
-func (s *Server) GetRPCServer() *mqrpc.RPCServer {
+func (s *rpcserver) GetRPCServer() mqrpc.RPCServer {
 	if s.server == nil {
 		panic("invalid RPCServer")
 	}

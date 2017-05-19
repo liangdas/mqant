@@ -1,0 +1,19 @@
+syntax = "proto3";
+package rpcpb;
+message RPCInfo {
+    string Cid = 1;
+    string Fn = 2;
+    string ReplyTo = 3;
+    string track = 4;
+    int64 Expired = 5;
+    bool Reply = 6;
+    repeated string ArgsType = 7;
+    repeated bytes Args = 8;
+}
+
+message ResultInfo {
+    string Cid = 1;
+    string Error = 2;
+    string ResultType = 4;
+    bytes Result = 5;
+}

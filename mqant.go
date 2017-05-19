@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package mqant
-
-import (
-	"github.com/liangdas/mqant/app"
-	"github.com/liangdas/mqant/module"
-)
-
+import "github.com/liangdas/mqant/module"
+import "github.com/liangdas/mqant/app"
 func CreateApp() module.App {
-	return app.NewApp(Version)
+	return defaultApp.NewApp(Version)
 }

@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package module
+package basemodule
 
 import (
 	"encoding/json"
@@ -19,6 +19,8 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"sync"
 	"time"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/module"
 )
 
 type StatisticalMethod struct {
@@ -44,10 +46,10 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 }
 
 type BaseModule struct {
-	App         App
-	subclass    RPCModule
+	App         module.App
+	subclass    module.RPCModule
 	settings    *conf.ModuleSettings
-	server      *Server
+	server      *rpcserver
 	listener    mqrpc.RPCListener
 	statistical map[string]*StatisticalMethod //统计
 	rwmutex     sync.RWMutex
@@ -57,14 +59,21 @@ func (m *BaseModule) GetServerId() string {
 	//很关键,需要与配置文件中的Module配置对应
 	return m.settings.Id
 }
-func (m *BaseModule) GetServer() *Server {
+
+func (m *BaseModule) GetApp() module.App {
+	return m.App
+}
+
+func (m *BaseModule) GetServer() *rpcserver {
 	if m.server == nil {
-		m.server = new(Server)
+		m.server = new(rpcserver)
 	}
 	return m.server
 }
+func (m *BaseModule)OnConfChanged(settings *conf.ModuleSettings)  {
 
-func (m *BaseModule) OnInit(subclass RPCModule, app App, settings *conf.ModuleSettings) {
+}
+func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
 	//初始化模块
 	m.App = app
 	m.subclass = subclass
@@ -86,7 +95,7 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
-func (m *BaseModule) GetRouteServers(moduleType string, hash string) (s *ServerSession, err error) {
+func (m *BaseModule) GetRouteServers(moduleType string, hash string) (s module.ServerSession, err error) {
 	return m.App.GetRouteServers(moduleType, hash)
 }
 
@@ -105,6 +114,23 @@ func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...inte
 		return
 	}
 	return server.CallNR(_func, params...)
+}
+
+func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []string,args [][]byte) (result interface{}, err string) {
+	server, e := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	if e != nil {
+		err = e.Error()
+		return
+	}
+	return server.CallArgs(_func, ArgsType,args)
+}
+
+func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string,args [][]byte) (err error) {
+	server, err := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	if err != nil {
+		return
+	}
+	return server.CallNRArgs(_func, ArgsType,args)
 }
 
 func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
@@ -126,7 +152,7 @@ func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
 		m.listener.OnTimeOut(fn, Expired)
 	}
 }
-func (m *BaseModule) OnError(fn string, params []interface{}, err error) {
+func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
 	m.rwmutex.RLock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
 		statisticalMethod.ExecFailure++
@@ -142,7 +168,7 @@ func (m *BaseModule) OnError(fn string, params []interface{}, err error) {
 	}
 	m.rwmutex.RUnlock()
 	if m.listener != nil {
-		m.listener.OnError(fn, params, err)
+		m.listener.OnError(fn, callInfo, err)
 	}
 }
 
@@ -152,7 +178,7 @@ params		参数
 result		执行结果
 exec_time 	方法执行时间 单位为 Nano 纳秒  1000000纳秒等于1毫秒
 */
-func (m *BaseModule) OnComplete(fn string, params []interface{}, result *mqrpc.ResultInfo, exec_time int64) {
+func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpcpb.ResultInfo, exec_time int64) {
 	m.rwmutex.RLock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
 		statisticalMethod.ExecSuccess++
@@ -176,7 +202,7 @@ func (m *BaseModule) OnComplete(fn string, params []interface{}, result *mqrpc.R
 	}
 	m.rwmutex.RUnlock()
 	if m.listener != nil {
-		m.listener.OnComplete(fn, params, result, exec_time)
+		m.listener.OnComplete(fn, callInfo, result, exec_time)
 	}
 }
 func (m *BaseModule) GetExecuting() int64 {

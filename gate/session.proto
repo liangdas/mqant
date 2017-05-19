@@ -1,0 +1,10 @@
+syntax = "proto3";
+package gate;
+message session {
+    string IP = 1;
+    string Network = 2;
+    string Userid = 3;
+    string Sessionid = 4;
+    string Serverid = 5;
+    map<string, string> Settings = 6;
+}

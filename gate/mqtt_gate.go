@@ -16,13 +16,18 @@ package gate
 import (
 	"bufio"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/network"
 	"time"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/base"
+	"fmt"
+	"reflect"
+	"github.com/liangdas/mqant/log"
 )
-
+var RPC_PARAM_SESSION_TYPE="SESSION"
 type Gate struct {
-	module.BaseModule
+	module.RPCSerialize
+	basemodule.BaseModule
 	MaxConnNum          int
 	MaxMsgLen           uint32
 	MinStorageHeartbeat int64 //Session持久化最短心跳包
@@ -55,9 +60,51 @@ func (gate *Gate) SetStorageHandler(storage StorageHandler) error {
 func (gate *Gate) GetStorageHandler() (storage StorageHandler) {
 	return gate.storage
 }
+func (gate *Gate)OnConfChanged(settings *conf.ModuleSettings)  {
+
+}
+
+/**
+自定义rpc参数序列化反序列化  Session
+ */
+func (gate *Gate)Serialize(param interface{})(ptype string,p []byte, err error){
+	switch v2:=param.(type) {
+	case Session:
+		bytes,err:=v2.Serializable()
+		if err != nil{
+			return RPC_PARAM_SESSION_TYPE,nil,err
+		}
+		return RPC_PARAM_SESSION_TYPE,bytes,nil
+	default:
+		return "", nil,fmt.Errorf("args [%s] Types not allowed",reflect.TypeOf(param))
+	}
+}
+
+func (gate *Gate)Deserialize(ptype string,b []byte)(param interface{},err error){
+	switch ptype {
+	case RPC_PARAM_SESSION_TYPE:
+		mps,errs:= NewSession(gate.App,b)
+		if errs!=nil{
+			return	nil,errs
+		}
+		return mps,nil
+	default:
+		return	nil,fmt.Errorf("args [%s] Types not allowed",ptype)
+	}
+}
+
+func (gate *Gate)GetTypes()([]string){
+	return []string{RPC_PARAM_SESSION_TYPE}
+}
 
 func (gate *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
 	gate.BaseModule.OnInit(subclass, app, settings) //这是必须的
+
+	//添加Session结构体的序列化操作类
+	err:=app.AddRPCSerialize("gate",gate)
+	if err!=nil{
+		log.Warning("Adding session structures failed to serialize interfaces",err.Error())
+	}
 
 	gate.MaxConnNum = int(settings.Settings["MaxConnNum"].(float64))
 	gate.MaxMsgLen = uint32(settings.Settings["MaxMsgLen"].(float64))
@@ -91,14 +138,14 @@ func (gate *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 	gate.agentLearner = handler
 	gate.handler = handler
 
-	gate.GetServer().RegisterGO("Update", gate.handler.Update)
-	gate.GetServer().RegisterGO("Bind", gate.handler.Bind)
-	gate.GetServer().RegisterGO("UnBind", gate.handler.UnBind)
-	gate.GetServer().RegisterGO("Push", gate.handler.Push)
-	gate.GetServer().RegisterGO("Set", gate.handler.Set)
-	gate.GetServer().RegisterGO("Remove", gate.handler.Remove)
-	gate.GetServer().RegisterGO("Send", gate.handler.Send)
-	gate.GetServer().RegisterGO("Close", gate.handler.Close)
+	gate.GetServer().Register("Update", gate.handler.Update)
+	gate.GetServer().Register("Bind", gate.handler.Bind)
+	gate.GetServer().Register("UnBind", gate.handler.UnBind)
+	gate.GetServer().Register("Push", gate.handler.Push)
+	gate.GetServer().Register("Set", gate.handler.Set)
+	gate.GetServer().Register("Remove", gate.handler.Remove)
+	gate.GetServer().Register("Send", gate.handler.Send)
+	gate.GetServer().Register("Close", gate.handler.Close)
 }
 
 func (gate *Gate) Run(closeSig chan bool) {
@@ -119,6 +166,8 @@ func (gate *Gate) Run(closeSig chan bool) {
 				r:       bufio.NewReader(conn),
 				w:       bufio.NewWriter(conn),
 				isclose: false,
+				rev_num:0,
+				send_num:0,
 			}
 			return a
 		}
@@ -139,6 +188,8 @@ func (gate *Gate) Run(closeSig chan bool) {
 				r:       bufio.NewReader(conn),
 				w:       bufio.NewWriter(conn),
 				isclose: false,
+				rev_num:0,
+				send_num:0,
 			}
 			return a
 		}
