@@ -22,7 +22,7 @@ QQ交流群 :463735103
  
  [mqant wiki](https://github.com/liangdas/mqant/wiki)
  
-#概述
+# 概述
  
 1. [mqant的设计动机](https://github.com/liangdas/mqant/wiki/mqant%E7%9A%84%E8%AE%BE%E8%AE%A1%E5%8A%A8%E6%9C%BA)
 2. [mqant框架介绍](https://github.com/liangdas/mqant/wiki/%E%AC%A2%E8%BF%8E%E4%BD%BF%E7%94%A8mqant)
@@ -31,9 +31,12 @@ QQ交流群 :463735103
 5. 
 ...
 
-#演示示例
-
- [全平台聊天Demo](https://github.com/liangdas/mqantserver)
+# 演示示例
+	mqant 项目只包含mqant的代码文件
+	mqantserver 项目包括了完整的测试demo代码和mqant所依赖的库
+	如果你是新手可以优先下载mqantserver项目进行试验
+	
+ [全平台聊天Demo mqantserver](https://github.com/liangdas/mqantserver)
  
  [在线Demo演示（随时可能关闭）](https://www.h5link.com/mqant/index.html)
  
@@ -47,17 +50,15 @@ QQ交流群 :463735103
 
 [框架架构](https://github.com/liangdas/mqant/wiki/mqant%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0)
 
-##下一步计划
-1. 增加grpc作为一种rpc通信管道
-2. 分布式架构管理模块(Master)
-3. 异常日志监控和汇报
+## 下一步计划
+1. 分布式架构管理模块(Master)
+2. 异常日志监控和汇报
 	1. 异常日志分类汇总
 	2. 定时将异常日志发送到Email
 	3. 定时将异常日志通过webhook发送到团队协作工具中(钉钉,worktile等)
-4. 做一下多进程内存共享方面的实验性研究
-5. 。。。
+3. rpc添加track分布式跟踪系统的接口[Appdash，用Go实现的分布式系统跟踪神器](http://tonybai.com/2015/06/17/appdash-distributed-systems-tracing-in-go/)
 
-##贡献者
+## 贡献者
 
 欢迎提供dev分支的pull request
 
@@ -70,15 +71,16 @@ bug请直接通过issue提交
 
 
 
-##版本日志
-###[v1.3.0新特性](https://github.com/liangdas/mqant/wiki/v1.3.0)
+## 版本日志
 
-###[v1.2.0新特性](https://github.com/liangdas/mqant/wiki/v1.2.0)
+### [v1.3.0新特性](https://github.com/liangdas/mqant/wiki/v1.3.0)
 
-###[v1.1.0新特性](https://github.com/liangdas/mqant/wiki/v1.1.0)
+### [v1.2.0新特性](https://github.com/liangdas/mqant/wiki/v1.2.0)
+
+### [v1.1.0新特性](https://github.com/liangdas/mqant/wiki/v1.1.0)
 
 		
-###v1.0.0
+### v1.0.0
 
 	mqant第一个版本
 	
