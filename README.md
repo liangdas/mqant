@@ -16,6 +16,13 @@ QQ交流群 :463735103
 
 技术交流社区:[www.mqant.com](http://www.mqant.com)
 
+# 依赖项目
+
+	go get github.com/gorilla/mux
+	go get github.com/gorilla/websocket
+	go get github.com/streadway/amqp
+	go get github.com/golang/protobuf
+
 #	文档
 
  快速上手:
