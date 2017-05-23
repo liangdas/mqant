@@ -232,8 +232,7 @@ func (session *sessionagent) Set(key string, value string) (err string) {
 		return
 	}
 	if session.session.Settings == nil {
-		err = fmt.Sprintf("Session.Settings is nil")
-		return
+		session.session.Settings=map[string]string{}
 	}
 	session.session.Settings[key] = value
 	//server,e:=session.app.GetServersById(session.Serverid)
@@ -265,8 +264,7 @@ func (session *sessionagent) Remove(key string) (err string) {
 		return
 	}
 	if session.session.Settings == nil {
-		err = fmt.Sprintf("Session.Settings is nil")
-		return
+		session.session.Settings=map[string]string{}
 	}
 	delete(session.session.Settings, key)
 	//server,e:=session.app.GetServersById(session.Serverid)
