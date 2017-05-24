@@ -151,6 +151,11 @@ func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo) {
 				if callInfo.RpcInfo.Reply {
 					//需要回复的才回复
 					callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+				}else{
+					//对于不需要回复的消息,可以判断一下是否出现错误，打印一些警告
+					if callInfo.Result.Error!=""{
+						log.Warning("rpc callback erro :\n%s",callInfo.Result.Error)
+					}
 				}
 			}
 		}
