@@ -45,9 +45,9 @@ QQ交流群 :463735103
 	
  [全平台聊天Demo mqantserver](https://github.com/liangdas/mqantserver)
  
- [在线Demo演示（随时可能关闭）](https://www.h5link.com/mqant/index.html)
+ [在线Demo演示](https://www.mqant.com/mqant/chat/)
  
- [多人对战吃小球游戏（绿色小球是在线玩家,可以同时开两个浏览器测试,支持移动端）](https://www.h5link.com/hitball/index.html)
+ [多人对战吃小球游戏（绿色小球是在线玩家,可以同时开两个浏览器测试,支持移动端）](https://www.mqant.com/mqant/hitball/)
  
  
  
