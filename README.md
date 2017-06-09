@@ -3,7 +3,7 @@ mqant是一款基于Golang语言的简洁,高效,高性能的分布式游戏服�
 
 # 为什么要用golang
 
-[Node、PHP、Java 和 Go 服务端 I/O 性能PK](https://c.m.163.com/news/a/CMDIFEOM0511DJFN.html?spss=newsapp&spsw=1)
+[Node、PHP、Java 和 Go 服务端 I/O 性能PK](http://blog.csdn.net/listen2you/article/details/72935679)
 
 
 #	特性
