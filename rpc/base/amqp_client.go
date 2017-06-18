@@ -207,6 +207,9 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 	}
 }
 
+
+
+
 /**
 接收应答信息
 */

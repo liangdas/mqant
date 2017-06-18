@@ -80,7 +80,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.settings = settings
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
-	m.GetServer().OnInit(app, settings)
+	m.GetServer().OnInit(subclass,app, settings)
 	m.GetServer().GetRPCServer().SetListener(m)
 }
 

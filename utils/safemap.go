@@ -78,6 +78,15 @@ func (m *BeeMap) Delete(k interface{}) {
 	m.lock.Unlock()
 }
 
+func (m *BeeMap) DeleteAll() {
+	m.lock.Lock()
+	for k, _ := range m.bm {
+		delete(m.bm, k)
+	}
+
+	m.lock.Unlock()
+}
+
 // Items returns all items in safemap.
 func (m *BeeMap) Items() map[interface{}]interface{} {
 	m.lock.RLock()

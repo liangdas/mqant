@@ -7,4 +7,5 @@ message session {
     string Sessionid = 4;
     string Serverid = 5;
     map<string, string> Settings = 6;
+    map<string, string> Tracer=7;
 }

@@ -11,14 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package gate
+package basegate
 
 import (
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate/mqtt"
+	"github.com/liangdas/mqant/gate"
+	"github.com/liangdas/mqant/gate/base/mqtt"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/utils/uuid"
@@ -34,8 +35,8 @@ type resultInfo struct {
 }
 
 type agent struct {
-	Agent
-	session                          Session
+	gate.Agent
+	session                          gate.Session
 	conn                             network.Conn
 	r                                *bufio.Reader
 	w                                *bufio.Writer
@@ -51,7 +52,7 @@ func (a *agent) IsClosed() bool {
 	return a.isclose
 }
 
-func (a *agent) GetSession() Session {
+func (a *agent) GetSession() gate.Session {
 	return a.session
 }
 
@@ -97,6 +98,9 @@ func (a *agent) Run() (err error) {
 		log.Error("gate create agent fail",err.Error())
 		return
 	}
+
+
+
 	a.gate.agentLearner.Connect(a) //发送连接成功的事件
 
 	//回复客户端 CONNECT
@@ -185,7 +189,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else {
 			hash = a.gate.GetServerId()
 		}
-
+		a.session.CreateRootSpan("gate")
 		serverSession, err := a.gate.GetRouteServers(topics[0], hash)
 		if err != nil {
 			if msgid != "" {

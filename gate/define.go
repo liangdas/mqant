@@ -13,6 +13,9 @@
 // limitations under the License.
 package gate
 
+import (
+	opentracing "github.com/opentracing/opentracing-go"
+)
 /**
 net代理服务 处理器
 */
@@ -25,6 +28,7 @@ type GateHandler interface {
 	Send(Sessionid string, topic string, body []byte) (result interface{}, err string)       //Send message to the session.
 	Close(Sessionid string) (result interface{}, err string)                                 //主动关闭连接
 	Update(Sessionid string) (result Session, err string)                                //更新整个Session 通常是其他模块拉取最新数据
+	OnDestroy()	//退出事件,主动关闭所有的连接
 }
 
 type Session interface {
@@ -51,6 +55,27 @@ type Session interface {
 	Send(topic string, body []byte) (err string)
 	SendNR(topic string, body []byte) (err string)
 	Close() (err string)
+	Clone()Session
+	/**
+	通过Carrier数据构造本次rpc调用的tracing Span,如果没有就创建一个新的
+	 */
+	CreateRootSpan(operationName string)opentracing.Span
+	/**
+	通过Carrier数据构造本次rpc调用的tracing Span,如果没有就返回nil
+	 */
+	LoadSpan(operationName string)opentracing.Span
+	/**
+	获取本次rpc调用的tracing Span
+	 */
+	Span()opentracing.Span
+	/**
+	从Session的 Span继承一个新的Span
+	 */
+	ExtractSpan(operationName string)opentracing.Span
+	/**
+	获取Tracing的Carrier 可能为nil
+	 */
+	TracCarrier()map[string]string
 }
 
 /**

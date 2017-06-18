@@ -24,6 +24,10 @@ QQ交流群 :463735103
 	go get github.com/gorilla/websocket
 	go get github.com/streadway/amqp
 	go get github.com/golang/protobuf
+	go get github.com/golang/net/context
+	go get github.com/gogo/protobuf
+	go get github.com/opentracing/basictracer-go
+	go get github.com/opentracing/opentracing-go
 
 #	文档
 
@@ -59,13 +63,19 @@ QQ交流群 :463735103
 
 [框架架构](https://github.com/liangdas/mqant/wiki/mqant%E6%A1%86%E6%9E%B6%E6%A6%82%E8%BF%B0)
 
+
+
 ## 下一步计划
 1. 分布式架构管理模块(Master)
+	1. 模块发现
+	2. 模块管理
+		1. 模块动态添加删除
+		2. 模块状态监控
 2. 异常日志监控和汇报
 	1. 异常日志分类汇总
 	2. 定时将异常日志发送到Email
 	3. 定时将异常日志通过webhook发送到团队协作工具中(钉钉,worktile等)
-3. rpc添加track分布式跟踪系统的接口[Appdash，用Go实现的分布式系统跟踪神器](http://tonybai.com/2015/06/17/appdash-distributed-systems-tracing-in-go/)
+3. 【已完成】rpc添加track分布式跟踪系统的接口[Appdash，用Go实现的分布式系统跟踪神器](http://tonybai.com/2015/06/17/appdash-distributed-systems-tracing-in-go/)
 
 ## 贡献者
 
@@ -81,6 +91,8 @@ bug请直接通过issue提交
 
 
 ## 版本日志
+
+### [v1.4.0新特性](https://github.com/liangdas/mqant/wiki/v1.4.0)
 
 ### [v1.3.0新特性](https://github.com/liangdas/mqant/wiki/v1.3.0)
 

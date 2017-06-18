@@ -29,9 +29,9 @@ type rpcserver struct {
 func (s *rpcserver) GetId() string {
 	return s.settings.Id
 }
-func (s *rpcserver) OnInit(app module.App, settings *conf.ModuleSettings) {
+func (s *rpcserver) OnInit(module module.Module,app module.App, settings *conf.ModuleSettings) {
 	s.settings = settings
-	server, err := defaultrpc.NewRPCServer(app) //默认会创建一个本地的RPC
+	server, err := defaultrpc.NewRPCServer(app,module) //默认会创建一个本地的RPC
 	if err != nil {
 		log.Warning("Dial: %s", err)
 	}

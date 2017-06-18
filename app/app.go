@@ -30,6 +30,7 @@ import (
 	"strings"
 	"github.com/liangdas/mqant/rpc/base"
 	"github.com/liangdas/mqant/module/modules"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 
@@ -59,6 +60,7 @@ type DefaultApp struct {
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	rpcserializes	map[string]module.RPCSerialize
+	getTracer 	func ()opentracing.Tracer
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -257,4 +259,14 @@ func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType strin
 		return
 	}
 	return server.CallNRArgs(_func, ArgsType,args)
+}
+func (app *DefaultApp)DefaultTracer(_func func ()opentracing.Tracer) error{
+	app.getTracer=_func
+	return nil
+}
+func (app *DefaultApp)GetTracer()opentracing.Tracer{
+	if app.getTracer!=nil{
+		return app.getTracer()
+	}
+	return nil
 }

@@ -16,6 +16,7 @@ package module
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 type ServerSession interface {
 	GetId()string
@@ -55,6 +56,10 @@ type App interface {
 	AddRPCSerialize(name string, Interface RPCSerialize) error
 
 	GetRPCSerialize()(map[string]RPCSerialize)
+
+	DefaultTracer(func ()opentracing.Tracer) error
+
+	GetTracer()	opentracing.Tracer
 }
 
 type Module interface {

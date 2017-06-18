@@ -24,6 +24,7 @@ import (
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/gate"
 )
 
 type RPCClient struct {
@@ -72,12 +73,13 @@ func (c *RPCClient) Done() (err error) {
 	return
 }
 
+
 func (c *RPCClient) CallArgs(_func string, ArgsType []string,args [][]byte ) (interface{}, string) {
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:      *proto.String(_func),
 		Reply:   *proto.Bool(true),
-		Expired:   *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(conf.RpcExpired)).UnixNano()) / 1000000),
+		Expired:   *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)).UnixNano()) / 1000000),
 		Cid:	*proto.String(correlation_id),
 		Args:    args,
 		ArgsType:ArgsType,
@@ -117,7 +119,7 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string,args [][]byte ) (
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:      *proto.String(_func),
 		Reply:   *proto.Bool(false),
-		Expired:   *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(conf.RpcExpired)).UnixNano()) / 1000000),
+		Expired:   *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)).UnixNano()) / 1000000),
 		Cid:	*proto.String(correlation_id),
 		Args:    args,
 		ArgsType:ArgsType,
@@ -155,6 +157,12 @@ func (c *RPCClient) Call(_func string, params ...interface{}) (interface{}, stri
 		if err != nil{
 			return nil, fmt.Sprintf( "args[%d] error %s",k,err.Error())
 		}
+
+		switch v2:=param.(type) {    //多选语句switch
+		case gate.Session:
+			//如果参数是这个需要拷贝一份新的再传
+			param=v2.Clone()
+		}
 	}
 	return c.CallArgs(_func,ArgsType,args)
 }
@@ -169,6 +177,12 @@ func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
 		ArgsType[k],args[k],err=argsutil.ArgsTypeAnd2Bytes(c.app,param)
 		if err != nil{
 			return  fmt.Errorf( "args[%d] error %s",k,err.Error())
+		}
+
+		switch v2:=param.(type) {    //多选语句switch
+		case gate.Session:
+			//如果参数是这个需要拷贝一份新的再传
+			param=v2.Clone()
 		}
 	}
 	return c.CallNRArgs(_func,ArgsType,args)

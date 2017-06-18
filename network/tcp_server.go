@@ -29,7 +29,6 @@ type TCPServer struct {
 	MaxConnNum int
 	NewAgent   func(*TCPConn) Agent
 	ln         net.Listener
-	conns      ConnSet
 	mutexConns sync.Mutex
 	wgLn       sync.WaitGroup
 	wgConns    sync.WaitGroup
@@ -47,10 +46,6 @@ func (server *TCPServer) init() {
 		log.Warning("%v", err)
 	}
 
-	if server.MaxConnNum <= 0 {
-		server.MaxConnNum = 10000
-		log.Warning("invalid MaxConnNum, reset to %v", server.MaxConnNum)
-	}
 	if server.NewAgent == nil {
 		log.Warning("NewAgent must not be nil")
 	}
@@ -67,7 +62,6 @@ func (server *TCPServer) init() {
 	}
 
 	server.ln = ln
-	server.conns = make(ConnSet)
 }
 func (server *TCPServer) run() {
 	server.wgLn.Add(1)
@@ -94,15 +88,6 @@ func (server *TCPServer) run() {
 		}
 		tempDelay = 0
 
-		server.mutexConns.Lock()
-		if len(server.conns) >= server.MaxConnNum {
-			server.mutexConns.Unlock()
-			conn.Close()
-			log.Warning("too many connections")
-			continue
-		}
-		server.conns[conn] = struct{}{}
-		server.mutexConns.Unlock()
 
 		server.wgConns.Add(1)
 		tcpConn := newTCPConn(conn)
@@ -112,9 +97,6 @@ func (server *TCPServer) run() {
 
 			// cleanup
 			tcpConn.Close()
-			server.mutexConns.Lock()
-			delete(server.conns, conn)
-			server.mutexConns.Unlock()
 			agent.OnClose()
 
 			server.wgConns.Done()
@@ -125,12 +107,5 @@ func (server *TCPServer) run() {
 func (server *TCPServer) Close() {
 	server.ln.Close()
 	server.wgLn.Wait()
-
-	server.mutexConns.Lock()
-	for conn := range server.conns {
-		conn.Close()
-	}
-	server.conns = nil
-	server.mutexConns.Unlock()
 	server.wgConns.Wait()
 }

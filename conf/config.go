@@ -26,10 +26,7 @@ import (
 
 var (
 	LenStackBuf = 1024
-	LogLevel    = "debug"
-	LogPath     = ""
-	LogFlag     = 0
-	RpcExpired  = 5 //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+
 	Conf        = Config{}
 )
 
@@ -42,9 +39,20 @@ func LoadConfig(Path string) {
 }
 
 type Config struct {
+	Rpc	Rpc
 	Module map[string][]*ModuleSettings
 	Mqtt   Mqtt
 	Master Master
+	Tracing	Tracing
+}
+
+type Tracing struct {
+	Addr  string //collector server eg 127.0.0.1:7701
+	Enable	bool
+}
+
+type Rpc struct {
+	RpcExpired  int //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
 }
 
 type Rabbitmq struct {
