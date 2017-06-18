@@ -15,6 +15,7 @@ package gate
 
 import (
 	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/liangdas/mqant/gate/base/mqtt"
 )
 /**
 net代理服务 处理器
@@ -102,6 +103,14 @@ type StorageHandler interface {
 	*/
 	Heartbeat(Userid string)
 }
+
+type TracingHandler interface {
+	/**
+	是否需要对本次客户端请求进行跟踪
+	 */
+	OnRequestTracing(session Session,msg *mqtt.Publish)bool
+}
+
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Agent) //当连接关闭	或者客户端主动发送MQTT DisConnect命令

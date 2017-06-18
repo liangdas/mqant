@@ -48,6 +48,7 @@ type Gate struct {
 	handler      gate.GateHandler
 	agentLearner gate.AgentLearner
 	storage      gate.StorageHandler
+	tracing      gate.TracingHandler
 }
 
 /**
@@ -55,6 +56,14 @@ type Gate struct {
 */
 func (this *Gate) SetStorageHandler(storage gate.StorageHandler) error {
 	this.storage = storage
+	return nil
+}
+
+/**
+设置Session信息持久化接口
+*/
+func (this *Gate) SetTracingHandler(tracing gate.TracingHandler) error {
+	this.tracing = tracing
 	return nil
 }
 

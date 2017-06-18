@@ -189,7 +189,10 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else {
 			hash = a.gate.GetServerId()
 		}
-		a.session.CreateRootSpan("gate")
+		if (a.gate.tracing!=nil)&&a.gate.tracing.OnRequestTracing(a.session,pub){
+			a.session.CreateRootSpan("gate")
+		}
+
 		serverSession, err := a.gate.GetRouteServers(topics[0], hash)
 		if err != nil {
 			if msgid != "" {
