@@ -7,11 +7,13 @@ mqant是一款基于Golang语言的简洁,高效,高性能的分布式游戏服�
 
 
 #	特性
-1. 分模块机制
-2. 基于golang协程,开发过程全程做到无callback回调,代码可读性更高
-3. RPC支持本地和远程自动切换
-4. 远程RPC默认使用rabbitmq,未来可以添加更多种类的通信协议
-5. 网关采用MQTT协议,无需再开发客户端底层库,直接套用已有的MQTT客户端代码库,可以支持IOS,Android,websocket,PC等多平台通信
+1. 高性能分布式
+2. 支持分布式跟踪系统接口[传送门](http://bigbully.github.io/Dapper-translation/)
+3. 基于golang协程,开发过程全程做到无callback回调,代码可读性更高
+4. RPC支持本地和远程自动切换
+5. 远程RPC默认使用rabbitmq,未来可以添加更多种类的通信协议
+6. 网关采用MQTT协议,无需再开发客户端底层库,直接套用已有的MQTT客户端代码库,可以支持IOS,Android,websocket,PC等多平台通信
+
 
 # 社区
 QQ交流群 :463735103
@@ -48,11 +50,11 @@ QQ交流群 :463735103
 	mqantserver 项目包括了完整的测试demo代码和mqant所依赖的库
 	如果你是新手可以优先下载mqantserver项目进行试验
 	
- [全平台聊天Demo mqantserver](https://github.com/liangdas/mqantserver)
  
- [在线Demo演示](http://www.mqant.com/mqant/chat/)
+ [在线Demo演示](http://www.mqant.com/mqant/chat/) 【[源码下载](https://github.com/liangdas/mqantserver)】
  
- [多人对战吃小球游戏（绿色小球是在线玩家,可以同时开两个浏览器测试,支持移动端）](http://www.mqant.com/mqant/hitball/)
+ [多人对战吃小球游戏（绿色小球是在线玩家,可以同时开两个浏览器测试,支持移动端）](http://www.mqant.com/mqant/hitball/)【[源码下载](https://github.com/liangdas/mqantserver)】
+
  
  
  
