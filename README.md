@@ -53,7 +53,7 @@ QQ交流群 :463735103
  
  [在线Demo演示](http://www.mqant.com/mqant/chat/) 【[源码下载](https://github.com/liangdas/mqantserver)】
  
- [多人对战吃小球游戏（绿色小球是在线玩家,可以同时开两个浏览器测试,支持移动端）](http://www.mqant.com/mqant/hitball/)【[源码下载](https://github.com/liangdas/mqantserver)】
+ [多人对战吃小球游戏（绿色小球是在线玩家,点击屏幕任意位置移动小球,可以同时开两个浏览器测试,支持移动端）](http://www.mqant.com/mqant/hitball/)【[源码下载](https://github.com/liangdas/mqantserver)】
 
  
  
