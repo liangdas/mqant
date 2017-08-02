@@ -271,18 +271,6 @@ func (this *sessionagent) Remove(key string) (err string) {
 		this.session.Settings=map[string]string{}
 	}
 	delete(this.session.Settings, key)
-	//server,e:=session.app.GetServersById(session.Serverid)
-	//if e!=nil{
-	//	err=fmt.Sprintf("Service not found id(%s)",session.Serverid)
-	//	return
-	//}
-	//result,err:=server.Call("Remove",session.Sessionid,key)
-	//if err==""{
-	//	if result!=nil{
-	//		//绑定成功,重新更新当前Session
-	//		session.update(result.(map[string]interface {}))
-	//	}
-	//}
 	return
 }
 func (this *sessionagent) Send(topic string, body []byte) (string) {
@@ -294,15 +282,18 @@ func (this *sessionagent) Send(topic string, body []byte) (string) {
 		return fmt.Sprintf("Service not found id(%s)", this.session.Serverid)
 	}
 	_, err := server.Call("Send", this.session.Sessionid, topic, body)
-	//span:=this.ExtractSpan(topic)
-	//if span!=nil{
-	//	span.LogEventWithPayload("SendToClient",map[string]string{
-	//		"topic":topic,
-	//		"err":err,
-	//	})
-	//	span.Finish()
-	//}
 	return	err
+}
+func (this *sessionagent) IsConnect(userId string) (bool ,string) {
+	if this.app == nil {
+		return false,fmt.Sprintf("Module.App is nil")
+	}
+	server, e := this.app.GetServersById(this.session.Serverid)
+	if e != nil {
+		return false,fmt.Sprintf("Service not found id(%s)", this.session.Serverid)
+	}
+	result, err := server.Call("IsConnect", this.session.Sessionid,userId)
+	return	result.(bool),err
 }
 
 func (this *sessionagent) SendNR(topic string, body []byte) (string) {

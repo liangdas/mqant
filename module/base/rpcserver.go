@@ -38,9 +38,12 @@ func (s *rpcserver) OnInit(module module.Module,app module.App, settings *conf.M
 
 	if settings.Rabbitmq != nil {
 		//存在远程rpc的配置
-		server.NewRemoteRPCServer(settings.Rabbitmq)
+		server.NewRabbitmqRPCServer(settings.Rabbitmq)
 	}
-
+	if settings.Redis != nil {
+		//存在远程rpc的配置
+		server.NewRedisRPCServer(settings.Redis)
+	}
 	s.server = server
 	err = app.RegisterLocalClient(settings.Id, server)
 	if err != nil {

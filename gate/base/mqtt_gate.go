@@ -155,6 +155,7 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 	this.GetServer().Register("Set", this.handler.Set)
 	this.GetServer().Register("Remove", this.handler.Remove)
 	this.GetServer().Register("Send", this.handler.Send)
+	this.GetServer().Register("IsConnect", this.handler.IsConnect)
 	this.GetServer().Register("Close", this.handler.Close)
 }
 

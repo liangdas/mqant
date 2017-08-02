@@ -157,7 +157,11 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			}
 			if moduel.Rabbitmq != nil {
 				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRemoteClient(moduel.Rabbitmq)
+				client.NewRabbitmqClient(moduel.Rabbitmq)
+			}
+			if moduel.Redis != nil {
+				//如果远程的rpc存在则创建一个对应的客户端
+				client.NewRedisClient(moduel.Redis)
 			}
 			session := basemodule.NewServerSession(moduel.Id,Type,client)
 			app.serverList[moduel.Id] = session

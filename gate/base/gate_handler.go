@@ -17,6 +17,7 @@ import (
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/utils"
+	"fmt"
 )
 
 type handler struct {
@@ -105,7 +106,19 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
 	result = agent.(gate.Agent).GetSession()
 	return
 }
+/**
+ *查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
+ */
+func (h *handler) IsConnect(Sessionid string, Userid string) ( bool,  string){
 
+	for _,agent:=range h.sessions.Items(){
+		if agent.(gate.Agent).GetSession().GetUserid()==Userid{
+			return !agent.(gate.Agent).IsClosed(),""
+		}
+	}
+
+	return	false,fmt.Sprintf("The gateway did not find the corresponding userId 【%s】",Userid)
+}
 /**
  *UnBind the session with the the Userid.
  */

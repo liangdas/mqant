@@ -58,12 +58,19 @@ type Rabbitmq struct {
 	BindingKey   string //
 	ConsumerTag  string //消费者TAG
 }
+
+type Redis struct {
+	Uri          string //redis://:[password]@[ip]:[port]/[db]
+	Queue        string
+}
+
 type ModuleSettings struct {
 	Id        string
 	Host      string
 	ProcessID string
 	Settings  map[string]interface{}
 	Rabbitmq  *Rabbitmq
+	Redis  	  *Redis
 }
 
 type Mqtt struct {

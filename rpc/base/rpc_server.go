@@ -37,6 +37,7 @@ type RPCServer struct {
 	functions      map[string]mqrpc.FunctionInfo
 	remote_server  *AMQPServer
 	local_server   *LocalServer
+	redis_server   *RedisServer
 	mq_chan        chan mqrpc.CallInfo  //接收到请求信息的队列
 	callback_chan  chan mqrpc.CallInfo  //信息处理完成的队列
 	wg             sync.WaitGroup //任务阻塞
@@ -71,12 +72,23 @@ func NewRPCServer(app module.App,module module.Module) (mqrpc.RPCServer, error) 
 /**
 创建一个支持远程RPC的服务
 */
-func (s *RPCServer) NewRemoteRPCServer(info *conf.Rabbitmq) (err error) {
+func (s *RPCServer) NewRabbitmqRPCServer(info *conf.Rabbitmq) (err error) {
 	remote_server, err := NewAMQPServer(info, s.mq_chan)
 	if err != nil {
 		log.Error("AMQPServer Dial: %s", err)
 	}
 	s.remote_server = remote_server
+	return
+}
+/**
+创建一个支持远程Redis RPC的服务
+*/
+func (s *RPCServer) NewRedisRPCServer(info *conf.Redis) (err error) {
+	redis_server, err := NewRedisServer(info, s.mq_chan)
+	if err != nil {
+		log.Error("RedisServer Dial: %s", err)
+	}
+	s.redis_server = redis_server
 	return
 }
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {

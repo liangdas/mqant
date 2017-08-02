@@ -32,6 +32,7 @@ type RPCClient struct {
 	serverId	string
 	remote_client *AMQPClient
 	local_client  *LocalClient
+	redis_client  *RedisClient
 }
 
 func NewRPCClient(app 	module.App,serverId string) (mqrpc.RPCClient, error) {
@@ -41,7 +42,7 @@ func NewRPCClient(app 	module.App,serverId string) (mqrpc.RPCClient, error) {
 	return rpc_client, nil
 }
 
-func (c *RPCClient) NewRemoteClient(info *conf.Rabbitmq) (err error) {
+func (c *RPCClient) NewRabbitmqClient(info *conf.Rabbitmq) (err error) {
 	//创建本地连接
 	if info != nil && c.remote_client == nil {
 		c.remote_client, err = NewAMQPClient(info)
@@ -63,9 +64,23 @@ func (c *RPCClient) NewLocalClient(server mqrpc.RPCServer) (err error) {
 	return
 }
 
+func (c *RPCClient) NewRedisClient(info *conf.Redis) (err error) {
+	//创建本地连接
+	if info != nil && c.redis_client == nil {
+		c.redis_client, err = NewRedisClient(info)
+		if err != nil {
+			log.Error("Dial: %s", err)
+		}
+	}
+	return
+}
+
 func (c *RPCClient) Done() (err error) {
 	if c.remote_client != nil {
 		err = c.remote_client.Done()
+	}
+	if c.redis_client != nil {
+		err = c.redis_client.Done()
 	}
 	if c.local_client != nil {
 		err = c.local_client.Done()
@@ -90,16 +105,15 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string,args [][]byte ) (in
 	callback := make(chan rpcpb.ResultInfo, 1)
 	var err error
 
-
 	//优先使用本地rpc
 	if c.local_client != nil {
 		err = c.local_client.Call(*callInfo, callback)
-	} else {
-		if c.remote_client != nil {
-			err = c.remote_client.Call(*callInfo, callback)
-		} else {
-			return nil, fmt.Sprintf("rpc service (%s) connection failed",c.serverId)
-		}
+	} else if c.remote_client != nil{
+		err = c.remote_client.Call(*callInfo, callback)
+	}else if c.redis_client!=nil{
+		err = c.redis_client.Call(*callInfo, callback)
+	}else {
+		return nil, fmt.Sprintf("rpc service (%s) connection failed",c.serverId)
 	}
 
 	if err != nil {
@@ -127,16 +141,15 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string,args [][]byte ) (
 	callInfo := &mqrpc.CallInfo{
 		RpcInfo:      *rpcInfo,
 	}
-
 	//优先使用本地rpc
 	if c.local_client != nil {
 		err = c.local_client.CallNR(*callInfo)
-	} else {
-		if c.remote_client != nil {
-			err = c.remote_client.CallNR(*callInfo)
-		} else {
-			return fmt.Errorf("rpc service (%s) connection failed",c.serverId)
-		}
+	} else if c.remote_client != nil{
+		err = c.remote_client.CallNR(*callInfo)
+	}else if c.redis_client!=nil{
+		err = c.redis_client.CallNR(*callInfo)
+	}else {
+		return fmt.Errorf("rpc service (%s) connection failed",c.serverId)
 	}
 
 	if err != nil {
