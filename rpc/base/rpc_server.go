@@ -196,7 +196,7 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan<-
 					if s.listener != nil {
 						s.listener.OnTimeOut(callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired)
 					} else {
-						fmt.Println("timeout: This is Call", callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
+						log.Warning("timeout: This is Call",s.module.GetType(), callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
 					}
 				} else {
 					s.runFunc(callInfo, callbacks)
@@ -236,7 +236,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 
 	functionInfo, ok := s.functions[callInfo.RpcInfo.Fn]
 	if !ok {
-		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn))
+		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("Remote function(%s) not found",callInfo.RpcInfo.Fn))
 		return
 	}
 	_func := functionInfo.Function
@@ -274,7 +274,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 				buf := make([]byte, 1024)
 				l := runtime.Stack(buf, false)
 				errstr := string(buf[:l])
-				log.Error("rpc func(%s) error %s\n ----Stack----\n%s",callInfo.RpcInfo.Fn,rn,errstr)
+				log.Error("%s rpc func(%s) error %s\n ----Stack----\n%s",s.module.GetType(),callInfo.RpcInfo.Fn,rn,errstr)
 				_errorCallback(callInfo.RpcInfo.Cid,rn)
 			}
 
@@ -289,7 +289,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		//t:=RandInt64(2,3)
 		//time.Sleep(time.Second*time.Duration(t))
 		// f 为函数地址
-
+		var session gate.Session=nil
 		var in []reflect.Value
 		if len(ArgsType)>0{
 			in = make([]reflect.Value, len(params))
@@ -307,8 +307,17 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 						span.SetTag("UserId",v2.GetUserid())
 						span.SetTag("Func",callInfo.RpcInfo.Fn)
 					}
+					session=v2
 				}
 				in[k] = reflect.ValueOf(v)
+			}
+		}
+
+		if s.listener != nil {
+			errs:=s.listener.BeforeHandle(callInfo.RpcInfo.Fn,session, &callInfo)
+			if errs!=nil{
+				_errorCallback(callInfo.RpcInfo.Cid,errs.Error())
+				return
 			}
 		}
 

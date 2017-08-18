@@ -16,6 +16,7 @@ package mqrpc
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/gate"
 )
 
 
@@ -35,6 +36,12 @@ type CallInfo struct {
 	Agent   MQServer //代理者  AMQPServer / LocalServer 都继承 Callback(callinfo CallInfo)(error) 方法
 }
 type RPCListener interface {
+	/**
+	BeforeHandle会对请求做一些前置处理，如：检查当前玩家是否已登录，打印统计日志等。
+	@session  可能为nil
+	return error  当error不为nil时将直接返回改错误信息而不会再执行后续调用
+	 */
+	BeforeHandle(fn string,session gate.Session, callInfo *CallInfo)error
 	OnTimeOut(fn string, Expired int64)
 	OnError(fn string, callInfo *CallInfo, err error)
 	/**
