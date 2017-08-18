@@ -20,12 +20,13 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/rpc"
 	"runtime"
+	"github.com/garyburd/redigo/redis"
 	"github.com/liangdas/mqant/utils"
-	"time"
 )
 
 type RedisServer struct {
 	call_chan chan mqrpc.CallInfo
+	psc  redis.PubSubConn
 	info *conf.Redis
 	queueName	string
 	done      chan error
@@ -33,8 +34,12 @@ type RedisServer struct {
 
 func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServer, error) {
 	var queueName = info.Queue
+	var url = info.Uri
+	psc := redis.PubSubConn{Conn: utils.GetRedisFactory().GetPool(url).Get()}
+	psc.Subscribe(queueName)
 	server := new(RedisServer)
 	server.call_chan = call_chan
+	server.psc = psc
 	server.info=info
 	server.queueName=queueName
 	server.done = make(chan error)
@@ -52,14 +57,15 @@ func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServ
 停止接收请求
 */
 func (s *RedisServer) StopConsume() error {
-	return nil
+	return s.psc.Unsubscribe(s.queueName)
 }
 
 /**
 注销消息队列
 */
 func (s *RedisServer) Shutdown() error {
-	return nil
+	s.psc.Unsubscribe(s.queueName)
+	return s.psc.Close()
 }
 
 func (s *RedisServer) Callback(callinfo mqrpc.CallInfo) error {
@@ -71,11 +77,11 @@ func (s *RedisServer) Callback(callinfo mqrpc.CallInfo) error {
 消息应答
 */
 func (s *RedisServer) response(props map[string]interface{}, body []byte) error {
-	pool,errs:=utils.GetRedisFactory().GetPool(s.info.Uri)
-	if errs!=nil{
-		return errs
-	}
-	if err := pool.LPush(props["reply_to"].(string), body).Err(); err != nil {
+	pool:=utils.GetRedisFactory().GetPool(s.info.Uri).Get()
+	defer pool.Close()
+	var err error
+	_, err = pool.Do("PUBLISH", props["reply_to"].(string), body)
+	if err != nil {
 		log.Warning("Publish: %s", err)
 		return err
 	}
@@ -103,14 +109,9 @@ func (s *RedisServer) on_request_handle(done chan error) {
 		}
 	}()
 	for {
-		pool,errs:=utils.GetRedisFactory().GetPool(s.info.Uri)
-		if errs!=nil{
-			log.Error(errs.Error())
-			return
-		}
-		result, err := pool.BRPop(1*time.Second, s.queueName).Result()
-		if err==nil{
-			rpcInfo, err := s.Unmarshal([]byte(result[1]))
+		switch v := s.psc.Receive().(type) {
+		case redis.Message:
+			rpcInfo, err := s.Unmarshal(v.Data)
 			if err == nil {
 				callInfo:=&mqrpc.CallInfo{
 					RpcInfo:*rpcInfo,
@@ -125,6 +126,29 @@ func (s *RedisServer) on_request_handle(done chan error) {
 			} else {
 				log.Error("error ", err)
 			}
+		case redis.PMessage:
+			rpcInfo, err := s.Unmarshal(v.Data)
+			if err == nil {
+				callInfo:=&mqrpc.CallInfo{
+					RpcInfo:*rpcInfo,
+				}
+				callInfo.Props = map[string]interface{}{
+					"reply_to": callInfo.RpcInfo.ReplyTo,
+				}
+
+				callInfo.Agent = s //设置代理为AMQPServer
+
+				s.call_chan <- *callInfo
+			} else {
+				log.Error("error ", err)
+			}
+		case redis.Subscription:
+			log.Info("%s: %s %d\n", v.Channel, v.Kind, v.Count)
+		case error:
+			log.Error("on_request_handle",v.Error())
+			return
+		default:
+
 		}
 
 	}

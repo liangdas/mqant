@@ -14,7 +14,8 @@
 package utils
 
 import (
-	"github.com/go-redis/redis"
+	"github.com/garyburd/redigo/redis"
+	"time"
 )
 var factory *RedisFactory
 
@@ -30,38 +31,33 @@ type RedisFactory struct{
 	pools *BeeMap
 }
 
-func (this RedisFactory)GetPool(url string) (*redis.Client,error) {
+func (this RedisFactory)GetPool(url string) (*redis.Pool) {
 	if pool,ok:=this.pools.Items()[url];ok{
-		return pool.(*redis.Client),nil
+		return pool.(*redis.Pool)
 	}
-	options, err:=redis.ParseURL(url)
-	if err!=nil{
-		return nil,err
+	pool := &redis.Pool{
+		MaxIdle:     30,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.DialURL(url)
+			if err != nil {
+				return nil, err
+			}
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
 	}
-	client := redis.NewClient(options)
-	//pool := &redis.Pool{
-	//	MaxIdle:     30,
-	//	IdleTimeout: 240 * time.Second,
-	//	Dial: func() (redis.Conn, error) {
-	//		c, err := redis.DialURL(url)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//		return c, err
-	//	},
-	//	TestOnBorrow: func(c redis.Conn, t time.Time) error {
-	//		_, err := c.Do("PING")
-	//		return err
-	//	},
-	//}
-	if client!=nil{
-		this.pools.Set(url,client)
+	if pool!=nil{
+		this.pools.Set(url,pool)
 	}
-	return client,nil
+	return pool
 }
 func (this RedisFactory)CloseAllPool(){
 	for _,pool:=range this.pools.Items(){
-		pool.(*redis.Client).Close()
+		pool.(*redis.Pool).Close()
 	}
 	this.pools.DeleteAll()
 }
