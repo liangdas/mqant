@@ -36,8 +36,14 @@ func (this RedisFactory)GetPool(url string) (*redis.Pool) {
 		return pool.(*redis.Pool)
 	}
 	pool := &redis.Pool{
-		MaxIdle:     30,
+		// 最大的空闲连接数，表示即使没有redis连接时依然可以保持N个空闲的连接，而不被清除，随时处于待命状态
+		MaxIdle:     10,
+		// 最大的激活连接数，表示同时最多有N个连接 ，为0事表示没有限制
+		MaxActive:     0,
+		//最大的空闲连接等待时间，超过此时间后，空闲连接将被关闭
 		IdleTimeout: 240 * time.Second,
+		// 当链接数达到最大后是否阻塞，如果不的话，达到最大后返回错误
+		Wait:true,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.DialURL(url)
 			if err != nil {
