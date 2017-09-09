@@ -308,8 +308,14 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 						span.SetTag("Func",callInfo.RpcInfo.Fn)
 					}
 					session=v2
+					in[k] = reflect.ValueOf(v)
+				case nil:
+					in[k] = reflect.Zero(f.Type().In(k))
+				default:
+					in[k] = reflect.ValueOf(v)
 				}
-				in[k] = reflect.ValueOf(v)
+
+
 			}
 		}
 

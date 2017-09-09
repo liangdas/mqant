@@ -43,6 +43,7 @@ type Config struct {
 	Module map[string][]*ModuleSettings
 	Mqtt   Mqtt
 	Master Master
+	Settings  map[string]interface{}
 }
 
 
