@@ -47,6 +47,7 @@ type Gate struct {
 	//
 	handler      gate.GateHandler
 	agentLearner gate.AgentLearner
+	sessionLearner gate.SessionLearner
 	storage      gate.StorageHandler
 	tracing      gate.TracingHandler
 }
@@ -56,6 +57,14 @@ type Gate struct {
 */
 func (this *Gate) SetStorageHandler(storage gate.StorageHandler) error {
 	this.storage = storage
+	return nil
+}
+
+/**
+设置客户端连接和断开的监听器
+*/
+func (this *Gate) SetSessionLearner(sessionLearner gate.SessionLearner) error {
+	this.sessionLearner = sessionLearner
 	return nil
 }
 
@@ -148,15 +157,15 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 	this.agentLearner = handler
 	this.handler = handler
 
-	this.GetServer().Register("Update", this.handler.Update)
-	this.GetServer().Register("Bind", this.handler.Bind)
-	this.GetServer().Register("UnBind", this.handler.UnBind)
-	this.GetServer().Register("Push", this.handler.Push)
-	this.GetServer().Register("Set", this.handler.Set)
-	this.GetServer().Register("Remove", this.handler.Remove)
-	this.GetServer().Register("Send", this.handler.Send)
-	this.GetServer().Register("IsConnect", this.handler.IsConnect)
-	this.GetServer().Register("Close", this.handler.Close)
+	this.GetServer().RegisterGO("Update", this.handler.Update)
+	this.GetServer().RegisterGO("Bind", this.handler.Bind)
+	this.GetServer().RegisterGO("UnBind", this.handler.UnBind)
+	this.GetServer().RegisterGO("Push", this.handler.Push)
+	this.GetServer().RegisterGO("Set", this.handler.Set)
+	this.GetServer().RegisterGO("Remove", this.handler.Remove)
+	this.GetServer().RegisterGO("Send", this.handler.Send)
+	this.GetServer().RegisterGO("IsConnect", this.handler.IsConnect)
+	this.GetServer().RegisterGO("Close", this.handler.Close)
 }
 
 func (this *Gate) Run(closeSig chan bool) {

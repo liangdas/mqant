@@ -40,12 +40,18 @@ func (h *handler) Connect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Set(a.GetSession().GetSessionid(), a)
 	}
+	if h.gate.sessionLearner!=nil{
+		h.gate.sessionLearner.Connect(a.GetSession())
+	}
 }
 
 //当连接关闭	或者客户端主动发送MQTT DisConnect命令
 func (h *handler) DisConnect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Delete(a.GetSession().GetSessionid())
+	}
+	if h.gate.sessionLearner!=nil{
+		h.gate.sessionLearner.DisConnect(a.GetSession())
 	}
 }
 

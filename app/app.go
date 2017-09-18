@@ -24,13 +24,14 @@ import (
 	"hash/crc32"
 	"math"
 	"os"
-	"os/exec"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"github.com/liangdas/mqant/rpc/base"
 	"github.com/liangdas/mqant/module/modules"
 	opentracing "github.com/opentracing/opentracing-go"
+	"os/exec"
+	"path/filepath"
+	"github.com/liangdas/mqant/gate"
 )
 
 
@@ -61,17 +62,48 @@ type DefaultApp struct {
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	rpcserializes	map[string]module.RPCSerialize
 	getTracer 	func ()opentracing.Tracer
+	configurationLoaded func (app module.App)
+	startup func (app module.App)
+	moduleInited func (app module.App,module module.Module)
+	judgeGuest  func(session gate.Session)bool
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
-	file, _ := exec.LookPath(os.Args[0])
-	ApplicationPath, _ := filepath.Abs(file)
-	ApplicationDir, _ := filepath.Split(ApplicationPath)
-	defaultPath := fmt.Sprintf("%sconf/server.conf", ApplicationDir)
-	confPath := flag.String("conf", defaultPath, "Server configuration file path")
+	wdPath := flag.String("wd", "", "Server work directory")
+	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
-	Logdir := flag.String("log", fmt.Sprintf("%slogs", ApplicationDir), "Log file directory?")
+	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
+
+	ApplicationDir:=""
+	if *wdPath!=""{
+		_, err := os.Open(*wdPath)
+		if err != nil {
+			panic(err)
+		}
+		os.Chdir(*wdPath)
+		ApplicationDir,err=os.Getwd()
+	}else{
+		var err error
+		ApplicationDir,err=os.Getwd()
+		if err != nil {
+			file, _ := exec.LookPath(os.Args[0])
+			ApplicationPath, _ := filepath.Abs(file)
+			ApplicationDir, _ = filepath.Split(ApplicationPath)
+		}
+
+	}
+
+	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
+	defaultLogPath :=fmt.Sprintf("%s/bin/logs", ApplicationDir)
+
+	if *confPath==""{
+		*confPath=defaultConfPath
+	}
+
+	if *Logdir==""{
+		*Logdir=defaultLogPath
+	}
 
 	f, err := os.Open(*confPath)
 	if err != nil {
@@ -92,6 +124,11 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	app.Configure(conf.Conf)  //配置信息
 
 	log.Info("mqant %v starting up", app.version)
+
+	if app.configurationLoaded!=nil{
+		app.configurationLoaded(app)
+	}
+
 	manager := basemodule.NewModuleManager()
 	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
@@ -100,6 +137,9 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	app.OnInit(app.settings)
 	manager.Init(app, *ProcessID)
+	if app.startup!=nil{
+		app.startup(app)
+	}
 	// close
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
@@ -272,5 +312,33 @@ func (app *DefaultApp)GetTracer()opentracing.Tracer{
 	if app.getTracer!=nil{
 		return app.getTracer()
 	}
+	return nil
+}
+
+func (app *DefaultApp) GetModuleInited()func (app module.App,module module.Module){
+	return app.moduleInited
+}
+
+func (app *DefaultApp) GetJudgeGuest()func(session gate.Session)bool{
+	return app.judgeGuest
+}
+
+func (app *DefaultApp)OnConfigurationLoaded(_func func (app module.App)) error{
+	app.configurationLoaded=_func
+	return nil
+}
+
+func (app *DefaultApp)OnModuleInited(_func func (app module.App,module module.Module)) error{
+	app.moduleInited=_func
+	return nil
+}
+
+func (app *DefaultApp)OnStartup(_func func (app module.App)) error{
+	app.startup=_func
+	return nil
+}
+
+func (app *DefaultApp)SetJudgeGuest(_func func(session gate.Session)bool) error{
+	app.judgeGuest=_func
 	return nil
 }

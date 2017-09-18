@@ -17,6 +17,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc"
 	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/liangdas/mqant/gate"
 )
 type ServerSession interface {
 	GetId()string
@@ -60,6 +61,16 @@ type App interface {
 	DefaultTracer(func ()opentracing.Tracer) error
 
 	GetTracer()	opentracing.Tracer
+
+	GetModuleInited()func (app App,module Module)
+
+	GetJudgeGuest()func(session gate.Session)bool
+
+	OnConfigurationLoaded(func (app App))error
+	OnModuleInited(func (app App,module Module))error
+	OnStartup(func (app App))error
+
+	SetJudgeGuest(judgeGuest func(session gate.Session)bool)error
 }
 
 type Module interface {

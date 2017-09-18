@@ -99,6 +99,8 @@ bug请直接通过issue提交
 
 
 ## 版本日志
+### [v1.6.2新特性](https://github.com/liangdas/mqant/wiki/v1.6.2)
+
 ### [v1.6.1新特性](https://github.com/liangdas/mqant/wiki/v1.6.1)
 
 ### [v1.6.0新特性](https://github.com/liangdas/mqant/wiki/v1.6.0)

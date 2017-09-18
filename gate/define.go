@@ -59,6 +59,10 @@ type Session interface {
 	SendNR(topic string, body []byte) (err string)
 	//查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
 	IsConnect(Userid string) (result bool, err string)
+	//是否是访客(未登录) ,默认判断规则为 userId==""代表访客
+	IsGuest() bool
+	//设置自动的访客判断函数,记得一定要在全局的时候设置这个值,以免部分模块因为未设置这个判断函数造成错误的判断
+	JudgeGuest(judgeGuest func(session Session)bool)
 	Close() (err string)
 	Clone()Session
 	/**
@@ -118,6 +122,11 @@ type TracingHandler interface {
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Agent) //当连接关闭	或者客户端主动发送MQTT DisConnect命令
+}
+
+type SessionLearner interface {
+	Connect(a Session)    //当连接建立  并且MQTT协议握手成功
+	DisConnect(a Session) //当连接关闭	或者客户端主动发送MQTT DisConnect命令
 }
 
 type Agent interface {

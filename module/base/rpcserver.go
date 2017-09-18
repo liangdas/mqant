@@ -49,7 +49,7 @@ func (s *rpcserver) OnInit(module module.Module,app module.App, settings *conf.M
 	if err != nil {
 		log.Warning("RegisterLocalClient: id(%s) error(%s)", settings.Id, err)
 	}
-	log.Info("RPCServer init success id(%s)", s.settings.Id)
+	log.Info("RPCServer init success id(%s) version(%s)", s.settings.Id,module.Version())
 }
 func (s *rpcserver) OnDestroy() {
 	if s.server != nil {

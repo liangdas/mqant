@@ -68,6 +68,11 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 	for i := 0; i < len(mer.runMods); i++ {
 		m := mer.runMods[i]
 		m.mi.OnInit(app, m.settings)
+
+		if app.GetModuleInited()!=nil{
+			app.GetModuleInited()(app,m.mi)
+		}
+
 		m.wg.Add(1)
 		go run(m)
 	}

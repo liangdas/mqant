@@ -26,6 +26,7 @@ type sessionagent struct {
 	app       module.App
 	session   *session
 	span	  opentracing.Span
+	judgeGuest	func(session gate.Session)bool
 }
 
 func NewSession(app module.App, data []byte) (gate.Session,error) {
@@ -38,6 +39,7 @@ func NewSession(app module.App, data []byte) (gate.Session,error) {
 		return nil,err
 	}    // 测试结果
 	agent.session=se
+	agent.judgeGuest=app.GetJudgeGuest()
 	return agent,nil
 }
 
@@ -50,6 +52,7 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	if err!=nil{
 		return nil,err
 	}
+	agent.judgeGuest=app.GetJudgeGuest()
 	return agent,nil
 }
 
@@ -434,3 +437,18 @@ func (this *sessionagent)ExtractSpan(operationName string)opentracing.Span{
 }
 
 
+//是否是访客(未登录) ,默认判断规则为 userId==""代表访客
+func (this *sessionagent)IsGuest() bool{
+	if this.judgeGuest!=nil{
+		return this.judgeGuest(this)
+	}
+	if this.GetUserid()==""{
+		return true
+	}else{
+		return false
+	}
+}
+//设置自动的访客判断函数,记得一定要在全局的时候设置这个值,以免部分模块因为未设置这个判断函数造成错误的判断
+func (this *sessionagent)JudgeGuest(judgeGuest func(session gate.Session)bool){
+	this.judgeGuest=judgeGuest
+}

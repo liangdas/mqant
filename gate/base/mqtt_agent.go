@@ -22,11 +22,13 @@ import (
 	"github.com/liangdas/mqant/gate/base/mqtt"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"github.com/liangdas/mqant/utils/uuid"
 	"runtime"
 	"strings"
 	"time"
+	"math/rand"
 	"github.com/liangdas/mqant/rpc/util"
+	"container/list"
+	"github.com/liangdas/mqant/utils/uuid"
 )
 
 type resultInfo struct {
@@ -272,5 +274,52 @@ func (a *agent) Destroy() {
 }
 
 func Get_uuid() string {
-	return uuid.Rand().Hex()
+	mid,err:=TransNumToString(time.Now().UnixNano())
+	if err!=nil{
+		return uuid.Rand().Hex()
+	}else{
+		return fmt.Sprintf("%s:%d",mid,RandInt64(100,10000))
+	}
 }
+
+
+func TransNumToString(num int64) (string, error) {
+	var base int64
+	base = 62
+	baseHex := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	output_list := list.New()
+	for num/base != 0 {
+		output_list.PushFront(num % base)
+		num = num / base
+	}
+	output_list.PushFront(num % base)
+	str := ""
+	for iter := output_list.Front(); iter != nil; iter = iter.Next() {
+		str = str + string(baseHex[int(iter.Value.(int64))])
+	}
+	return str, nil
+}
+
+func TransStringToNum(str string) (int64, error) {
+
+	return 0, nil
+}
+
+// 函　数：生成随机数
+// 概　要：
+// 参　数：
+//      min: 最小值
+//      max: 最大值
+// 返回值：
+//      int64: 生成的随机数
+func RandInt64(min, max int64) int64 {
+	if min >= max{
+		return max
+	}
+	return rand.Int63n(max-min)+min
+}
+
+func TimeNow() time.Time {
+	return time.Now()
+}
+

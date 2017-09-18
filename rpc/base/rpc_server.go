@@ -212,10 +212,15 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan<-
 
 //---------------------------------if _func is not a function or para num and type not match,it will cause panic
 func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.CallInfo) {
-	_errorCallback:= func(Cid string,Error string) {
+	_errorCallback:= func(Cid string,Error string,span opentracing.Span) {
 		resultInfo := rpcpb.NewResultInfo(Cid,Error,argsutil.NULL,nil)
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo
+		//异常日志都应该打印
+		log.Error("%s rpc func(%s) error:\n%s",s.module.GetType(),callInfo.RpcInfo.Fn,Error)
+		if span!=nil{
+			span.LogEventWithPayload("Error",Error)
+		}
 		if s.listener != nil {
 			s.listener.OnError(callInfo.RpcInfo.Fn, &callInfo, fmt.Errorf(Error))
 		}
@@ -230,13 +235,13 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			case error:
 				rn = r.(error).Error()
 			}
-			_errorCallback(callInfo.RpcInfo.Cid,rn)
+			_errorCallback(callInfo.RpcInfo.Cid,rn,nil)
 		}
 	}()
 
 	functionInfo, ok := s.functions[callInfo.RpcInfo.Fn]
 	if !ok {
-		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("Remote function(%s) not found",callInfo.RpcInfo.Fn))
+		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("Remote function(%s) not found",callInfo.RpcInfo.Fn),nil)
 		return
 	}
 	_func := functionInfo.Function
@@ -245,7 +250,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 	f := reflect.ValueOf(_func)
 	if len(params) != f.Type().NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
-		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()))
+		_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()),nil)
 		return
 	}
 	//if len(params) != len(callInfo.RpcInfo.ArgsType) {
@@ -274,8 +279,9 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 				buf := make([]byte, 1024)
 				l := runtime.Stack(buf, false)
 				errstr := string(buf[:l])
-				log.Error("%s rpc func(%s) error %s\n ----Stack----\n%s",s.module.GetType(),callInfo.RpcInfo.Fn,rn,errstr)
-				_errorCallback(callInfo.RpcInfo.Cid,rn)
+				allError:=fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s",s.module.GetType(),callInfo.RpcInfo.Fn,rn,errstr)
+				//log.Error(allError)
+				_errorCallback(callInfo.RpcInfo.Cid,allError,span)
 			}
 
 			if span!=nil{
@@ -296,7 +302,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			for k,v:=range ArgsType{
 				v,err:=argsutil.Bytes2Args(s.app,v,params[k])
 				if err!=nil{
-					_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("args[%d] [%s] Types not allowed",k,reflect.TypeOf(params[k])))
+					_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("args[%d] [%s] Types not allowed",k,reflect.TypeOf(params[k])),span)
 					return
 				}
 				switch v2:=v.(type) {    //多选语句switch
@@ -322,7 +328,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		if s.listener != nil {
 			errs:=s.listener.BeforeHandle(callInfo.RpcInfo.Fn,session, &callInfo)
 			if errs!=nil{
-				_errorCallback(callInfo.RpcInfo.Cid,errs.Error())
+				_errorCallback(callInfo.RpcInfo.Cid,errs.Error(),span)
 				return
 			}
 		}
@@ -330,10 +336,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		out := f.Call(in)
 		var rs []interface{}
 		if len(out) != 2 {
-			if span!=nil{
-				span.LogEventWithPayload("Error","The number of prepare is not adapted.")
-			}
-			_errorCallback(callInfo.RpcInfo.Cid,"The number of prepare is not adapted.")
+			_errorCallback(callInfo.RpcInfo.Cid,"The number of prepare is not adapted.",span)
 			return
 		}
 		if len(out) > 0 { //prepare out paras
@@ -344,10 +347,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		}
 		argsType,args,err:=argsutil.ArgsTypeAnd2Bytes(s.app,rs[0])
 		if err!=nil{
-			if span!=nil{
-				span.LogEventWithPayload("Error",err.Error())
-			}
-			_errorCallback(callInfo.RpcInfo.Cid,err.Error())
+			_errorCallback(callInfo.RpcInfo.Cid,err.Error(),span)
 			return
 		}
 		resultInfo :=rpcpb.NewResultInfo(
@@ -363,7 +363,9 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			span.LogEventWithPayload("Result.Type",argsType)
 			span.LogEventWithPayload("Result",string(args))
 		}
-
+		if s.app.GetSettings().Rpc.LogSuccess{
+			log.Info("%s rpc func(%s) exec_time(%s) success",s.module.GetType(),callInfo.RpcInfo.Fn,s.timeConversion(time.Now().UnixNano()-exec_time))
+		}
 		if s.listener != nil {
 			s.listener.OnComplete(callInfo.RpcInfo.Fn, &callInfo, resultInfo, time.Now().UnixNano()-exec_time)
 		}
@@ -372,5 +374,23 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		go _runFunc()
 	} else {
 		_runFunc()
+	}
+}
+
+func (s *RPCServer) timeConversion(ns int64)string{
+	if (ns/1000)<1{
+		return	fmt.Sprintf("%.2f ns",(ns))
+	}else if 1<(ns/int64(1000))&&(ns/int64(1000))<1000{
+		return	fmt.Sprintf("%.2f μs",float32(ns/int64(1000)))
+	}else if 1<(ns/int64(1000*1000))&&(ns/int64(1000*1000))<1000{
+		return	fmt.Sprintf("%.2f ms",float32(ns/int64(1000*1000)))
+	}else if 1<(ns/int64(1000*1000*1000))&&(ns/int64(1000*1000*1000))<1000{
+		return	fmt.Sprintf("%.2f s",float32(ns/int64(1000*1000*1000)))
+	}else if 1<(ns/int64(1000*1000*1000*60))&&(ns/int64(1000*1000*1000*60))<1000{
+		return	fmt.Sprintf("%.2f m",float32(ns/int64(1000*1000*1000*60)))
+	}else if 1<(ns/int64(1000*1000*1000*60*60))&&(ns/int64(1000*1000*1000*60*60))<1000{
+		return	fmt.Sprintf("%.2f m",float32(ns/int64(1000*1000*1000*60*60)))
+	}else{
+		return	fmt.Sprintf("%.2f ns",(ns))
 	}
 }
