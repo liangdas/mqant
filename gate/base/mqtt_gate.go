@@ -115,15 +115,16 @@ func (this *Gate)Deserialize(ptype string,b []byte)(param interface{},err error)
 func (this *Gate)GetTypes()([]string){
 	return []string{RPC_PARAM_SESSION_TYPE}
 }
-
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
-	this.BaseModule.OnInit(subclass, app, settings) //这是必须的
-
+func (this *Gate)OnAppConfigurationLoaded(app module.App) {
 	//添加Session结构体的序列化操作类
+	this.BaseModule.OnAppConfigurationLoaded(app) //这是必须的
 	err:=app.AddRPCSerialize("gate",this)
 	if err!=nil{
 		log.Warning("Adding session structures failed to serialize interfaces",err.Error())
 	}
+}
+func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
+	this.BaseModule.OnInit(subclass, app, settings) //这是必须的
 
 	this.MaxConnNum = int(settings.Settings["MaxConnNum"].(float64))
 	this.MaxMsgLen = uint32(settings.Settings["MaxMsgLen"].(float64))

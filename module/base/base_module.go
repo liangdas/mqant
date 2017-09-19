@@ -74,6 +74,10 @@ func (m *BaseModule) GetServer() *rpcserver {
 func (m *BaseModule)OnConfChanged(settings *conf.ModuleSettings)  {
 
 }
+func (m *BaseModule)OnAppConfigurationLoaded(app module.App)  {
+	m.App = app
+	//当App初始化时调用，这个接口不管这个模块是否在这个进程运行都会调用
+}
 func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
 	//初始化模块
 	m.App = app

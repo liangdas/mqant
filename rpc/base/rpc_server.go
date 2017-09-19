@@ -302,7 +302,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			for k,v:=range ArgsType{
 				v,err:=argsutil.Bytes2Args(s.app,v,params[k])
 				if err!=nil{
-					_errorCallback(callInfo.RpcInfo.Cid,fmt.Sprintf("args[%d] [%s] Types not allowed",k,reflect.TypeOf(params[k])),span)
+					_errorCallback(callInfo.RpcInfo.Cid,err.Error(),span)
 					return
 				}
 				switch v2:=v.(type) {    //多选语句switch

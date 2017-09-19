@@ -133,6 +133,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
 	for i := 0; i < len(mods); i++ {
+		mods[i].OnAppConfigurationLoaded(app)
 		manager.Register(mods[i])
 	}
 	app.OnInit(app.settings)
