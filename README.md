@@ -79,7 +79,7 @@ QQ交流群 :463735103
 	2. 模块管理
 		1. 模块动态添加删除
 		2. 模块状态监控
-2. 异常日志监控和汇报
+2. 【已完成】异常日志监控和汇报
 	1. 异常日志分类汇总
 	2. 定时将异常日志发送到Email
 	3. 定时将异常日志通过webhook发送到团队协作工具中(钉钉,worktile等)
@@ -99,6 +99,8 @@ bug请直接通过issue提交
 
 
 ## 版本日志
+### [v1.6.3新特性](https://github.com/liangdas/mqant/wiki/v1.6.3)
+
 ### [v1.6.2新特性](https://github.com/liangdas/mqant/wiki/v1.6.2)
 
 ### [v1.6.1新特性](https://github.com/liangdas/mqant/wiki/v1.6.1)
