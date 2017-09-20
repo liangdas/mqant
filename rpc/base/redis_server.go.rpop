@@ -21,16 +21,16 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"runtime"
 	"github.com/liangdas/mqant/utils"
-	"github.com/garyburd/redigo/redis"
+	"time"
 )
+var (maxPullLimit int64=25) //最长不能超过25ms
 type RedisServer struct {
-	call_chan 	chan mqrpc.CallInfo
-	url  		string
-	info 		*conf.Redis
+	call_chan chan mqrpc.CallInfo
+	url  string
+	info *conf.Redis
 	queueName	string
-	done      	chan error
-	pool		redis.Conn
-	closed      	bool
+	done      chan error
+	pullLimit	int64	//拉消息的限制时长
 }
 
 func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServer, error) {
@@ -42,7 +42,6 @@ func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServ
 	server.info=info
 	server.queueName=queueName
 	server.done = make(chan error)
-	server.closed = false
 	go server.on_request_handle(server.done)
 
 	return server, nil
@@ -57,10 +56,7 @@ func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServ
 停止接收请求
 */
 func (s *RedisServer) StopConsume() error {
-	s.closed=true
-	if s.pool!=nil{
-		return s.pool.Close()
-	}
+
 	return nil
 }
 
@@ -68,10 +64,7 @@ func (s *RedisServer) StopConsume() error {
 注销消息队列
 */
 func (s *RedisServer) Shutdown() error {
-	s.closed=true
-	if s.pool!=nil{
-		return s.pool.Close()
-	}
+
 	return nil
 }
 
@@ -115,12 +108,12 @@ func (s *RedisServer) on_request_handle(done chan error) {
 			log.Error("%s\n ----Stack----\n%s",rn,errstr)
 		}
 	}()
-	for !s.closed{
-		s.pool=utils.GetRedisFactory().GetPool(s.info.Uri).Get()
-		result, err := s.pool.Do("brpop", s.queueName,0)
-		s.pool.Close()
+	for {
+		pool:=utils.GetRedisFactory().GetPool(s.info.Uri).Get()
+		result, err := pool.Do("rpop", s.queueName)
+		pool.Close()
 		if err==nil && result!=nil{
-			rpcInfo, err := s.Unmarshal(result.([]interface{})[1].([]byte))
+			rpcInfo, err := s.Unmarshal(result.([]byte))
 			if err == nil {
 				callInfo:=&mqrpc.CallInfo{
 					RpcInfo:*rpcInfo,
@@ -135,8 +128,14 @@ func (s *RedisServer) on_request_handle(done chan error) {
 			} else {
 				log.Error("error ", err)
 			}
+			s.pullLimit=1
 		}else if err!=nil{
-			log.Warning("error %s", err.Error())
+			log.Error("error %s", err.Error())
+		}
+		time.Sleep(time.Millisecond*time.Duration(s.pullLimit))
+		s.pullLimit+=5
+		if s.pullLimit>maxPullLimit{
+			s.pullLimit=maxPullLimit
 		}
 	}
 	log.Debug("finish on_request_handle")

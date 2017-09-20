@@ -25,18 +25,16 @@ import (
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/util"
-	"github.com/garyburd/redigo/redis"
 )
 type RedisClient struct {
 	//callinfos map[string]*ClinetCallInfo
-	callinfos 		*utils.BeeMap
-	cmutex    		sync.Mutex //操作callinfos的锁
+	callinfos *utils.BeeMap
+	cmutex    sync.Mutex //操作callinfos的锁
 	info *conf.Redis
 	queueName		string
 	callbackqueueName	string
-	done      		chan error
-	pool			redis.Conn
-	closed      		bool
+	done      chan error
+	pullLimit	int64	//拉消息的限制时长
 }
 
 func createQueueName()string{
@@ -50,7 +48,6 @@ func NewRedisClient(info *conf.Redis) (client *RedisClient, err error) {
 	client.callbackqueueName = createQueueName()
 	client.queueName = info.Queue
 	client.done = make(chan error)
-	client.closed=false
 	pool:=utils.GetRedisFactory().GetPool(info.Uri).Get()
 	defer pool.Close()
 	//_, errs:=pool.Do("EXPIRE", client.callbackqueueName, 60)
@@ -68,16 +65,12 @@ func NewRedisClient(info *conf.Redis) (client *RedisClient, err error) {
 }
 
 func (c *RedisClient) Done() (err error) {
-	c.closed=true
 	pool:=utils.GetRedisFactory().GetPool(c.info.Uri).Get()
 	defer pool.Close()
 	//删除临时通道
 	pool.Do("DEL", c.callbackqueueName)
 	//err = c.psc.Close()
 	//清理 callinfos 列表
-	if c.pool!=nil{
-		c.pool.Close()
-	}
 	for key, clinetCallInfo := range c.callinfos.Items() {
 		if clinetCallInfo != nil {
 			//关闭管道
@@ -176,12 +169,12 @@ func (c *RedisClient) on_timeout_handle(args interface{}) {
 接收应答信息
 */
 func (c *RedisClient) on_response_handle(done chan error) {
-	for !c.closed{
-		c.pool=utils.GetRedisFactory().GetPool(c.info.Uri).Get()
-		result, err := c.pool.Do("brpop", c.callbackqueueName,0)
-		c.pool.Close()
+	for {
+		pool:=utils.GetRedisFactory().GetPool(c.info.Uri).Get()
+		result, err := pool.Do("rpop", c.callbackqueueName)
+		pool.Close()
 		if err == nil && result!=nil{
-			resultInfo,err := c.UnmarshalResult(result.([]interface{})[1].([]byte))
+			resultInfo,err := c.UnmarshalResult(result.([]byte))
 			if err != nil {
 				log.Error("Unmarshal faild", err)
 			} else {
@@ -193,8 +186,14 @@ func (c *RedisClient) on_response_handle(done chan error) {
 				//删除
 				c.callinfos.Delete(correlation_id)
 			}
+			c.pullLimit=1
 		}else if err!=nil{
-			log.Warning("error %s", err.Error())
+			log.Error("error %s", err.Error())
+		}
+		time.Sleep(time.Millisecond*time.Duration(c.pullLimit))
+		c.pullLimit+=5
+		if c.pullLimit>maxPullLimit{
+			c.pullLimit=maxPullLimit
 		}
 	}
 	log.Debug("finish on_response_handle")

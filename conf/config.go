@@ -39,6 +39,7 @@ func LoadConfig(Path string) {
 }
 
 type Config struct {
+	Log	map[string]interface{}
 	Rpc	Rpc
 	Module map[string][]*ModuleSettings
 	Mqtt   Mqtt
@@ -51,6 +52,7 @@ type Rpc struct {
 	RpcExpired  int //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
 	LogSuccess	bool	//是否打印请求处理成功的日志
 }
+
 
 type Rabbitmq struct {
 	Uri          string

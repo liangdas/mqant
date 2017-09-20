@@ -118,10 +118,11 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 			fmt.Println(err)
 		}
 	}
-	log.Init(debug, *ProcessID, *Logdir)
-	log.Info("Server configuration file path [%s]", *confPath)
+	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
+	log.InitBeego(debug, *ProcessID, *Logdir,conf.Conf.Log)
+
 
 	log.Info("mqant %v starting up", app.version)
 
