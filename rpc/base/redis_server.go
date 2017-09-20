@@ -23,7 +23,7 @@ import (
 	"github.com/liangdas/mqant/utils"
 	"time"
 )
-var (maxPullLimit int64=100) //最长不能超过25ms
+var (maxPullLimit int64=25) //最长不能超过25ms
 type RedisServer struct {
 	call_chan chan mqrpc.CallInfo
 	url  string
