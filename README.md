@@ -79,11 +79,13 @@ QQ交流群 :463735103
 	2. 模块管理
 		1. 模块动态添加删除
 		2. 模块状态监控
-2. 【已完成】异常日志监控和汇报
+2.  新增英文版文档
+    希望有兴趣的英语好的同学能参与帮忙编写英文版本的文档
+3. 【已完成】异常日志监控和汇报
 	1. 异常日志分类汇总
 	2. 定时将异常日志发送到Email
 	3. 定时将异常日志通过webhook发送到团队协作工具中(钉钉,worktile等)
-3. 【已完成】rpc添加track分布式跟踪系统的接口[Appdash，用Go实现的分布式系统跟踪神器](http://tonybai.com/2015/06/17/appdash-distributed-systems-tracing-in-go/)
+4. 【已完成】rpc添加track分布式跟踪系统的接口[Appdash，用Go实现的分布式系统跟踪神器](http://tonybai.com/2015/06/17/appdash-distributed-systems-tracing-in-go/)
 
 ## 贡献者
 
