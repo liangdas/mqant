@@ -53,7 +53,7 @@ func NewRPCServer(app module.App,module module.Module) (mqrpc.RPCServer, error) 
 	rpc_server.module=module
 	rpc_server.call_chan_done = make(chan error)
 	rpc_server.functions = make(map[string]mqrpc.FunctionInfo)
-	rpc_server.mq_chan = make(chan mqrpc.CallInfo,50)
+	rpc_server.mq_chan = make(chan mqrpc.CallInfo)
 	rpc_server.callback_chan = make(chan mqrpc.CallInfo,50)
 
 	//先创建一个本地的RPC服务
