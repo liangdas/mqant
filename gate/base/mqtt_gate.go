@@ -15,17 +15,19 @@ package basegate
 
 import (
 	"bufio"
-	"github.com/liangdas/mqant/gate"
+	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/network"
-	"time"
+	"github.com/liangdas/mqant/gate"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
-	"fmt"
+	"github.com/liangdas/mqant/network"
 	"reflect"
-	"github.com/liangdas/mqant/log"
+	"time"
 )
-var RPC_PARAM_SESSION_TYPE="SESSION"
+
+var RPC_PARAM_SESSION_TYPE = "SESSION"
+
 type Gate struct {
 	module.RPCSerialize
 	basemodule.BaseModule
@@ -45,11 +47,11 @@ type Gate struct {
 	CertFile string
 	KeyFile  string
 	//
-	handler      gate.GateHandler
-	agentLearner gate.AgentLearner
+	handler        gate.GateHandler
+	agentLearner   gate.AgentLearner
 	sessionLearner gate.SessionLearner
-	storage      gate.StorageHandler
-	tracing      gate.TracingHandler
+	storage        gate.StorageHandler
+	tracing        gate.TracingHandler
 }
 
 /**
@@ -79,48 +81,48 @@ func (this *Gate) SetTracingHandler(tracing gate.TracingHandler) error {
 func (this *Gate) GetStorageHandler() (storage gate.StorageHandler) {
 	return this.storage
 }
-func (this *Gate)OnConfChanged(settings *conf.ModuleSettings)  {
+func (this *Gate) OnConfChanged(settings *conf.ModuleSettings) {
 
 }
 
 /**
 自定义rpc参数序列化反序列化  Session
- */
-func (this *Gate)Serialize(param interface{})(ptype string,p []byte, err error){
-	switch v2:=param.(type) {
+*/
+func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err error) {
+	switch v2 := param.(type) {
 	case gate.Session:
-		bytes,err:=v2.Serializable()
-		if err != nil{
-			return RPC_PARAM_SESSION_TYPE,nil,err
+		bytes, err := v2.Serializable()
+		if err != nil {
+			return RPC_PARAM_SESSION_TYPE, nil, err
 		}
-		return RPC_PARAM_SESSION_TYPE,bytes,nil
+		return RPC_PARAM_SESSION_TYPE, bytes, nil
 	default:
-		return "", nil,fmt.Errorf("args [%s] Types not allowed",reflect.TypeOf(param))
+		return "", nil, fmt.Errorf("args [%s] Types not allowed", reflect.TypeOf(param))
 	}
 }
 
-func (this *Gate)Deserialize(ptype string,b []byte)(param interface{},err error){
+func (this *Gate) Deserialize(ptype string, b []byte) (param interface{}, err error) {
 	switch ptype {
 	case RPC_PARAM_SESSION_TYPE:
-		mps,errs:= NewSession(this.App,b)
-		if errs!=nil{
-			return	nil,errs
+		mps, errs := NewSession(this.App, b)
+		if errs != nil {
+			return nil, errs
 		}
-		return mps,nil
+		return mps, nil
 	default:
-		return	nil,fmt.Errorf("args [%s] Types not allowed",ptype)
+		return nil, fmt.Errorf("args [%s] Types not allowed", ptype)
 	}
 }
 
-func (this *Gate)GetTypes()([]string){
+func (this *Gate) GetTypes() []string {
 	return []string{RPC_PARAM_SESSION_TYPE}
 }
-func (this *Gate)OnAppConfigurationLoaded(app module.App) {
+func (this *Gate) OnAppConfigurationLoaded(app module.App) {
 	//添加Session结构体的序列化操作类
 	this.BaseModule.OnAppConfigurationLoaded(app) //这是必须的
-	err:=app.AddRPCSerialize("gate",this)
-	if err!=nil{
-		log.Warning("Adding session structures failed to serialize interfaces",err.Error())
+	err := app.AddRPCSerialize("gate", this)
+	if err != nil {
+		log.Warning("Adding session structures failed to serialize interfaces", err.Error())
 	}
 }
 func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
@@ -182,13 +184,13 @@ func (this *Gate) Run(closeSig chan bool) {
 		wsServer.KeyFile = this.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
 			a := &agent{
-				conn:    conn,
-				gate:    this,
-				r:       bufio.NewReader(conn),
-				w:       bufio.NewWriter(conn),
-				isclose: false,
-				rev_num:0,
-				send_num:0,
+				conn:     conn,
+				gate:     this,
+				r:        bufio.NewReader(conn),
+				w:        bufio.NewWriter(conn),
+				isclose:  false,
+				rev_num:  0,
+				send_num: 0,
 			}
 			return a
 		}
@@ -204,13 +206,13 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.KeyFile = this.KeyFile
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
 			a := &agent{
-				conn:    conn,
-				gate:    this,
-				r:       bufio.NewReader(conn),
-				w:       bufio.NewWriter(conn),
-				isclose: false,
-				rev_num:0,
-				send_num:0,
+				conn:     conn,
+				gate:     this,
+				r:        bufio.NewReader(conn),
+				w:        bufio.NewWriter(conn),
+				isclose:  false,
+				rev_num:  0,
+				send_num: 0,
 			}
 			return a
 		}
@@ -223,7 +225,7 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.Start()
 	}
 	<-closeSig
-	if this.handler!=nil{
+	if this.handler != nil {
 		this.handler.OnDestroy()
 	}
 	if wsServer != nil {

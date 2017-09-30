@@ -5,8 +5,8 @@ package modules
 
 import (
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/module/modules/timer"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/modules/timer"
 )
 
 var TimerModule = func() module.Module {

@@ -14,11 +14,11 @@
 package basemodule
 
 import (
-	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
 )
 
-func NewServerSession(Id string ,Stype string,Rpc mqrpc.RPCClient) (module.ServerSession) {
+func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
 	session := &serverSession{
 		Id:    Id,
 		Stype: Stype,
@@ -32,15 +32,17 @@ type serverSession struct {
 	Stype string
 	Rpc   mqrpc.RPCClient
 }
-func (c *serverSession)GetId()string{
+
+func (c *serverSession) GetId() string {
 	return c.Id
 }
-func (c *serverSession)GetType()string{
+func (c *serverSession) GetType() string {
 	return c.Stype
 }
-func (c *serverSession)GetRpc()mqrpc.RPCClient{
+func (c *serverSession) GetRpc() mqrpc.RPCClient {
 	return c.Rpc
 }
+
 /**
 消息请求 需要回复
 */
@@ -58,13 +60,13 @@ func (c *serverSession) CallNR(_func string, params ...interface{}) (err error) 
 /**
 消息请求 需要回复
 */
-func (c *serverSession) CallArgs(_func string, ArgsType []string,args [][]byte) (interface{}, string) {
-	return c.Rpc.CallArgs(_func, ArgsType,args)
+func (c *serverSession) CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
+	return c.Rpc.CallArgs(_func, ArgsType, args)
 }
 
 /**
 消息请求 需要回复
 */
-func (c *serverSession) CallNRArgs(_func string, ArgsType []string,args [][]byte) (err error) {
-	return c.Rpc.CallNRArgs(_func, ArgsType,args)
+func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
+	return c.Rpc.CallNRArgs(_func, ArgsType, args)
 }

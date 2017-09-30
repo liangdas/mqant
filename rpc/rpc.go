@@ -15,10 +15,9 @@ package mqrpc
 
 import (
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/gate"
+	"github.com/liangdas/mqant/rpc/pb"
 )
-
 
 type FunctionInfo struct {
 	Function  interface{}
@@ -30,7 +29,7 @@ type MQServer interface {
 }
 
 type CallInfo struct {
-	RpcInfo	rpcpb.RPCInfo
+	RpcInfo rpcpb.RPCInfo
 	Result  rpcpb.ResultInfo
 	Props   map[string]interface{}
 	Agent   MQServer //代理者  AMQPServer / LocalServer 都继承 Callback(callinfo CallInfo)(error) 方法
@@ -40,8 +39,8 @@ type RPCListener interface {
 	BeforeHandle会对请求做一些前置处理，如：检查当前玩家是否已登录，打印统计日志等。
 	@session  可能为nil
 	return error  当error不为nil时将直接返回改错误信息而不会再执行后续调用
-	 */
-	BeforeHandle(fn string,session gate.Session, callInfo *CallInfo)error
+	*/
+	BeforeHandle(fn string, session gate.Session, callInfo *CallInfo) error
 	OnTimeOut(fn string, Expired int64)
 	OnError(fn string, callInfo *CallInfo, err error)
 	/**
@@ -68,12 +67,11 @@ type RPCClient interface {
 	NewRedisClient(info *conf.Redis) (err error)
 	NewLocalClient(server RPCServer) (err error)
 	Done() (err error)
-	CallArgs(_func string, ArgsType []string,args [][]byte ) (interface{}, string)
-	CallNRArgs(_func string, ArgsType []string,args [][]byte ) (err error)
+	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
+	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
 	Call(_func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
 }
-
 
 type LocalClient interface {
 	Done() error

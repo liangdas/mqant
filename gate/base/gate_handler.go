@@ -14,10 +14,10 @@
 package basegate
 
 import (
+	"fmt"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/utils"
-	"fmt"
 )
 
 type handler struct {
@@ -40,7 +40,7 @@ func (h *handler) Connect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Set(a.GetSession().GetSessionid(), a)
 	}
-	if h.gate.sessionLearner!=nil{
+	if h.gate.sessionLearner != nil {
 		h.gate.sessionLearner.Connect(a.GetSession())
 	}
 }
@@ -50,13 +50,13 @@ func (h *handler) DisConnect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Delete(a.GetSession().GetSessionid())
 	}
-	if h.gate.sessionLearner!=nil{
+	if h.gate.sessionLearner != nil {
 		h.gate.sessionLearner.DisConnect(a.GetSession())
 	}
 }
 
-func (h *handler)OnDestroy(){
-	for _,v:=range h.sessions.Items(){
+func (h *handler) OnDestroy() {
+	for _, v := range h.sessions.Items() {
 		v.(gate.Agent).Close()
 	}
 	h.sessions.DeleteAll()
@@ -112,19 +112,21 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
 	result = agent.(gate.Agent).GetSession()
 	return
 }
+
 /**
  *查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
  */
-func (h *handler) IsConnect(Sessionid string, Userid string) ( bool,  string){
+func (h *handler) IsConnect(Sessionid string, Userid string) (bool, string) {
 
-	for _,agent:=range h.sessions.Items(){
-		if agent.(gate.Agent).GetSession().GetUserid()==Userid{
-			return !agent.(gate.Agent).IsClosed(),""
+	for _, agent := range h.sessions.Items() {
+		if agent.(gate.Agent).GetSession().GetUserid() == Userid {
+			return !agent.(gate.Agent).IsClosed(), ""
 		}
 	}
 
-	return	false,fmt.Sprintf("The gateway did not find the corresponding userId 【%s】",Userid)
+	return false, fmt.Sprintf("The gateway did not find the corresponding userId 【%s】", Userid)
 }
+
 /**
  *UnBind the session with the the Userid.
  */

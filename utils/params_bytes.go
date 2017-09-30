@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package utils
+
 import (
 	"encoding/binary"
-	"math"
 	"encoding/json"
+	"math"
 )
 
 func BoolToBytes(v bool) []byte {
@@ -29,7 +30,7 @@ func BoolToBytes(v bool) []byte {
 }
 
 func BytesToBool(buf []byte) bool {
-	var data bool= buf[0] != 0
+	var data bool = buf[0] != 0
 	return data
 }
 
@@ -81,28 +82,26 @@ func BytesToFloat64(bytes []byte) float64 {
 	return math.Float64frombits(bits)
 }
 
-
-func MapToBytes(jmap map[string]interface{}) ([]byte,error) {
-	bytes,err:=json.Marshal(jmap)
-	return bytes,err
+func MapToBytes(jmap map[string]interface{}) ([]byte, error) {
+	bytes, err := json.Marshal(jmap)
+	return bytes, err
 }
 
-func BytesToMap(bytes []byte) (map[string]interface{},error){
-	v:=make(map[string]interface{})
-	err:=json.Unmarshal(bytes,&v)
+func BytesToMap(bytes []byte) (map[string]interface{}, error) {
+	v := make(map[string]interface{})
+	err := json.Unmarshal(bytes, &v)
 
-	return v,err
+	return v, err
 }
 
-func MapToBytesString(jmap map[string]string) ([]byte,error) {
-	bytes,err:=json.Marshal(jmap)
-	return bytes,err
+func MapToBytesString(jmap map[string]string) ([]byte, error) {
+	bytes, err := json.Marshal(jmap)
+	return bytes, err
 }
 
-func BytesToMapString(bytes []byte) (map[string]string,error){
-	v:=make(map[string]string)
-	err:=json.Unmarshal(bytes,&v)
+func BytesToMapString(bytes []byte) (map[string]string, error) {
+	v := make(map[string]string)
+	err := json.Unmarshal(bytes, &v)
 
-	return v,err
+	return v, err
 }
-

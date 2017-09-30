@@ -12,31 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package log
+
 import (
-	"github.com/liangdas/mqant/logger/ozzo-log"
 	"github.com/liangdas/mqant/log/beego"
+	"github.com/liangdas/mqant/logger/ozzo-log"
 )
+
 var mqlog *log.Logger
 var beego *logs.BeeLogger
 var defaultLogger *log.Logger
+
 func Init(debug bool, ProcessID string, Logdir string) {
 	mqlog = NewMqantLog(debug, ProcessID, Logdir)
 }
-func InitBeego(debug bool, ProcessID string, Logdir string,settings map[string]interface{}) {
-	beego = NewBeegoLogger(debug, ProcessID, Logdir,settings)
+func InitBeego(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
+	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings)
 }
-func Log()(*log.Logger){
-	if mqlog==nil{
-		if defaultLogger==nil{
-			defaultLogger=NewDefaultLogger()
+func Log() *log.Logger {
+	if mqlog == nil {
+		if defaultLogger == nil {
+			defaultLogger = NewDefaultLogger()
 		}
 		return defaultLogger
 	}
 	return mqlog
 }
-func LogBeego()(*logs.BeeLogger){
-	if beego==nil{
-		beego=logs.NewLogger()
+func LogBeego() *logs.BeeLogger {
+	if beego == nil {
+		beego = logs.NewLogger()
 	}
 	return beego
 }

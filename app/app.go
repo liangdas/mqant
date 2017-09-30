@@ -17,23 +17,22 @@ import (
 	"flag"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/base"
+	opentracing "github.com/opentracing/opentracing-go"
 	"hash/crc32"
 	"math"
 	"os"
-	"os/signal"
-	"strings"
-	"github.com/liangdas/mqant/rpc/base"
-	"github.com/liangdas/mqant/module/modules"
-	opentracing "github.com/opentracing/opentracing-go"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
-	"github.com/liangdas/mqant/gate"
+	"strings"
 )
-
 
 func NewApp(version string) module.App {
 	app := new(DefaultApp)
@@ -48,24 +47,24 @@ func NewApp(version string) module.App {
 		index := int(math.Abs(float64(crc32.ChecksumIEEE([]byte(hash))))) % len(servers)
 		return servers[index]
 	}
-	app.rpcserializes=map[string]module.RPCSerialize{}
+	app.rpcserializes = map[string]module.RPCSerialize{}
 	app.version = version
 	return app
 }
 
 type DefaultApp struct {
 	module.App
-	version       string
-	serverList    map[string]module.ServerSession
-	settings      conf.Config
-	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
-	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
-	rpcserializes	map[string]module.RPCSerialize
-	getTracer 	func ()opentracing.Tracer
-	configurationLoaded func (app module.App)
-	startup func (app module.App)
-	moduleInited func (app module.App,module module.Module)
-	judgeGuest  func(session gate.Session)bool
+	version             string
+	serverList          map[string]module.ServerSession
+	settings            conf.Config
+	routes              map[string]func(app module.App, Type string, hash string) module.ServerSession
+	defaultRoutes       func(app module.App, Type string, hash string) module.ServerSession
+	rpcserializes       map[string]module.RPCSerialize
+	getTracer           func() opentracing.Tracer
+	configurationLoaded func(app module.App)
+	startup             func(app module.App)
+	moduleInited        func(app module.App, module module.Module)
+	judgeGuest          func(session gate.Session) bool
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -75,17 +74,17 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
 
-	ApplicationDir:=""
-	if *wdPath!=""{
+	ApplicationDir := ""
+	if *wdPath != "" {
 		_, err := os.Open(*wdPath)
 		if err != nil {
 			panic(err)
 		}
 		os.Chdir(*wdPath)
-		ApplicationDir,err=os.Getwd()
-	}else{
+		ApplicationDir, err = os.Getwd()
+	} else {
 		var err error
-		ApplicationDir,err=os.Getwd()
+		ApplicationDir, err = os.Getwd()
 		if err != nil {
 			file, _ := exec.LookPath(os.Args[0])
 			ApplicationPath, _ := filepath.Abs(file)
@@ -95,14 +94,14 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 
 	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
-	defaultLogPath :=fmt.Sprintf("%s/bin/logs", ApplicationDir)
+	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 
-	if *confPath==""{
-		*confPath=defaultConfPath
+	if *confPath == "" {
+		*confPath = defaultConfPath
 	}
 
-	if *Logdir==""{
-		*Logdir=defaultLogPath
+	if *Logdir == "" {
+		*Logdir = defaultLogPath
 	}
 
 	f, err := os.Open(*confPath)
@@ -121,12 +120,11 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir,conf.Conf.Log)
-
+	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
 
 	log.Info("mqant %v starting up", app.version)
 
-	if app.configurationLoaded!=nil{
+	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
 
@@ -139,7 +137,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	app.OnInit(app.settings)
 	manager.Init(app, *ProcessID)
-	if app.startup!=nil{
+	if app.startup != nil {
 		app.startup(app)
 	}
 	// close
@@ -164,16 +162,15 @@ func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type str
 	return fn
 }
 
-
-func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerialize) error{
-	if _,ok:=app.rpcserializes[name];ok{
-		return fmt.Errorf("The name(%s) has been occupied",name)
+func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerialize) error {
+	if _, ok := app.rpcserializes[name]; ok {
+		return fmt.Errorf("The name(%s) has been occupied", name)
 	}
-	app.rpcserializes[name]=Interface
+	app.rpcserializes[name] = Interface
 	return nil
 }
 
-func (app *DefaultApp)GetRPCSerialize()(map[string]module.RPCSerialize){
+func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
 }
 
@@ -193,7 +190,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
 				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.GetId(), m.GetType(), moduel.Id, Type))
 			}
-			client, err := defaultrpc.NewRPCClient(app,moduel.Id)
+			client, err := defaultrpc.NewRPCClient(app, moduel.Id)
 			if err != nil {
 				continue
 			}
@@ -205,7 +202,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 				//如果远程的rpc存在则创建一个对应的客户端
 				client.NewRedisClient(moduel.Redis)
 			}
-			session := basemodule.NewServerSession(moduel.Id,Type,client)
+			session := basemodule.NewServerSession(moduel.Id, Type, client)
 			app.serverList[moduel.Id] = session
 			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
 		}
@@ -290,57 +287,57 @@ func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _
 	return server.CallNR(_func, params...)
 }
 
-func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string,args [][]byte) (result interface{}, err string) {
+func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
 	server, e := app.GetRouteServers(moduleType, module.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
 	}
-	return server.CallArgs(_func, ArgsType,args)
+	return server.CallArgs(_func, ArgsType, args)
 }
 
-func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string,args [][]byte) (err error) {
+func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
 	server, err := app.GetRouteServers(moduleType, module.GetServerId())
 	if err != nil {
 		return
 	}
-	return server.CallNRArgs(_func, ArgsType,args)
+	return server.CallNRArgs(_func, ArgsType, args)
 }
-func (app *DefaultApp)DefaultTracer(_func func ()opentracing.Tracer) error{
-	app.getTracer=_func
+func (app *DefaultApp) DefaultTracer(_func func() opentracing.Tracer) error {
+	app.getTracer = _func
 	return nil
 }
-func (app *DefaultApp)GetTracer()opentracing.Tracer{
-	if app.getTracer!=nil{
+func (app *DefaultApp) GetTracer() opentracing.Tracer {
+	if app.getTracer != nil {
 		return app.getTracer()
 	}
 	return nil
 }
 
-func (app *DefaultApp) GetModuleInited()func (app module.App,module module.Module){
+func (app *DefaultApp) GetModuleInited() func(app module.App, module module.Module) {
 	return app.moduleInited
 }
 
-func (app *DefaultApp) GetJudgeGuest()func(session gate.Session)bool{
+func (app *DefaultApp) GetJudgeGuest() func(session gate.Session) bool {
 	return app.judgeGuest
 }
 
-func (app *DefaultApp)OnConfigurationLoaded(_func func (app module.App)) error{
-	app.configurationLoaded=_func
+func (app *DefaultApp) OnConfigurationLoaded(_func func(app module.App)) error {
+	app.configurationLoaded = _func
 	return nil
 }
 
-func (app *DefaultApp)OnModuleInited(_func func (app module.App,module module.Module)) error{
-	app.moduleInited=_func
+func (app *DefaultApp) OnModuleInited(_func func(app module.App, module module.Module)) error {
+	app.moduleInited = _func
 	return nil
 }
 
-func (app *DefaultApp)OnStartup(_func func (app module.App)) error{
-	app.startup=_func
+func (app *DefaultApp) OnStartup(_func func(app module.App)) error {
+	app.startup = _func
 	return nil
 }
 
-func (app *DefaultApp)SetJudgeGuest(_func func(session gate.Session)bool) error{
-	app.judgeGuest=_func
+func (app *DefaultApp) SetJudgeGuest(_func func(session gate.Session) bool) error {
+	app.judgeGuest = _func
 	return nil
 }

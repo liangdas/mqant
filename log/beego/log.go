@@ -34,6 +34,7 @@
 package logs
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -41,7 +42,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"bytes"
 )
 
 // RFC5424 log message levels.
@@ -70,7 +70,7 @@ const (
 	AdapterEs        = "es"
 	AdapterJianLiao  = "jianliao"
 	AdapterSlack     = "slack"
-	AdapterDingtalk     = "dingtalk"
+	AdapterDingtalk  = "dingtalk"
 	AdapterAliLS     = "alils"
 )
 
@@ -121,7 +121,7 @@ type BeeLogger struct {
 	signalChan          chan string
 	wg                  sync.WaitGroup
 	outputs             []*nameLogger
-	ProcessID	    string
+	ProcessID           string
 }
 
 const defaultAsyncMsgLen = 1e3
@@ -277,11 +277,11 @@ func (bl *BeeLogger) writeMsg(logLevel int, msg string, v ...interface{}) error 
 		//}
 		//_, filename := path.Split(file)
 		//msg = "[" + filename + ":" + strconv.Itoa(line) + "] " + msg
-		if logLevel<=LevelWarn{
-			CallStack, ShortFile :=GetCallStack(4,bl.loggerFuncCallDepth,"")
-			msg = "[" + ShortFile + "] " + msg+" "+CallStack
-		}else{
-			_, ShortFile :=GetCallStack(4,bl.loggerFuncCallDepth,"")
+		if logLevel <= LevelWarn {
+			CallStack, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			msg = "[" + ShortFile + "] " + msg + " " + CallStack
+		} else {
+			_, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
 			msg = "[" + ShortFile + "] " + msg
 		}
 
@@ -292,7 +292,7 @@ func (bl *BeeLogger) writeMsg(logLevel int, msg string, v ...interface{}) error 
 		// set to emergency to ensure all log will be print out correctly
 		logLevel = LevelEmergency
 	} else {
-		msg = " ["+bl.ProcessID+"] "+levelPrefix[logLevel] + msg
+		msg = " [" + bl.ProcessID + "] " + levelPrefix[logLevel] + msg
 	}
 
 	if bl.asynchronous {
@@ -351,6 +351,7 @@ func shortfile(file string) string {
 	file = short
 	return file
 }
+
 // SetLevel Set log message level.
 // If message level (such as LevelDebug) is higher than logger level (such as LevelWarning),
 // log providers will not even be sent the message.

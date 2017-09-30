@@ -15,6 +15,7 @@ package basegate
 
 import (
 	"bufio"
+	"container/list"
 	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
@@ -22,13 +23,12 @@ import (
 	"github.com/liangdas/mqant/gate/base/mqtt"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
+	"github.com/liangdas/mqant/rpc/util"
+	"github.com/liangdas/mqant/utils/uuid"
+	"math/rand"
 	"runtime"
 	"strings"
 	"time"
-	"math/rand"
-	"github.com/liangdas/mqant/rpc/util"
-	"container/list"
-	"github.com/liangdas/mqant/utils/uuid"
 )
 
 type resultInfo struct {
@@ -46,8 +46,8 @@ type agent struct {
 	client                           *mqtt.Client
 	isclose                          bool
 	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
-	rev_num				int64
-	send_num			int64
+	rev_num                          int64
+	send_num                         int64
 }
 
 func (a *agent) IsClosed() bool {
@@ -89,19 +89,17 @@ func (a *agent) Run() (err error) {
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
 	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
 	a.client = c
-	a.session,err= NewSessionByMap(a.gate.App, map[string]interface{}{
+	a.session, err = NewSessionByMap(a.gate.App, map[string]interface{}{
 		"Sessionid": Get_uuid(),
 		"Network":   a.conn.RemoteAddr().Network(),
 		"IP":        a.conn.RemoteAddr().String(),
 		"Serverid":  a.gate.GetServerId(),
 		"Settings":  make(map[string]string),
 	})
-	if err!=nil{
-		log.Error("gate create agent fail",err.Error())
+	if err != nil {
+		log.Error("gate create agent fail", err.Error())
 		return
 	}
-
-
 
 	a.gate.agentLearner.Connect(a) //发送连接成功的事件
 
@@ -121,10 +119,10 @@ func (a *agent) OnClose() error {
 	return nil
 }
 
-func (a *agent)RevNum() int64{
+func (a *agent) RevNum() int64 {
 	return a.rev_num
 }
-func (a *agent)SendNum() int64{
+func (a *agent) SendNum() int64 {
 	return a.send_num
 }
 func (a *agent) OnRecover(pack *mqtt.Pack) {
@@ -142,7 +140,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		b, err := json.Marshal(r)
 		if err == nil {
 			a.WriteMsg(Topic, b)
-		}else{
+		} else {
 			r = &resultInfo{
 				Error:  err.Error(),
 				Result: nil,
@@ -157,7 +155,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 	//路由服务
 	switch pack.GetType() {
 	case mqtt.PUBLISH:
-		a.rev_num=a.rev_num+1
+		a.rev_num = a.rev_num + 1
 		pub := pack.GetVariable().(*mqtt.Publish)
 		topics := strings.Split(*pub.GetTopic(), "/")
 		var msgid string
@@ -167,9 +165,9 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else if len(topics) == 3 {
 			msgid = topics[2]
 		}
-		var ArgsType []string=make([]string, 2)
-		var args [][]byte=make([][]byte, 2)
-		if pub.GetMsg()[0]=='{'&&pub.GetMsg()[len(pub.GetMsg())-1]=='}'{
+		var ArgsType []string = make([]string, 2)
+		var args [][]byte = make([][]byte, 2)
+		if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
 			//尝试解析为json为map
 			var obj interface{} // var obj map[string]interface{}
 			err := json.Unmarshal(pub.GetMsg(), &obj)
@@ -179,11 +177,11 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 				}
 				return
 			}
-			ArgsType[1]=argsutil.MAP
-			args[1]=pub.GetMsg()
-		}else{
-			ArgsType[1]=argsutil.BYTES
-			args[1]=pub.GetMsg()
+			ArgsType[1] = argsutil.MAP
+			args[1] = pub.GetMsg()
+		} else {
+			ArgsType[1] = argsutil.BYTES
+			args[1] = pub.GetMsg()
 		}
 		hash := ""
 		if a.session.GetUserid() != "" {
@@ -191,7 +189,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else {
 			hash = a.gate.GetServerId()
 		}
-		if (a.gate.tracing!=nil)&&a.gate.tracing.OnRequestTracing(a.session,pub){
+		if (a.gate.tracing != nil) && a.gate.tracing.OnRequestTracing(a.session, pub) {
 			a.session.CreateRootSpan("gate")
 		}
 
@@ -211,25 +209,25 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		}
 
 		if msgid != "" {
-			ArgsType[0]=RPC_PARAM_SESSION_TYPE
-			b,err:=a.GetSession().Serializable()
-			if err!=nil{
+			ArgsType[0] = RPC_PARAM_SESSION_TYPE
+			b, err := a.GetSession().Serializable()
+			if err != nil {
 				return
 			}
-			args[0]=b
-			result, e := serverSession.CallArgs(topics[1],ArgsType, args)
+			args[0] = b
+			result, e := serverSession.CallArgs(topics[1], ArgsType, args)
 			toResult(a, *pub.GetTopic(), result, e)
-		}else{
-			ArgsType[0]=RPC_PARAM_SESSION_TYPE
-			b,err:=a.GetSession().Serializable()
-			if err!=nil{
+		} else {
+			ArgsType[0] = RPC_PARAM_SESSION_TYPE
+			b, err := a.GetSession().Serializable()
+			if err != nil {
 				return
 			}
-			args[0]=b
+			args[0] = b
 
-			e := serverSession.CallNRArgs(topics[1],ArgsType, args)
-			if e!=nil{
-				log.Warning("Gate RPC",e.Error())
+			e := serverSession.CallNRArgs(topics[1], ArgsType, args)
+			if e != nil {
+				log.Warning("Gate RPC", e.Error())
 			}
 		}
 
@@ -274,14 +272,13 @@ func (a *agent) Destroy() {
 }
 
 func Get_uuid() string {
-	mid,err:=TransNumToString(time.Now().UnixNano())
-	if err!=nil{
+	mid, err := TransNumToString(time.Now().UnixNano())
+	if err != nil {
 		return uuid.Rand().Hex()
-	}else{
-		return fmt.Sprintf("%s:%d",mid,RandInt64(100,10000))
+	} else {
+		return fmt.Sprintf("%s:%d", mid, RandInt64(100, 10000))
 	}
 }
-
 
 func TransNumToString(num int64) (string, error) {
 	var base int64
@@ -313,13 +310,12 @@ func TransStringToNum(str string) (int64, error) {
 // 返回值：
 //      int64: 生成的随机数
 func RandInt64(min, max int64) int64 {
-	if min >= max{
+	if min >= max {
 		return max
 	}
-	return rand.Int63n(max-min)+min
+	return rand.Int63n(max-min) + min
 }
 
 func TimeNow() time.Time {
 	return time.Now()
 }
-

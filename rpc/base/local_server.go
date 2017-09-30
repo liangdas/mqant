@@ -16,9 +16,9 @@ package defaultrpc
 import ()
 import (
 	"fmt"
-	"sync"
-	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
+	"sync"
 )
 
 type LocalServer struct {

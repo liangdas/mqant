@@ -6,6 +6,8 @@ package modules
 import (
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules/master"
 	"io"
 	"io/ioutil"
@@ -14,8 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/base"
 )
 
 var MasterModule = func() module.Module {
@@ -66,7 +66,7 @@ type ModuleReport struct {
 	Id         string
 	Version    string
 	ProcessID  string
-	Executing  int64                         //当前正在执行的函数数量,暂态的,下一次上报时刷新
+	Executing  int64                                    //当前正在执行的函数数量,暂态的,下一次上报时刷新
 	ReportForm map[string]*basemodule.StatisticalMethod //运行状态报表
 }
 
@@ -78,6 +78,7 @@ type Master struct {
 	ModuleReports map[string]*ModuleReport //moduleID -- ModuleReport
 	rwmutex       sync.RWMutex
 }
+
 func (m *Master) GetType() string {
 	//很关键,需要与配置文件中的Module配置对应
 	return "Master"

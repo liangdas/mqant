@@ -62,6 +62,7 @@ type fileLogWriter struct {
 
 	fileNameOnly, suffix string // like "project.log", project is fileNameOnly and .log is suffix
 }
+
 func newFileWriter() Logger {
 	w := &fileLogWriter{
 		Daily:      true,
@@ -69,11 +70,12 @@ func newFileWriter() Logger {
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
-		MinLevel:      LevelEmergency,
+		MinLevel:   LevelEmergency,
 		Perm:       "0660",
 	}
 	return w
 }
+
 // newFileWriter create a FileLogWriter returning as LoggerInterface.
 func NewFileWriter() Logger {
 	w := &fileLogWriter{
@@ -82,7 +84,7 @@ func NewFileWriter() Logger {
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
-		MinLevel:      LevelEmergency,
+		MinLevel:   LevelEmergency,
 		Perm:       "0660",
 	}
 	return w
@@ -138,7 +140,7 @@ func (w *fileLogWriter) needRotate(size int, day int) bool {
 
 // WriteMsg write logger message into file.
 func (w *fileLogWriter) WriteMsg(when time.Time, msg string, level int) error {
-	if (level > w.Level) || (level<w.MinLevel){
+	if (level > w.Level) || (level < w.MinLevel) {
 		return nil
 	}
 	h, d := formatTimeHeader(when)

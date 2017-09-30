@@ -1,11 +1,11 @@
 package logs
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
-	"bytes"
 )
 
 // SLACKWriter implements beego LoggerInterface and is used to send jiaoliao webhook
@@ -30,14 +30,14 @@ func (s *DingtalkWriter) WriteMsg(when time.Time, msg string, level int) error {
 	if level > s.Level {
 		return nil
 	}
-	dingtalk:=map[string]interface{}{
+	dingtalk := map[string]interface{}{
 		"msgtype": "text",
 		"text": map[string]string{
 			"content": fmt.Sprintf("%s %s", when.Format("2006-01-02 15:04:05"), msg),
 		},
 	}
-	text,err:=json.Marshal(dingtalk)
-	if err!=nil{
+	text, err := json.Marshal(dingtalk)
+	if err != nil {
 		return err
 	}
 	reader := bytes.NewReader(text)

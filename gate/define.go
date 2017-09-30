@@ -14,24 +14,25 @@
 package gate
 
 import (
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/liangdas/mqant/gate/base/mqtt"
+	opentracing "github.com/opentracing/opentracing-go"
 )
+
 /**
 net代理服务 处理器
 */
 type GateHandler interface {
-	Bind(Sessionid string, Userid string) (result Session, err string)                   //Bind the session with the the Userid.
-	UnBind(Sessionid string) (result Session, err string)                                //UnBind the session with the the Userid.
-	Set(Sessionid string, key string, value string) (result Session, err string)    //Set values (one or many) for the session.
-	Remove(Sessionid string, key string) (result interface{}, err string)                    //Remove value from the session.
-	Push(Sessionid string, Settings map[string]string) (result Session, err string) //推送信息给Session
-	Send(Sessionid string, topic string, body []byte) (result interface{}, err string)       //Send message
+	Bind(Sessionid string, Userid string) (result Session, err string)                 //Bind the session with the the Userid.
+	UnBind(Sessionid string) (result Session, err string)                              //UnBind the session with the the Userid.
+	Set(Sessionid string, key string, value string) (result Session, err string)       //Set values (one or many) for the session.
+	Remove(Sessionid string, key string) (result interface{}, err string)              //Remove value from the session.
+	Push(Sessionid string, Settings map[string]string) (result Session, err string)    //推送信息给Session
+	Send(Sessionid string, topic string, body []byte) (result interface{}, err string) //Send message
 	//查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
 	IsConnect(Sessionid string, Userid string) (result bool, err string)
-	Close(Sessionid string) (result interface{}, err string)                                 //主动关闭连接
-	Update(Sessionid string) (result Session, err string)                                //更新整个Session 通常是其他模块拉取最新数据
-	OnDestroy()	//退出事件,主动关闭所有的连接
+	Close(Sessionid string) (result interface{}, err string) //主动关闭连接
+	Update(Sessionid string) (result Session, err string)    //更新整个Session 通常是其他模块拉取最新数据
+	OnDestroy()                                              //退出事件,主动关闭所有的连接
 }
 
 type Session interface {
@@ -47,7 +48,7 @@ type Session interface {
 	SetSessionid(sessionid string)
 	SetServerid(serverid string)
 	SetSettings(settings map[string]string)
-	Serializable()([]byte,error)
+	Serializable() ([]byte, error)
 	Update() (err string)
 	Bind(Userid string) (err string)
 	UnBind() (err string)
@@ -62,29 +63,29 @@ type Session interface {
 	//是否是访客(未登录) ,默认判断规则为 userId==""代表访客
 	IsGuest() bool
 	//设置自动的访客判断函数,记得一定要在全局的时候设置这个值,以免部分模块因为未设置这个判断函数造成错误的判断
-	JudgeGuest(judgeGuest func(session Session)bool)
+	JudgeGuest(judgeGuest func(session Session) bool)
 	Close() (err string)
-	Clone()Session
+	Clone() Session
 	/**
 	通过Carrier数据构造本次rpc调用的tracing Span,如果没有就创建一个新的
-	 */
-	CreateRootSpan(operationName string)opentracing.Span
+	*/
+	CreateRootSpan(operationName string) opentracing.Span
 	/**
 	通过Carrier数据构造本次rpc调用的tracing Span,如果没有就返回nil
-	 */
-	LoadSpan(operationName string)opentracing.Span
+	*/
+	LoadSpan(operationName string) opentracing.Span
 	/**
 	获取本次rpc调用的tracing Span
-	 */
-	Span()opentracing.Span
+	*/
+	Span() opentracing.Span
 	/**
 	从Session的 Span继承一个新的Span
-	 */
-	ExtractSpan(operationName string)opentracing.Span
+	*/
+	ExtractSpan(operationName string) opentracing.Span
 	/**
 	获取Tracing的Carrier 可能为nil
-	 */
-	TracCarrier()map[string]string
+	*/
+	TracCarrier() map[string]string
 }
 
 /**
@@ -115,8 +116,8 @@ type StorageHandler interface {
 type TracingHandler interface {
 	/**
 	是否需要对本次客户端请求进行跟踪
-	 */
-	OnRequestTracing(session Session,msg *mqtt.Publish)bool
+	*/
+	OnRequestTracing(session Session, msg *mqtt.Publish) bool
 }
 
 type AgentLearner interface {

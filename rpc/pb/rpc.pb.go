@@ -107,12 +107,12 @@ type ResultInfo struct {
 	Result     []byte `protobuf:"bytes,5,opt,name=Result,proto3" json:"Result,omitempty"`
 }
 
-func NewResultInfo(Cid string,Error string,ArgsType string,result []byte) *ResultInfo {
-	resultInfo:=&ResultInfo{
-		Cid: *proto.String(Cid),
-		Error:*proto.String(Error),
-		ResultType:*proto.String(ArgsType),
-		Result:result,
+func NewResultInfo(Cid string, Error string, ArgsType string, result []byte) *ResultInfo {
+	resultInfo := &ResultInfo{
+		Cid:        *proto.String(Cid),
+		Error:      *proto.String(Error),
+		ResultType: *proto.String(ArgsType),
+		Result:     result,
 	}
 	return resultInfo
 }

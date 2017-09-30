@@ -15,7 +15,7 @@ func NewMqantLog(debug bool, ProcessID string, Logdir string) *log.Logger {
 	Mqlog.GetLogger(debug, ProcessID, Logdir)
 	return Mqlog.Logger
 }
-func NewDefaultLogger()(*log.Logger)  {
+func NewDefaultLogger() *log.Logger {
 	logger := log.NewLogger()
 	logger.CallStackDepth = 3
 	t1 := log.NewConsoleTarget()
@@ -51,9 +51,9 @@ func (m *MqantLog) GetLogger(debug bool, ProcessID string, Logdir string) {
 	//defer logger.Close()
 	logger = logger.GetLogger("app", func(l *log.Logger, e *log.Entry) string {
 		if e.Level <= log.LevelWarning {
-			return fmt.Sprintf("%v [%v][%v] %v %v", e.Time.Format(time.RFC3339), e.Level,ProcessID, e.Message, e.CallStack)
+			return fmt.Sprintf("%v [%v][%v] %v %v", e.Time.Format(time.RFC3339), e.Level, ProcessID, e.Message, e.CallStack)
 		} else {
-			return fmt.Sprintf("%v [%v][%v][%v] %v", e.Time.Format(time.RFC3339), e.Level,ProcessID, e.ShortFile, e.Message)
+			return fmt.Sprintf("%v [%v][%v][%v] %v", e.Time.Format(time.RFC3339), e.Level, ProcessID, e.ShortFile, e.Message)
 		}
 	})
 	m.Logger = logger

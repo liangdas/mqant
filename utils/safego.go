@@ -15,11 +15,12 @@ package utils
 
 import (
 	"github.com/liangdas/mqant/conf"
-	"runtime"
 	"github.com/liangdas/mqant/log"
+	"runtime"
 )
 
 var pendingGo int
+
 func Go(f func()) {
 	pendingGo++
 	go func() {

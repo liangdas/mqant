@@ -60,7 +60,6 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.wg.Add(1)
 	defer handler.wg.Done()
 
-
 	wsConn := newWSConn(conn)
 	agent := handler.newAgent(wsConn)
 	agent.Run()

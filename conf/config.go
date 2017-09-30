@@ -27,7 +27,7 @@ import (
 var (
 	LenStackBuf = 1024
 
-	Conf        = Config{}
+	Conf = Config{}
 )
 
 func LoadConfig(Path string) {
@@ -39,20 +39,18 @@ func LoadConfig(Path string) {
 }
 
 type Config struct {
-	Log	map[string]interface{}
-	Rpc	Rpc
-	Module map[string][]*ModuleSettings
-	Mqtt   Mqtt
-	Master Master
-	Settings  map[string]interface{}
+	Log      map[string]interface{}
+	Rpc      Rpc
+	Module   map[string][]*ModuleSettings
+	Mqtt     Mqtt
+	Master   Master
+	Settings map[string]interface{}
 }
-
 
 type Rpc struct {
-	RpcExpired  int //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
-	LogSuccess	bool	//是否打印请求处理成功的日志
+	RpcExpired int  //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+	LogSuccess bool //是否打印请求处理成功的日志
 }
-
 
 type Rabbitmq struct {
 	Uri          string
@@ -64,8 +62,8 @@ type Rabbitmq struct {
 }
 
 type Redis struct {
-	Uri          string //redis://:[password]@[ip]:[port]/[db]
-	Queue        string
+	Uri   string //redis://:[password]@[ip]:[port]/[db]
+	Queue string
 }
 
 type ModuleSettings struct {
@@ -74,7 +72,7 @@ type ModuleSettings struct {
 	ProcessID string
 	Settings  map[string]interface{}
 	Rabbitmq  *Rabbitmq
-	Redis  	  *Redis
+	Redis     *Redis
 }
 
 type Mqtt struct {

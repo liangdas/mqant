@@ -36,7 +36,7 @@ type session struct {
 	Sessionid string            `protobuf:"bytes,4,opt,name=Sessionid" json:"Sessionid,omitempty"`
 	Serverid  string            `protobuf:"bytes,5,opt,name=Serverid" json:"Serverid,omitempty"`
 	Settings  map[string]string `protobuf:"bytes,6,rep,name=Settings" json:"Settings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Carrier    map[string]string `protobuf:"bytes,7,rep,name=Carrier" json:"Carrier,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Carrier   map[string]string `protobuf:"bytes,7,rep,name=Carrier" json:"Carrier,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *session) Reset()                    { *m = session{} }

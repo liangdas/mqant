@@ -16,14 +16,16 @@ package basemodule
 import (
 	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/module/modules/timer"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/modules/timer"
 )
+
 func NewModuleManager() (m *ModuleManager) {
 	m = new(ModuleManager)
 	return
 }
+
 type ModuleManager struct {
 	app     module.App
 	mods    []*DefaultModule
@@ -69,8 +71,8 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 		m := mer.runMods[i]
 		m.mi.OnInit(app, m.settings)
 
-		if app.GetModuleInited()!=nil{
-			app.GetModuleInited()(app,m.mi)
+		if app.GetModuleInited() != nil {
+			app.GetModuleInited()(app, m.mi)
 		}
 
 		m.wg.Add(1)
@@ -134,4 +136,3 @@ func (mer *ModuleManager) ReportStatistics(args interface{}) {
 		timer.SetTimer(3, mer.ReportStatistics, nil)
 	}
 }
-

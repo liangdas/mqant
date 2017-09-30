@@ -16,9 +16,9 @@ package basemodule
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
-	"sync"
-	"runtime"
 	"github.com/liangdas/mqant/module"
+	"runtime"
+	"sync"
 )
 
 type DefaultModule struct {
@@ -27,9 +27,6 @@ type DefaultModule struct {
 	closeSig chan bool
 	wg       sync.WaitGroup
 }
-
-
-
 
 func run(m *DefaultModule) {
 	defer func() {
@@ -61,5 +58,3 @@ func destroy(m *DefaultModule) {
 	}()
 	m.mi.OnDestroy()
 }
-
-

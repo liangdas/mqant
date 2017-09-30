@@ -88,7 +88,6 @@ func (server *TCPServer) run() {
 		}
 		tempDelay = 0
 
-
 		server.wgConns.Add(1)
 		tcpConn := newTCPConn(conn)
 		agent := server.NewAgent(tcpConn)

@@ -21,10 +21,10 @@ func Struct2Map(obj interface{}) map[string]interface{} {
 
 	var data = make(map[string]interface{})
 	for i := 0; i < t.NumField(); i++ {
-		vr:=v.Field(i).Interface()
+		vr := v.Field(i).Interface()
 		if value, ok := vr.(struct{}); ok {
 			data[t.Field(i).Name] = Struct2Map(value)
-		}else{
+		} else {
 			data[t.Field(i).Name] = vr
 		}
 	}

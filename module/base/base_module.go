@@ -16,12 +16,12 @@ package basemodule
 import (
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/gate"
+	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
 	"sync"
 	"time"
-	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/gate"
 )
 
 type StatisticalMethod struct {
@@ -71,10 +71,10 @@ func (m *BaseModule) GetServer() *rpcserver {
 	}
 	return m.server
 }
-func (m *BaseModule)OnConfChanged(settings *conf.ModuleSettings)  {
+func (m *BaseModule) OnConfChanged(settings *conf.ModuleSettings) {
 
 }
-func (m *BaseModule)OnAppConfigurationLoaded(app module.App)  {
+func (m *BaseModule) OnAppConfigurationLoaded(app module.App) {
 	m.App = app
 	//当App初始化时调用，这个接口不管这个模块是否在这个进程运行都会调用
 }
@@ -85,7 +85,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.settings = settings
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
-	m.GetServer().OnInit(subclass,app, settings)
+	m.GetServer().OnInit(subclass, app, settings)
 	m.GetServer().GetRPCServer().SetListener(m)
 }
 
@@ -121,26 +121,26 @@ func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...inte
 	return server.CallNR(_func, params...)
 }
 
-func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []string,args [][]byte) (result interface{}, err string) {
+func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
 	server, e := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
 	}
-	return server.CallArgs(_func, ArgsType,args)
+	return server.CallArgs(_func, ArgsType, args)
 }
 
-func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string,args [][]byte) (err error) {
+func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
 	server, err := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
 	if err != nil {
 		return
 	}
-	return server.CallNRArgs(_func, ArgsType,args)
+	return server.CallNRArgs(_func, ArgsType, args)
 }
 
-func (m *BaseModule) BeforeHandle(fn string,session gate.Session, callInfo *mqrpc.CallInfo)error{
+func (m *BaseModule) BeforeHandle(fn string, session gate.Session, callInfo *mqrpc.CallInfo) error {
 	if m.listener != nil {
-		return m.listener.BeforeHandle(fn, session,callInfo)
+		return m.listener.BeforeHandle(fn, session, callInfo)
 	}
 	return nil
 }

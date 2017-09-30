@@ -15,12 +15,12 @@ package defaultrpc
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
-	"github.com/streadway/amqp"
-	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/streadway/amqp"
 	"runtime"
 )
 
@@ -154,7 +154,7 @@ func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done cha
 			buf := make([]byte, 1024)
 			l := runtime.Stack(buf, false)
 			errstr := string(buf[:l])
-			log.Error("%s\n ----Stack----\n%s",rn,errstr)
+			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
 	for {
@@ -172,8 +172,8 @@ func (s *AMQPServer) on_request_handle(deliveries <-chan amqp.Delivery, done cha
 				d.Ack(false)
 				rpcInfo, err := s.Unmarshal(d.Body)
 				if err == nil {
-					callInfo:=&mqrpc.CallInfo{
-						RpcInfo:*rpcInfo,
+					callInfo := &mqrpc.CallInfo{
+						RpcInfo: *rpcInfo,
 					}
 					callInfo.Props = map[string]interface{}{
 						"reply_to": callInfo.RpcInfo.ReplyTo,
@@ -210,10 +210,10 @@ func (s *AMQPServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 
 	panic("bug")
 }
+
 // goroutine safe
 func (s *AMQPServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
 	//log.Error("",map2)
 	b, err := proto.Marshal(&resultInfo)
 	return b, err
 }
-

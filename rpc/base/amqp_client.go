@@ -15,17 +15,17 @@ package defaultrpc
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module/modules/timer"
-	"github.com/golang/protobuf/proto"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
 	"github.com/streadway/amqp"
 	"sync"
 	"time"
-	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/util"
 )
 
 type AMQPClient struct {
@@ -114,7 +114,7 @@ func (c *AMQPClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 	if c.callinfos == nil {
 		return fmt.Errorf("AMQPClient is closed")
 	}
-	callInfo.RpcInfo.ReplyTo=c.Consumer.callback_queue
+	callInfo.RpcInfo.ReplyTo = c.Consumer.callback_queue
 	var correlation_id = callInfo.RpcInfo.Cid
 
 	clinetCallInfo := &ClinetCallInfo{
@@ -189,9 +189,9 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
 					//已经超时了
 					resultInfo := &rpcpb.ResultInfo{
-						Result: nil,
-						Error:  "timeout: This is Call",
-						ResultType:argsutil.NULL,
+						Result:     nil,
+						Error:      "timeout: This is Call",
+						ResultType: argsutil.NULL,
 					}
 					//发送一个超时的消息
 					clinetCallInfo.call <- *resultInfo
@@ -206,9 +206,6 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 		timer.SetTimer(1, c.on_timeout_handle, nil)
 	}
 }
-
-
-
 
 /**
 接收应答信息
@@ -227,7 +224,7 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 				//	d.Body,
 				//)
 				d.Ack(false)
-				resultInfo,err := c.UnmarshalResult(d.Body)
+				resultInfo, err := c.UnmarshalResult(d.Body)
 				if err != nil {
 					log.Error("Unmarshal faild", err)
 				} else {
