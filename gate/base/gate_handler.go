@@ -23,11 +23,11 @@ import (
 type handler struct {
 	gate.AgentLearner
 	gate.GateHandler
-	gate     *Gate
+	gate     gate.Gate
 	sessions *utils.BeeMap //连接列表
 }
 
-func NewGateHandler(gate *Gate) *handler {
+func NewGateHandler(gate gate.Gate) *handler {
 	handler := &handler{
 		gate:     gate,
 		sessions: utils.NewBeeMap(),
@@ -40,8 +40,8 @@ func (h *handler) Connect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Set(a.GetSession().GetSessionid(), a)
 	}
-	if h.gate.sessionLearner != nil {
-		h.gate.sessionLearner.Connect(a.GetSession())
+	if h.gate.GetSessionLearner() != nil {
+		h.gate.GetSessionLearner().Connect(a.GetSession())
 	}
 }
 
@@ -50,8 +50,8 @@ func (h *handler) DisConnect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Delete(a.GetSession().GetSessionid())
 	}
-	if h.gate.sessionLearner != nil {
-		h.gate.sessionLearner.DisConnect(a.GetSession())
+	if h.gate.GetSessionLearner() != nil {
+		h.gate.GetSessionLearner().DisConnect(a.GetSession())
 	}
 }
 
@@ -86,9 +86,9 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
 	}
 	agent.(gate.Agent).GetSession().SetUserid(Userid)
 
-	if h.gate.storage != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
 		//可以持久化
-		settings, err := h.gate.storage.Query(Userid)
+		settings, err := h.gate.GetStorageHandler().Query(Userid)
 		if err == nil && settings != nil {
 			//有已持久化的数据,可能是上一次连接保存的
 			if agent.(gate.Agent).GetSession().GetSettings() == nil {
@@ -103,7 +103,7 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
 					}
 				}
 				//数据持久化
-				h.gate.storage.Storage(Userid, agent.(gate.Agent).GetSession().GetSettings())
+				h.gate.GetStorageHandler().Storage(Userid, agent.(gate.Agent).GetSession().GetSettings())
 
 			}
 		}
@@ -152,8 +152,8 @@ func (h *handler) Push(Sessionid string, Settings map[string]string) (result gat
 	}
 	agent.(gate.Agent).GetSession().SetSettings(Settings)
 	result = agent.(gate.Agent).GetSession()
-	if h.gate.storage != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
-		err := h.gate.storage.Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
 		if err != nil {
 			log.Error("gate session storage failure")
 		}
@@ -174,8 +174,8 @@ func (h *handler) Set(Sessionid string, key string, value string) (result gate.S
 	agent.(gate.Agent).GetSession().GetSettings()[key] = value
 	result = agent.(gate.Agent).GetSession()
 
-	if h.gate.storage != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
-		err := h.gate.storage.Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
 		if err != nil {
 			log.Error("gate session storage failure")
 		}
@@ -196,8 +196,8 @@ func (h *handler) Remove(Sessionid string, key string) (result interface{}, err 
 	delete(agent.(gate.Agent).GetSession().GetSettings(), key)
 	result = agent.(gate.Agent).GetSession()
 
-	if h.gate.storage != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
-		err := h.gate.storage.Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession().GetSettings())
 		if err != nil {
 			log.Error("gate session storage failure")
 		}

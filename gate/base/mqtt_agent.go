@@ -29,6 +29,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"github.com/liangdas/mqant/module"
 )
 
 type resultInfo struct {
@@ -38,18 +39,34 @@ type resultInfo struct {
 
 type agent struct {
 	gate.Agent
+	module 				module.RPCModule
 	session                          gate.Session
 	conn                             network.Conn
 	r                                *bufio.Reader
 	w                                *bufio.Writer
-	gate                             *Gate
+	gate                             gate.Gate
 	client                           *mqtt.Client
 	isclose                          bool
 	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
 	rev_num                          int64
 	send_num                         int64
 }
-
+func NewMqttAgent(module module.RPCModule)*agent{
+	a := &agent{
+		module:module,
+	}
+	return a
+}
+func (this *agent) OnInit(gate gate.Gate,conn network.Conn)error{
+	this.conn=conn
+	this.gate=gate
+	this.r=bufio.NewReader(conn)
+	this.w=bufio.NewWriter(conn)
+	this.isclose=false
+	this.rev_num=0
+	this.send_num=0
+	return nil
+}
 func (a *agent) IsClosed() bool {
 	return a.isclose
 }
@@ -89,11 +106,11 @@ func (a *agent) Run() (err error) {
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
 	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
 	a.client = c
-	a.session, err = NewSessionByMap(a.gate.App, map[string]interface{}{
+	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
 		"Sessionid": Get_uuid(),
 		"Network":   a.conn.RemoteAddr().Network(),
 		"IP":        a.conn.RemoteAddr().String(),
-		"Serverid":  a.gate.GetServerId(),
+		"Serverid":  a.module.GetServerId(),
 		"Settings":  make(map[string]string),
 	})
 	if err != nil {
@@ -101,7 +118,7 @@ func (a *agent) Run() (err error) {
 		return
 	}
 
-	a.gate.agentLearner.Connect(a) //发送连接成功的事件
+	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
 
 	//回复客户端 CONNECT
 	err = mqtt.WritePack(mqtt.GetConnAckPack(0), a.w)
@@ -115,7 +132,7 @@ func (a *agent) Run() (err error) {
 
 func (a *agent) OnClose() error {
 	a.isclose = true
-	a.gate.agentLearner.DisConnect(a) //发送连接断开的事件
+	a.gate.GetAgentLearner().DisConnect(a) //发送连接断开的事件
 	return nil
 }
 
@@ -187,13 +204,13 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		if a.session.GetUserid() != "" {
 			hash = a.session.GetUserid()
 		} else {
-			hash = a.gate.GetServerId()
+			hash = a.module.GetServerId()
 		}
-		if (a.gate.tracing != nil) && a.gate.tracing.OnRequestTracing(a.session, pub) {
+		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, pub) {
 			a.session.CreateRootSpan("gate")
 		}
 
-		serverSession, err := a.gate.GetRouteServers(topics[0], hash)
+		serverSession, err := a.module.GetRouteServers(topics[0], hash)
 		if err != nil {
 			if msgid != "" {
 				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
@@ -234,10 +251,10 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		if a.GetSession().GetUserid() != "" {
 			//这个链接已经绑定Userid
 			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
-			if interval > a.gate.MinStorageHeartbeat {
+			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于一秒
-				if a.gate.storage != nil {
-					a.gate.storage.Heartbeat(a.GetSession().GetUserid())
+				if a.gate.GetStorageHandler() != nil {
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserid())
 					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}
@@ -247,10 +264,10 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		if a.GetSession().GetUserid() != "" {
 			//这个链接已经绑定Userid
 			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
-			if interval > a.gate.MinStorageHeartbeat {
+			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于60秒
-				if a.gate.storage != nil {
-					a.gate.storage.Heartbeat(a.GetSession().GetUserid())
+				if a.gate.GetStorageHandler() != nil {
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserid())
 					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}

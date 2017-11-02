@@ -65,6 +65,10 @@ func (m *BaseModule) GetApp() module.App {
 	return m.App
 }
 
+func (m *BaseModule) GetSubclass() module.RPCModule {
+	return m.subclass
+}
+
 func (m *BaseModule) GetServer() *rpcserver {
 	if m.server == nil {
 		m.server = new(rpcserver)

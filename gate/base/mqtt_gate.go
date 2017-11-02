@@ -14,7 +14,6 @@
 package basegate
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
@@ -52,6 +51,13 @@ type Gate struct {
 	sessionLearner gate.SessionLearner
 	storage        gate.StorageHandler
 	tracing        gate.TracingHandler
+
+	createAgent    func () gate.Agent
+}
+
+func (this *Gate) defaultCreateAgentd() gate.Agent{
+	a := NewMqttAgent(this.GetModule())
+	return a
 }
 
 /**
@@ -78,9 +84,44 @@ func (this *Gate) SetTracingHandler(tracing gate.TracingHandler) error {
 	return nil
 }
 
+/**
+设置创建客户端Agent的函数
+*/
+func (this *Gate) SetCreateAgent(cfunc func () gate.Agent) error {
+	this.createAgent = cfunc
+	return nil
+}
+
 func (this *Gate) GetStorageHandler() (storage gate.StorageHandler) {
 	return this.storage
 }
+func (this *Gate) GetMinStorageHeartbeat() int64 {
+	return this.MinStorageHeartbeat
+}
+func (this *Gate) GetGateHandler() gate.GateHandler {
+	return this.handler
+}
+func (this *Gate) GetAgentLearner() gate.AgentLearner {
+	return this.agentLearner
+}
+func (this *Gate) GetSessionLearner() gate.SessionLearner {
+	return this.sessionLearner
+}
+func (this *Gate) GetTracingHandler() gate.TracingHandler {
+	return this.tracing
+}
+
+func (this *Gate) GetModule() module.RPCModule{
+	return this.GetSubclass()
+}
+
+func (this *Gate) NewSession(data []byte) (gate.Session, error){
+	return NewSession(this.App,data)
+}
+func (this *Gate) NewSessionByMap(data map[string]interface{}) (gate.Session, error){
+	return NewSessionByMap(this.App,data)
+}
+
 func (this *Gate) OnConfChanged(settings *conf.ModuleSettings) {
 
 }
@@ -182,17 +223,13 @@ func (this *Gate) Run(closeSig chan bool) {
 		wsServer.Tls = this.Tls
 		wsServer.CertFile = this.CertFile
 		wsServer.KeyFile = this.KeyFile
-		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
-			a := &agent{
-				conn:     conn,
-				gate:     this,
-				r:        bufio.NewReader(conn),
-				w:        bufio.NewWriter(conn),
-				isclose:  false,
-				rev_num:  0,
-				send_num: 0,
+		wsServer.NewAgent =func(conn *network.WSConn) network.Agent{
+			if this.createAgent==nil{
+				this.createAgent=this.defaultCreateAgentd
 			}
-			return a
+			agent:= this.createAgent()
+			agent.OnInit(this,conn)
+			return agent
 		}
 	}
 
@@ -204,17 +241,13 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.Tls = this.Tls
 		tcpServer.CertFile = this.CertFile
 		tcpServer.KeyFile = this.KeyFile
-		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
-			a := &agent{
-				conn:     conn,
-				gate:     this,
-				r:        bufio.NewReader(conn),
-				w:        bufio.NewWriter(conn),
-				isclose:  false,
-				rev_num:  0,
-				send_num: 0,
+		tcpServer.NewAgent =func(conn *network.TCPConn) network.Agent{
+			if this.createAgent==nil{
+				this.createAgent=this.defaultCreateAgentd
 			}
-			return a
+			agent:= this.createAgent()
+			agent.OnInit(this,conn)
+			return agent
 		}
 	}
 

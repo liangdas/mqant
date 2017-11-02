@@ -16,6 +16,7 @@ package gate
 import (
 	"github.com/liangdas/mqant/gate/base/mqtt"
 	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/liangdas/mqant/network"
 )
 
 /**
@@ -131,11 +132,25 @@ type SessionLearner interface {
 }
 
 type Agent interface {
+	OnInit(gate Gate,conn network.Conn)error
 	WriteMsg(topic string, body []byte) error
 	Close()
+	Run() (err error)
+	OnClose() error
 	Destroy()
 	RevNum() int64
 	SendNum() int64
 	IsClosed() bool
 	GetSession() Session
+}
+
+type Gate interface {
+	GetMinStorageHeartbeat() int64
+	GetGateHandler() GateHandler
+	GetAgentLearner() AgentLearner
+	GetSessionLearner() SessionLearner
+	GetStorageHandler() StorageHandler
+	GetTracingHandler() TracingHandler
+	NewSession(data []byte) (Session, error)
+	NewSessionByMap(data map[string]interface{}) (Session, error)
 }
