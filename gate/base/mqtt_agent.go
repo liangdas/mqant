@@ -177,7 +177,9 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		topics := strings.Split(*pub.GetTopic(), "/")
 		var msgid string
 		if len(topics) < 2 {
-			log.Error("Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]")
+			errorstr:="Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
+			log.Error(errorstr)
+			toResult(a, *pub.GetTopic(), nil, errorstr)
 			return
 		} else if len(topics) == 3 {
 			msgid = topics[2]
