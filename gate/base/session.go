@@ -420,7 +420,14 @@ func (this *sessionagent) Span() opentracing.Span {
 func (this *sessionagent) TracCarrier() map[string]string {
 	return this.session.Carrier
 }
-
+func (this *sessionagent) TracId() string {
+	if this.TracCarrier()!=nil{
+		if tid,ok:=this.TracCarrier()["ot-tracer-traceid"];ok{
+			return tid
+		}
+	}
+	return ""
+}
 /**
 从Session的 Span继承一个新的Span
 */

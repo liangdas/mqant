@@ -208,7 +208,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else {
 			hash = a.module.GetServerId()
 		}
-		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, pub) {
+		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session) {
 			a.session.CreateRootSpan("gate")
 		}
 

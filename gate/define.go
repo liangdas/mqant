@@ -14,7 +14,6 @@
 package gate
 
 import (
-	"github.com/liangdas/mqant/gate/base/mqtt"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/liangdas/mqant/network"
 )
@@ -87,6 +86,7 @@ type Session interface {
 	获取Tracing的Carrier 可能为nil
 	*/
 	TracCarrier() map[string]string
+	TracId() string
 }
 
 /**
@@ -97,7 +97,7 @@ type StorageHandler interface {
 	存储用户的Session信息
 	Session Bind Userid以后每次设置 settings都会调用一次Storage
 	*/
-	Storage(Userid string, settings map[string]string) (err error)
+	Storage(Userid string, session Session) (err error)
 	/**
 	强制删除Session信息
 	*/
@@ -106,7 +106,7 @@ type StorageHandler interface {
 	获取用户Session信息
 	Bind Userid时会调用Query获取最新信息
 	*/
-	Query(Userid string) (settings map[string]string, err error)
+	Query(Userid string) ( data []byte, err error)
 	/**
 	用户心跳,一般用户在线时1s发送一次
 	可以用来延长Session信息过期时间
@@ -118,7 +118,7 @@ type TracingHandler interface {
 	/**
 	是否需要对本次客户端请求进行跟踪
 	*/
-	OnRequestTracing(session Session, msg *mqtt.Publish) bool
+	OnRequestTracing(session Session) bool
 }
 
 type AgentLearner interface {

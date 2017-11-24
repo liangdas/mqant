@@ -210,12 +210,12 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan<-
 
 //---------------------------------if _func is not a function or para num and type not match,it will cause panic
 func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.CallInfo) {
-	_errorCallback := func(Cid string, Error string, span opentracing.Span) {
+	_errorCallback := func(Cid string, Error string, span opentracing.Span,traceid string) {
 		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo
 		//异常日志都应该打印
-		log.Error("%s rpc func(%s) error:\n%s", s.module.GetType(), callInfo.RpcInfo.Fn, Error)
+		log.Error("[%s] %s rpc func(%s) error:\n%s", traceid,s.module.GetType(), callInfo.RpcInfo.Fn, Error)
 		if span != nil {
 			span.LogEventWithPayload("Error", Error)
 		}
@@ -233,13 +233,13 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			case error:
 				rn = r.(error).Error()
 			}
-			_errorCallback(callInfo.RpcInfo.Cid, rn, nil)
+			_errorCallback(callInfo.RpcInfo.Cid, rn, nil,"")
 		}
 	}()
 
 	functionInfo, ok := s.functions[callInfo.RpcInfo.Fn]
 	if !ok {
-		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn), nil)
+		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn), nil,"")
 		return
 	}
 	_func := functionInfo.Function
@@ -248,7 +248,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 	f := reflect.ValueOf(_func)
 	if len(params) != f.Type().NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
-		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()), nil)
+		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()), nil,"")
 		return
 	}
 	//if len(params) != len(callInfo.RpcInfo.ArgsType) {
@@ -263,7 +263,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 	s.executing++
 	_runFunc := func() {
 		var span opentracing.Span = nil
-
+		var traceid string=""
 		defer func() {
 			if r := recover(); r != nil {
 				var rn = ""
@@ -279,7 +279,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 				errstr := string(buf[:l])
 				allError := fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s", s.module.GetType(), callInfo.RpcInfo.Fn, rn, errstr)
 				//log.Error(allError)
-				_errorCallback(callInfo.RpcInfo.Cid, allError, span)
+				_errorCallback(callInfo.RpcInfo.Cid, allError, span,traceid)
 			}
 
 			if span != nil {
@@ -295,12 +295,13 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		// f 为函数地址
 		var session gate.Session = nil
 		var in []reflect.Value
+
 		if len(ArgsType) > 0 {
 			in = make([]reflect.Value, len(params))
 			for k, v := range ArgsType {
 				v, err := argsutil.Bytes2Args(s.app, v, params[k])
 				if err != nil {
-					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
+					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span,traceid)
 					return
 				}
 				switch v2 := v.(type) { //多选语句switch
@@ -312,6 +313,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 						span.SetTag("Func", callInfo.RpcInfo.Fn)
 					}
 					session = v2
+					traceid=session.TracId()
 					in[k] = reflect.ValueOf(v)
 				case nil:
 					in[k] = reflect.Zero(f.Type().In(k))
@@ -325,7 +327,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		if s.listener != nil {
 			errs := s.listener.BeforeHandle(callInfo.RpcInfo.Fn, session, &callInfo)
 			if errs != nil {
-				_errorCallback(callInfo.RpcInfo.Cid, errs.Error(), span)
+				_errorCallback(callInfo.RpcInfo.Cid, errs.Error(), span,traceid)
 				return
 			}
 		}
@@ -333,7 +335,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		out := f.Call(in)
 		var rs []interface{}
 		if len(out) != 2 {
-			_errorCallback(callInfo.RpcInfo.Cid, "The number of prepare is not adapted.", span)
+			_errorCallback(callInfo.RpcInfo.Cid, "The number of prepare is not adapted.", span,traceid)
 			return
 		}
 		if len(out) > 0 { //prepare out paras
@@ -344,7 +346,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		}
 		argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
 		if err != nil {
-			_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
+			_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span,traceid)
 			return
 		}
 		resultInfo := rpcpb.NewResultInfo(
@@ -361,7 +363,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			span.LogEventWithPayload("Result", string(args))
 		}
 		if s.app.GetSettings().Rpc.LogSuccess {
-			log.Info("%s rpc func(%s) exec_time(%s) success", s.module.GetType(), callInfo.RpcInfo.Fn, s.timeConversion(time.Now().UnixNano()-exec_time))
+			log.Info("[%s] %s rpc func(%s) exec_time(%s) success",traceid, s.module.GetType(), callInfo.RpcInfo.Fn, s.timeConversion(time.Now().UnixNano()-exec_time))
 		}
 		if s.listener != nil {
 			s.listener.OnComplete(callInfo.RpcInfo.Fn, &callInfo, resultInfo, time.Now().UnixNano()-exec_time)
@@ -376,7 +378,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 
 func (s *RPCServer) timeConversion(ns int64) string {
 	if (ns / 1000) < 1 {
-		return fmt.Sprintf("%.2f ns", (ns))
+		return fmt.Sprintf("%d ns", (ns))
 	} else if 1 < (ns/int64(1000)) && (ns/int64(1000)) < 1000 {
 		return fmt.Sprintf("%.2f μs", float32(ns/int64(1000)))
 	} else if 1 < (ns/int64(1000*1000)) && (ns/int64(1000*1000)) < 1000 {
@@ -388,6 +390,6 @@ func (s *RPCServer) timeConversion(ns int64) string {
 	} else if 1 < (ns/int64(1000*1000*1000*60*60)) && (ns/int64(1000*1000*1000*60*60)) < 1000 {
 		return fmt.Sprintf("%.2f m", float32(ns/int64(1000*1000*1000*60*60)))
 	} else {
-		return fmt.Sprintf("%.2f ns", (ns))
+		return fmt.Sprintf("%d ns", (ns))
 	}
 }
