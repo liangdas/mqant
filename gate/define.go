@@ -118,7 +118,7 @@ type TracingHandler interface {
 	/**
 	是否需要对本次客户端请求进行跟踪
 	*/
-	OnRequestTracing(session Session) bool
+	OnRequestTracing(session Session,topic string,msg []byte) bool
 }
 
 type AgentLearner interface {
