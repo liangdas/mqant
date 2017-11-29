@@ -59,34 +59,6 @@ func (this *LinkedList) PushBack(node Node) *Node {
 	return this.last
 }
 
-func (this *LinkedList) erase(node *Node) {
-	fmt.Println(node)
-	if nil == node {
-		return
-	} else if nil == node.next && nil == node.next {
-		return
-	}
-	if node == this.head && node == this.last {
-		this.head = nil
-		this.last = nil
-		this.length = 0
-	} else {
-		if node == this.head {
-			this.head = this.head.next
-			if nil != this.head {
-				this.head.prev = nil
-			}
-		} else if node == this.last {
-			node.prev.next = nil
-			this.last = node.prev
-		} else {
-			node.prev.next = node.next
-			node.next.prev = node.prev
-		}
-	}
-	this.length--
-}
-
 func Delete(node *Node) {
 	if nil == node {
 		return
