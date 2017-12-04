@@ -212,7 +212,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			a.session.CreateRootSpan("gate")
 		}
 
-		serverSession, err := a.module.GetRouteServers(topics[0], hash)
+		serverSession, err := a.module.GetRouteServer(topics[0], hash)
 		if err != nil {
 			if msgid != "" {
 				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))

@@ -40,12 +40,12 @@ type App interface {
 	OnInit(settings conf.Config) error
 	OnDestroy() error
 	RegisterLocalClient(serverId string, server mqrpc.RPCServer) error
-	GetServersById(id string) (ServerSession, error)
+	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServers(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
+	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -96,7 +96,7 @@ type RPCModule interface {
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServers(filter string, hash string) (ServerSession, error)
+	GetRouteServer(filter string, hash string) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }

@@ -231,7 +231,7 @@ func (app *DefaultApp) RegisterLocalClient(serverId string, server mqrpc.RPCServ
 	return nil
 }
 
-func (app *DefaultApp) GetServersById(serverId string) (module.ServerSession, error) {
+func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
 	if session, ok := app.serverList[serverId]; ok {
 		return session, nil
 	} else {
@@ -249,12 +249,12 @@ func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
 	return sessions
 }
 
-func (app *DefaultApp) GetRouteServers(filter string, hash string) (s module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
 	sl := strings.Split(filter, "@")
 	if len(sl) == 2 {
 		moduleID := sl[1]
 		if moduleID != "" {
-			return app.GetServersById(moduleID)
+			return app.GetServerById(moduleID)
 		}
 	}
 	moduleType := sl[0]
@@ -271,7 +271,7 @@ func (app *DefaultApp) GetSettings() conf.Config {
 }
 
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := app.GetRouteServers(moduleType, module.GetServerId())
+	server, e := app.GetRouteServer(moduleType, module.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -280,7 +280,7 @@ func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _fu
 }
 
 func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := app.GetRouteServers(moduleType, module.GetServerId())
+	server, err := app.GetRouteServer(moduleType, module.GetServerId())
 	if err != nil {
 		return
 	}
@@ -288,7 +288,7 @@ func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _
 }
 
 func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-	server, e := app.GetRouteServers(moduleType, module.GetServerId())
+	server, e := app.GetRouteServer(moduleType, module.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -297,7 +297,7 @@ func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string,
 }
 
 func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-	server, err := app.GetRouteServers(moduleType, module.GetServerId())
+	server, err := app.GetRouteServer(moduleType, module.GetServerId())
 	if err != nil {
 		return
 	}
