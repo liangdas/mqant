@@ -16,6 +16,14 @@ package defaultApp
 import (
 	"flag"
 	"fmt"
+	"hash/crc32"
+	"math"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"strings"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
@@ -25,13 +33,6 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	opentracing "github.com/opentracing/opentracing-go"
-	"hash/crc32"
-	"math"
-	"os"
-	"os/exec"
-	"os/signal"
-	"path/filepath"
-	"strings"
 )
 
 func NewApp(version string) module.App {
@@ -53,7 +54,7 @@ func NewApp(version string) module.App {
 }
 
 type DefaultApp struct {
-	module.App
+	//module.App
 	version             string
 	serverList          map[string]module.ServerSession
 	settings            conf.Config

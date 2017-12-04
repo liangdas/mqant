@@ -15,20 +15,21 @@ package basegate
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/network"
-	"reflect"
-	"time"
 )
 
 var RPC_PARAM_SESSION_TYPE = "SESSION"
 
 type Gate struct {
-	module.RPCSerialize
+	//module.RPCSerialize
 	basemodule.BaseModule
 	MaxConnNum          int
 	MaxMsgLen           uint32
@@ -52,10 +53,10 @@ type Gate struct {
 	storage        gate.StorageHandler
 	tracing        gate.TracingHandler
 
-	createAgent    func () gate.Agent
+	createAgent func() gate.Agent
 }
 
-func (this *Gate) defaultCreateAgentd() gate.Agent{
+func (this *Gate) defaultCreateAgentd() gate.Agent {
 	a := NewMqttAgent(this.GetModule())
 	return a
 }
@@ -87,7 +88,7 @@ func (this *Gate) SetTracingHandler(tracing gate.TracingHandler) error {
 /**
 设置创建客户端Agent的函数
 */
-func (this *Gate) SetCreateAgent(cfunc func () gate.Agent) error {
+func (this *Gate) SetCreateAgent(cfunc func() gate.Agent) error {
 	this.createAgent = cfunc
 	return nil
 }
@@ -111,15 +112,15 @@ func (this *Gate) GetTracingHandler() gate.TracingHandler {
 	return this.tracing
 }
 
-func (this *Gate) GetModule() module.RPCModule{
+func (this *Gate) GetModule() module.RPCModule {
 	return this.GetSubclass()
 }
 
-func (this *Gate) NewSession(data []byte) (gate.Session, error){
-	return NewSession(this.App,data)
+func (this *Gate) NewSession(data []byte) (gate.Session, error) {
+	return NewSession(this.App, data)
 }
-func (this *Gate) NewSessionByMap(data map[string]interface{}) (gate.Session, error){
-	return NewSessionByMap(this.App,data)
+func (this *Gate) NewSessionByMap(data map[string]interface{}) (gate.Session, error) {
+	return NewSessionByMap(this.App, data)
 }
 
 func (this *Gate) OnConfChanged(settings *conf.ModuleSettings) {
@@ -223,12 +224,12 @@ func (this *Gate) Run(closeSig chan bool) {
 		wsServer.Tls = this.Tls
 		wsServer.CertFile = this.CertFile
 		wsServer.KeyFile = this.KeyFile
-		wsServer.NewAgent =func(conn *network.WSConn) network.Agent{
-			if this.createAgent==nil{
-				this.createAgent=this.defaultCreateAgentd
+		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
+			if this.createAgent == nil {
+				this.createAgent = this.defaultCreateAgentd
 			}
-			agent:= this.createAgent()
-			agent.OnInit(this,conn)
+			agent := this.createAgent()
+			agent.OnInit(this, conn)
 			return agent
 		}
 	}
@@ -241,12 +242,12 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.Tls = this.Tls
 		tcpServer.CertFile = this.CertFile
 		tcpServer.KeyFile = this.KeyFile
-		tcpServer.NewAgent =func(conn *network.TCPConn) network.Agent{
-			if this.createAgent==nil{
-				this.createAgent=this.defaultCreateAgentd
+		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
+			if this.createAgent == nil {
+				this.createAgent = this.defaultCreateAgentd
 			}
-			agent:= this.createAgent()
-			agent.OnInit(this,conn)
+			agent := this.createAgent()
+			agent.OnInit(this, conn)
 			return agent
 		}
 	}
