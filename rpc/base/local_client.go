@@ -15,9 +15,10 @@ package defaultrpc
 
 import (
 	"fmt"
-	"github.com/liangdas/mqant/module/modules/timer"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
 	"sync"
 	"time"
@@ -25,21 +26,24 @@ import (
 
 type LocalClient struct {
 	//callinfos map[string]*ClinetCallInfo
-	callinfos    *utils.BeeMap
+	callinfos    utils.ConcurrentMap
 	cmutex       sync.Mutex //操作callinfos的锁
 	local_server mqrpc.LocalServer
 	result_chan  chan rpcpb.ResultInfo
 	done         chan error
+	isClose      bool
 }
 
 func NewLocalClient(server mqrpc.LocalServer) (*LocalClient, error) {
 	client := new(LocalClient)
-	client.callinfos = utils.NewBeeMap()
+	//client.callinfos=make(map[string]*ClinetCallInfo)
+	client.callinfos = utils.New()
 	client.local_server = server
 	client.done = make(chan error)
-	client.result_chan = make(chan rpcpb.ResultInfo, 50)
+	client.isClose = false
+	client.result_chan = make(chan rpcpb.ResultInfo, 1)
 	go client.on_response_handle(client.result_chan, client.done)
-	client.on_timeout_handle(nil) //处理超时请求的协程
+	//go client.on_timeout_handle(nil) //处理超时请求的协程
 	return client, nil
 	//log.Printf("shutting down")
 	//
@@ -49,17 +53,17 @@ func NewLocalClient(server mqrpc.LocalServer) (*LocalClient, error) {
 }
 
 func (c *LocalClient) Done() error {
-	//关闭amqp链接通道
+	//关闭消息回复通道
+	c.isClose = true
+	c.done <- nil
+	close(c.result_chan)
 	//清理 callinfos 列表
-	for key, clinetCallInfo := range c.callinfos.Items() {
-		if clinetCallInfo != nil {
-			//关闭管道
-			close(clinetCallInfo.(ClinetCallInfo).call)
-			//从Map中删除
-			c.callinfos.Delete(key)
-		}
+	for tuple := range c.callinfos.Iter() {
+		//关闭管道
+		close(tuple.Val.(*ClinetCallInfo).call)
+		//从Map中删除
+		c.callinfos.Remove(tuple.Key)
 	}
-	c.callinfos = nil
 	return nil
 }
 
@@ -73,7 +77,7 @@ func (c *LocalClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		}
 	}()
 
-	if c.callinfos == nil {
+	if c.isClose {
 		return fmt.Errorf("MQClient is closed")
 	}
 
@@ -84,7 +88,7 @@ func (c *LocalClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		call:           callback,
 		timeout:        callInfo.RpcInfo.Expired,
 	}
-	c.callinfos.Set(correlation_id, *clinetCallInfo)
+	c.callinfos.Set(correlation_id, clinetCallInfo)
 	callInfo.Props = map[string]interface{}{
 		"reply_to": c.result_chan,
 	}
@@ -110,28 +114,23 @@ func (c *LocalClient) CallNR(callInfo mqrpc.CallInfo) (err error) {
 }
 
 func (c *LocalClient) on_timeout_handle(args interface{}) {
-	if c.callinfos != nil {
-		//处理超时的请求
-		for key, clinetCallInfo := range c.callinfos.Items() {
-			if clinetCallInfo != nil {
-				var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
-				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
-					//已经超时了
-					resultInfo := &rpcpb.ResultInfo{
-						Result: nil,
-						Error:  "timeout: This is Call",
-					}
-					//发送一个超时的消息
-					clinetCallInfo.call <- *resultInfo
-					//关闭管道
-					close(clinetCallInfo.call)
-					//从Map中删除
-					c.callinfos.Delete(key)
-				}
-
+	//处理超时的请求
+	for tuple := range c.callinfos.Iter() {
+		var clinetCallInfo = tuple.Val.(*ClinetCallInfo)
+		if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+			//已经超时了
+			resultInfo := &rpcpb.ResultInfo{
+				Result:     nil,
+				ResultType: argsutil.NULL,
+				Error:      "timeout: This is Call",
 			}
+			//发送一个超时的消息
+			clinetCallInfo.call <- *resultInfo
+			//关闭管道
+			close(clinetCallInfo.call)
+			//从Map中删除
+			c.callinfos.Remove(tuple.Key)
 		}
-		timer.SetTimer(1, c.on_timeout_handle, nil)
 	}
 }
 
@@ -139,25 +138,36 @@ func (c *LocalClient) on_timeout_handle(args interface{}) {
 接收应答信息
 */
 func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, done chan error) {
+	timeout := time.NewTimer(time.Second * 1)
 	for {
 		select {
+		case <-done:
+			timeout.Stop()
+			goto ForEnd
 		case resultInfo, ok := <-deliveries:
 			if !ok {
 				deliveries = nil
 			} else {
 				correlation_id := resultInfo.Cid
-				clinetCallInfo := c.callinfos.Get(correlation_id)
-				if clinetCallInfo != nil {
-					clinetCallInfo.(ClinetCallInfo).call <- resultInfo
+				clinetCallInfo, ok := c.callinfos.Get(correlation_id)
+				if ok {
+					c.callinfos.Remove(correlation_id)
+					clinetCallInfo.(*ClinetCallInfo).call <- resultInfo
+					close(clinetCallInfo.(*ClinetCallInfo).call)
+				} else {
+					log.Warning("rpc callback no found : [%s]", correlation_id)
 				}
-				//删除
-				c.callinfos.Delete(correlation_id)
 			}
-		case <-done:
-			break
+		case <-timeout.C:
+			timeout.Reset(time.Second * 1)
+			c.on_timeout_handle(nil)
+
 		}
+
 		if deliveries == nil {
-			break
+			timeout.Stop()
+			goto ForEnd
 		}
 	}
+ForEnd:
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/gate/base/mqtt"
 	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
@@ -29,7 +30,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-	"github.com/liangdas/mqant/module"
 )
 
 type resultInfo struct {
@@ -39,7 +39,7 @@ type resultInfo struct {
 
 type agent struct {
 	gate.Agent
-	module 				module.RPCModule
+	module                           module.RPCModule
 	session                          gate.Session
 	conn                             network.Conn
 	r                                *bufio.Reader
@@ -51,20 +51,21 @@ type agent struct {
 	rev_num                          int64
 	send_num                         int64
 }
-func NewMqttAgent(module module.RPCModule)*agent{
+
+func NewMqttAgent(module module.RPCModule) *agent {
 	a := &agent{
-		module:module,
+		module: module,
 	}
 	return a
 }
-func (this *agent) OnInit(gate gate.Gate,conn network.Conn)error{
-	this.conn=conn
-	this.gate=gate
-	this.r=bufio.NewReaderSize(conn,256)
-	this.w=bufio.NewWriterSize(conn,256)
-	this.isclose=false
-	this.rev_num=0
-	this.send_num=0
+func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
+	this.conn = conn
+	this.gate = gate
+	this.r = bufio.NewReaderSize(conn, 256)
+	this.w = bufio.NewWriterSize(conn, 256)
+	this.isclose = false
+	this.rev_num = 0
+	this.send_num = 0
 	return nil
 }
 func (a *agent) IsClosed() bool {
@@ -177,7 +178,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		topics := strings.Split(*pub.GetTopic(), "/")
 		var msgid string
 		if len(topics) < 2 {
-			errorstr:="Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
+			errorstr := "Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
 			log.Error(errorstr)
 			toResult(a, *pub.GetTopic(), nil, errorstr)
 			return
@@ -208,7 +209,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		} else {
 			hash = a.module.GetServerId()
 		}
-		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session,*pub.GetTopic(),pub.GetMsg()) {
+		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
 			a.session.CreateRootSpan("gate")
 		}
 

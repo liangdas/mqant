@@ -14,8 +14,8 @@
 package gate
 
 import (
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/liangdas/mqant/network"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 /**
@@ -106,7 +106,7 @@ type StorageHandler interface {
 	获取用户Session信息
 	Bind Userid时会调用Query获取最新信息
 	*/
-	Query(Userid string) ( data []byte, err error)
+	Query(Userid string) (data []byte, err error)
 	/**
 	用户心跳,一般用户在线时1s发送一次
 	可以用来延长Session信息过期时间
@@ -118,7 +118,7 @@ type TracingHandler interface {
 	/**
 	是否需要对本次客户端请求进行跟踪
 	*/
-	OnRequestTracing(session Session,topic string,msg []byte) bool
+	OnRequestTracing(session Session, topic string, msg []byte) bool
 }
 
 type AgentLearner interface {
@@ -132,7 +132,7 @@ type SessionLearner interface {
 }
 
 type Agent interface {
-	OnInit(gate Gate,conn network.Conn)error
+	OnInit(gate Gate, conn network.Conn) error
 	WriteMsg(topic string, body []byte) error
 	Close()
 	Run() (err error)

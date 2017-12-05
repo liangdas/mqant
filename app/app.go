@@ -212,6 +212,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 
 func (app *DefaultApp) OnDestroy() error {
 	for id, session := range app.serverList {
+		log.Info("RPCClient closeing type(%s) id(%s)", session.GetType(), id)
 		err := session.GetRpc().Done()
 		if err != nil {
 			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)

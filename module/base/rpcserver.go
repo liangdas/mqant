@@ -53,6 +53,7 @@ func (s *rpcserver) OnInit(module module.Module, app module.App, settings *conf.
 }
 func (s *rpcserver) OnDestroy() {
 	if s.server != nil {
+		log.Info("RPCServer closeing id(%s)", s.settings.Id)
 		err := s.server.Done()
 		if err != nil {
 			log.Warning("RPCServer close fail id(%s) error(%s)", s.settings.Id, err)
