@@ -16,6 +16,7 @@ package defaultrpc
 import ()
 import (
 	"fmt"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
 	"sync"
@@ -32,7 +33,7 @@ type LocalServer struct {
 func NewLocalServer(call_chan chan mqrpc.CallInfo) (*LocalServer, error) {
 	server := new(LocalServer)
 	server.call_chan = call_chan
-	server.local_chan = make(chan mqrpc.CallInfo, 50)
+	server.local_chan = make(chan mqrpc.CallInfo, 1)
 	server.isclose = false
 	server.lock = new(sync.Mutex)
 	go server.on_request_handle(server.local_chan)
@@ -76,7 +77,6 @@ func (s *LocalServer) Shutdown() (err error) {
 			err = fmt.Errorf(r.(string))
 		}
 	}()
-	close(s.local_chan)
 	return nil
 }
 
@@ -86,6 +86,14 @@ func (s *LocalServer) Shutdown() (err error) {
 func (s *LocalServer) Callback(callinfo mqrpc.CallInfo) error {
 	reply_to := callinfo.Props["reply_to"].(chan rpcpb.ResultInfo)
 	reply_to <- callinfo.Result
+	//select {
+	//case reply_to<-callinfo.Result:
+	//case <- time.After(time.Second *1):
+	//	return fmt.Errorf("timeout : [%s]",callinfo.RpcInfo.Cid)
+	//}
+	//if s.SafeCallback(reply_to,callinfo.Result){
+	//	log.Warning("rpc callback fail : [%s]",callinfo.RpcInfo.Cid)
+	//}
 	return nil
 }
 
@@ -100,11 +108,35 @@ func (s *LocalServer) on_request_handle(local_chan <-chan mqrpc.CallInfo) {
 				local_chan = nil
 			} else {
 				callInfo.Agent = s //设置代理为LocalServer
-				s.call_chan <- callInfo
+				if s.SafeSend(s.call_chan, callInfo) {
+					log.Warning("rpc request fail : [%s]", callInfo.RpcInfo.Cid)
+				}
 			}
 		}
 		if local_chan == nil {
 			break
 		}
 	}
+}
+func (s *LocalServer) SafeCallback(local_chan chan rpcpb.ResultInfo, callInfo rpcpb.ResultInfo) (closed bool) {
+	defer func() {
+		if recover() != nil {
+			closed = true
+		}
+	}()
+
+	// assume ch != nil here.
+	local_chan <- callInfo
+	return false
+}
+func (s *LocalServer) SafeSend(local_chan chan mqrpc.CallInfo, callInfo mqrpc.CallInfo) (closed bool) {
+	defer func() {
+		if recover() != nil {
+			closed = true
+		}
+	}()
+
+	// assume ch != nil here.
+	local_chan <- callInfo
+	return false
 }

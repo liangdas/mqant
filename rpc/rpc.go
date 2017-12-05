@@ -51,10 +51,17 @@ type RPCListener interface {
 	*/
 	OnComplete(fn string, callInfo *CallInfo, result *rpcpb.ResultInfo, exec_time int64)
 }
+
+type GoroutineControl interface {
+	Wait() error
+	Finish()
+}
+
 type RPCServer interface {
 	NewRabbitmqRPCServer(info *conf.Rabbitmq) (err error)
 	NewRedisRPCServer(info *conf.Redis) (err error)
 	SetListener(listener RPCListener)
+	SetGoroutineControl(control GoroutineControl)
 	GetExecuting() int64
 	GetLocalServer() LocalServer
 	Register(id string, f interface{})

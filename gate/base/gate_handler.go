@@ -113,7 +113,7 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
 				}
 			} else {
 				//解析持久化数据失败
-				log.Error("Sesssion Resolve fail", err.Error())
+				log.Error("Sesssion Resolve fail %s", err.Error())
 			}
 		}
 	}

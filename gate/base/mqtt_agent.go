@@ -39,7 +39,7 @@ type resultInfo struct {
 }
 
 type agent struct {
-	//gate.Agent
+	gate.Agent
 	module                           module.RPCModule
 	session                          gate.Session
 	conn                             network.Conn

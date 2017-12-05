@@ -30,18 +30,21 @@ import (
 )
 
 type RPCServer struct {
-	module         module.Module
-	app            module.App
-	functions      map[string]mqrpc.FunctionInfo
-	remote_server  *AMQPServer
-	local_server   *LocalServer
-	redis_server   *RedisServer
-	mq_chan        chan mqrpc.CallInfo //接收到请求信息的队列
-	callback_chan  chan mqrpc.CallInfo //信息处理完成的队列
-	wg             sync.WaitGroup      //任务阻塞
-	call_chan_done chan error
-	listener       mqrpc.RPCListener
-	executing      int64 //正在执行的goroutine数量
+	module             module.Module
+	app                module.App
+	functions          map[string]mqrpc.FunctionInfo
+	remote_server      *AMQPServer
+	local_server       *LocalServer
+	redis_server       *RedisServer
+	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
+	callback_chan      chan mqrpc.CallInfo //信息处理完成的队列
+	wg                 sync.WaitGroup      //任务阻塞
+	call_chan_done     chan error
+	callback_chan_done chan error
+	listener           mqrpc.RPCListener
+	control            mqrpc.GoroutineControl //控制模块可同时开启的最大协程数
+	executing          int64                  //正在执行的goroutine数量
+	ch                 chan int               //控制模块可同时开启的最大协程数
 }
 
 func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error) {
@@ -49,10 +52,12 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.app = app
 	rpc_server.module = module
 	rpc_server.call_chan_done = make(chan error)
+	rpc_server.callback_chan_done = make(chan error)
 	rpc_server.functions = make(map[string]mqrpc.FunctionInfo)
 	rpc_server.mq_chan = make(chan mqrpc.CallInfo)
-	rpc_server.callback_chan = make(chan mqrpc.CallInfo, 50)
-
+	rpc_server.callback_chan = make(chan mqrpc.CallInfo, 1)
+	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
+	rpc_server.SetGoroutineControl(rpc_server)
 	//先创建一个本地的RPC服务
 	local_server, err := NewLocalServer(rpc_server.mq_chan)
 	if err != nil {
@@ -62,8 +67,17 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 
 	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.callback_chan, rpc_server.call_chan_done)
 
-	go rpc_server.on_callback_handle(rpc_server.callback_chan) //结果发送队列
+	go rpc_server.on_callback_handle(rpc_server.callback_chan, rpc_server.callback_chan_done) //结果发送队列
 	return rpc_server, nil
+}
+func (this *RPCServer) Wait() error {
+	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
+	this.ch <- 1
+	return nil
+}
+func (this *RPCServer) Finish() {
+	// 完成则从ch推出数据
+	<-this.ch
 }
 
 /**
@@ -91,6 +105,9 @@ func (s *RPCServer) NewRedisRPCServer(info *conf.Redis) (err error) {
 }
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {
 	s.listener = listener
+}
+func (s *RPCServer) SetGoroutineControl(control mqrpc.GoroutineControl) {
+	s.control = control
 }
 func (s *RPCServer) GetLocalServer() mqrpc.LocalServer {
 	return s.local_server
@@ -138,9 +155,11 @@ func (s *RPCServer) Done() (err error) {
 		err = s.local_server.StopConsume()
 	}
 	//等待正在执行的请求完成
-	close(s.mq_chan)   //关闭mq_chan通道
-	<-s.call_chan_done //mq_chan通道的信息都已处理完
+	//close(s.mq_chan)   //关闭mq_chan通道
+	//<-s.call_chan_done //mq_chan通道的信息都已处理完
 	s.wg.Wait()
+	s.call_chan_done <- nil
+	s.callback_chan_done <- nil
 	close(s.callback_chan) //关闭结果发送队列
 	//关闭队列链接
 	if s.remote_server != nil {
@@ -155,7 +174,7 @@ func (s *RPCServer) Done() (err error) {
 /**
 处理结果信息
 */
-func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo) {
+func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo, done chan error) {
 	for {
 		select {
 		case callInfo, ok := <-callbacks:
@@ -164,7 +183,20 @@ func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo) {
 			} else {
 				if callInfo.RpcInfo.Reply {
 					//需要回复的才回复
-					callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+					err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+					if err != nil {
+						log.Warning("rpc callback erro :\n%s", err.Error())
+					}
+
+					//if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
+					//	//请求超时了,无需再处理
+					//	err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+					//	if err != nil {
+					//		log.Warning("rpc callback erro :\n%s", err.Error())
+					//	}
+					//}else {
+					//	log.Warning("timeout: This is Call %s %s", s.module.GetType(), callInfo.RpcInfo.Fn)
+					//}
 				} else {
 					//对于不需要回复的消息,可以判断一下是否出现错误，打印一些警告
 					if callInfo.Result.Error != "" {
@@ -172,22 +204,25 @@ func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo) {
 					}
 				}
 			}
+		case <-done:
+			goto EForEnd
 		}
 		if callbacks == nil {
 			break
 		}
 	}
+EForEnd:
 }
 
 /**
 接收请求信息
 */
-func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan<- mqrpc.CallInfo, done chan error) {
+func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan mqrpc.CallInfo, done chan error) {
 	for {
 		select {
 		case callInfo, ok := <-calls:
 			if !ok {
-				calls = nil
+				goto ForEnd
 			} else {
 				if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
 					//请求超时了,无需再处理
@@ -200,22 +235,21 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan<-
 					s.runFunc(callInfo, callbacks)
 				}
 			}
-		}
-		if calls == nil {
-			done <- nil
-			break
+		case <-done:
+			goto ForEnd
 		}
 	}
+ForEnd:
 }
 
 //---------------------------------if _func is not a function or para num and type not match,it will cause panic
 func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.CallInfo) {
-	_errorCallback := func(Cid string, Error string, span opentracing.Span,traceid string) {
+	_errorCallback := func(Cid string, Error string, span opentracing.Span, traceid string) {
+		//异常日志都应该打印
+		log.Error("[%s] %s rpc func(%s) error:\n%s", traceid, s.module.GetType(), callInfo.RpcInfo.Fn, Error)
 		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo
-		//异常日志都应该打印
-		log.Error("[%s] %s rpc func(%s) error:\n%s", traceid,s.module.GetType(), callInfo.RpcInfo.Fn, Error)
 		if span != nil {
 			span.LogEventWithPayload("Error", Error)
 		}
@@ -233,13 +267,14 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			case error:
 				rn = r.(error).Error()
 			}
-			_errorCallback(callInfo.RpcInfo.Cid, rn, nil,"")
+			log.Error("recover", rn)
+			_errorCallback(callInfo.RpcInfo.Cid, rn, nil, "")
 		}
 	}()
 
 	functionInfo, ok := s.functions[callInfo.RpcInfo.Fn]
 	if !ok {
-		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn), nil,"")
+		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn), nil, "")
 		return
 	}
 	_func := functionInfo.Function
@@ -248,7 +283,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 	f := reflect.ValueOf(_func)
 	if len(params) != f.Type().NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
-		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()), nil,"")
+		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("The number of params %s is not adapted.%s", params, f.String()), nil, "")
 		return
 	}
 	//if len(params) != len(callInfo.RpcInfo.ArgsType) {
@@ -259,11 +294,11 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 
 	//typ := reflect.TypeOf(_func)
 
-	s.wg.Add(1)
-	s.executing++
 	_runFunc := func() {
+		s.wg.Add(1)
+		s.executing++
 		var span opentracing.Span = nil
-		var traceid string=""
+		var traceid string = ""
 		defer func() {
 			if r := recover(); r != nil {
 				var rn = ""
@@ -278,16 +313,18 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 				l := runtime.Stack(buf, false)
 				errstr := string(buf[:l])
 				allError := fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s", s.module.GetType(), callInfo.RpcInfo.Fn, rn, errstr)
-				//log.Error(allError)
-				_errorCallback(callInfo.RpcInfo.Cid, allError, span,traceid)
+				log.Error(allError)
+				_errorCallback(callInfo.RpcInfo.Cid, allError, span, traceid)
 			}
 
 			if span != nil {
 				span.Finish()
 			}
-
 			s.wg.Add(-1)
 			s.executing--
+			if s.control != nil {
+				s.control.Finish()
+			}
 		}()
 		exec_time := time.Now().UnixNano()
 		//t:=RandInt64(2,3)
@@ -301,7 +338,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			for k, v := range ArgsType {
 				v, err := argsutil.Bytes2Args(s.app, v, params[k])
 				if err != nil {
-					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span,traceid)
+					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span, traceid)
 					return
 				}
 				switch v2 := v.(type) { //多选语句switch
@@ -313,7 +350,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 						span.SetTag("Func", callInfo.RpcInfo.Fn)
 					}
 					session = v2
-					traceid=session.TracId()
+					traceid = session.TracId()
 					in[k] = reflect.ValueOf(v)
 				case nil:
 					in[k] = reflect.Zero(f.Type().In(k))
@@ -327,7 +364,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		if s.listener != nil {
 			errs := s.listener.BeforeHandle(callInfo.RpcInfo.Fn, session, &callInfo)
 			if errs != nil {
-				_errorCallback(callInfo.RpcInfo.Cid, errs.Error(), span,traceid)
+				_errorCallback(callInfo.RpcInfo.Cid, errs.Error(), span, traceid)
 				return
 			}
 		}
@@ -335,7 +372,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		out := f.Call(in)
 		var rs []interface{}
 		if len(out) != 2 {
-			_errorCallback(callInfo.RpcInfo.Cid, "The number of prepare is not adapted.", span,traceid)
+			_errorCallback(callInfo.RpcInfo.Cid, "The number of prepare is not adapted.", span, traceid)
 			return
 		}
 		if len(out) > 0 { //prepare out paras
@@ -346,7 +383,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		}
 		argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
 		if err != nil {
-			_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span,traceid)
+			_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span, traceid)
 			return
 		}
 		resultInfo := rpcpb.NewResultInfo(
@@ -357,19 +394,22 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		)
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo
-
 		if span != nil {
 			span.LogEventWithPayload("Result.Type", argsType)
 			span.LogEventWithPayload("Result", string(args))
 		}
 		if s.app.GetSettings().Rpc.LogSuccess {
-			log.Info("[%s] %s rpc func(%s) exec_time(%s) success",traceid, s.module.GetType(), callInfo.RpcInfo.Fn, s.timeConversion(time.Now().UnixNano()-exec_time))
+			log.Info("[%s] %s rpc func(%s) exec_time(%s) success", traceid, s.module.GetType(), callInfo.RpcInfo.Fn, s.timeConversion(time.Now().UnixNano()-exec_time))
 		}
 		if s.listener != nil {
 			s.listener.OnComplete(callInfo.RpcInfo.Fn, &callInfo, resultInfo, time.Now().UnixNano()-exec_time)
 		}
 	}
 	if functionInfo.Goroutine {
+		if s.control != nil {
+			//协程数量达到最大限制
+			s.control.Wait()
+		}
 		go _runFunc()
 	} else {
 		_runFunc()
