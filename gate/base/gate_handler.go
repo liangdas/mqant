@@ -15,14 +15,15 @@ package basegate
 
 import (
 	"fmt"
+
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/utils"
 )
 
 type handler struct {
-	gate.AgentLearner
-	gate.GateHandler
+	//gate.AgentLearner
+	//gate.GateHandler
 	gate     gate.Gate
 	sessions *utils.BeeMap //连接列表
 }

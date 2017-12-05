@@ -15,20 +15,21 @@ package basegate
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/network"
-	"reflect"
-	"time"
 )
 
 var RPC_PARAM_SESSION_TYPE = "SESSION"
 
 type Gate struct {
-	module.RPCSerialize
+	//module.RPCSerialize
 	basemodule.BaseModule
 	MaxConnNum          int
 	MaxMsgLen           uint32

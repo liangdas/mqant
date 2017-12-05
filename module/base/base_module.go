@@ -104,12 +104,12 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
-func (m *BaseModule) GetRouteServers(moduleType string, hash string) (s module.ServerSession, err error) {
-	return m.App.GetRouteServers(moduleType, hash)
+func (m *BaseModule) GetRouteServer(moduleType string, hash string) (s module.ServerSession, err error) {
+	return m.App.GetRouteServer(moduleType, hash)
 }
 
 func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -118,7 +118,7 @@ func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interf
 }
 
 func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	server, err := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
 	if err != nil {
 		return
 	}
@@ -126,7 +126,7 @@ func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...inte
 }
 
 func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-	server, e := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
 	if e != nil {
 		err = e.Error()
 		return
@@ -135,7 +135,7 @@ func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []s
 }
 
 func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-	server, err := m.App.GetRouteServers(moduleType, m.subclass.GetServerId())
+	server, err := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
 	if err != nil {
 		return
 	}

@@ -18,6 +18,11 @@ import (
 	"container/list"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"runtime"
+	"strings"
+	"time"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/gate/base/mqtt"
@@ -26,10 +31,6 @@ import (
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
-	"math/rand"
-	"runtime"
-	"strings"
-	"time"
 )
 
 type resultInfo struct {
@@ -213,7 +214,7 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			a.session.CreateRootSpan("gate")
 		}
 
-		serverSession, err := a.module.GetRouteServers(topics[0], hash)
+		serverSession, err := a.module.GetRouteServer(topics[0], hash)
 		if err != nil {
 			if msgid != "" {
 				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))

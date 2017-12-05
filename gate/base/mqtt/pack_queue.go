@@ -17,10 +17,11 @@ package mqtt
 import (
 	"bufio"
 	"fmt"
+	"time"
+
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"time"
 )
 
 // Tcp write queue
@@ -31,7 +32,7 @@ type PackQueue struct {
 	// Notice read the error
 	errorChan chan error
 	noticeFin chan byte
-	writeChan chan *pakcAdnType
+	writeChan chan *packAndType
 	readChan  chan<- *packAndErr
 	// Pack connection
 	r *bufio.Reader
@@ -54,7 +55,7 @@ const (
 	FLUSH
 )
 
-type pakcAdnType struct {
+type packAndType struct {
 	pack *Pack
 	typ  byte
 }
@@ -72,7 +73,7 @@ func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network
 		w:         w,
 		conn:      conn,
 		noticeFin: make(chan byte, 2),
-		writeChan: make(chan *pakcAdnType, conf.WirteLoopChanNum),
+		writeChan: make(chan *packAndType, conf.WirteLoopChanNum),
 		readChan:  readChan,
 		errorChan: make(chan error, 1),
 	}
@@ -122,7 +123,7 @@ func (queue *PackQueue) WritePack(pack *Pack) error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
-	queue.writeChan <- &pakcAdnType{pack: pack}
+	queue.writeChan <- &packAndType{pack: pack}
 	return nil
 }
 
@@ -130,7 +131,7 @@ func (queue *PackQueue) WriteDelayPack(pack *Pack) error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
-	queue.writeChan <- &pakcAdnType{
+	queue.writeChan <- &packAndType{
 		pack: pack,
 		typ:  DELAY,
 	}
@@ -150,7 +151,7 @@ func (queue *PackQueue) Flush() error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
-	queue.writeChan <- &pakcAdnType{typ: FLUSH}
+	queue.writeChan <- &packAndType{typ: FLUSH}
 	return nil
 }
 
