@@ -20,11 +20,13 @@ QQ交流群 :463735103
 
 技术交流社区:[www.mqant.com](http://www.mqant.com)
 
-# 三方模块
+# 模块
 
 > 将不断加入更多的模块
 
-[三方组件库](https://github.com/liangdas/mqant-modules)
+[mqant组件库](https://github.com/liangdas/mqant-modules)
+
+[压力测试工具:armyant](https://github.com/liangdas/armyant)
 
 # 依赖项目
 
