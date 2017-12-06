@@ -124,6 +124,8 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 			if clinetCallInfo != nil {
 				var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+					//从Map中删除
+					c.callinfos.Delete(key)
 					//已经超时了
 					resultInfo := &rpcpb.ResultInfo{
 						Result:     nil,
@@ -134,8 +136,6 @@ func (c *AMQPClient) on_timeout_handle(args interface{}) {
 					clinetCallInfo.call <- *resultInfo
 					//关闭管道
 					close(clinetCallInfo.call)
-					//从Map中删除
-					c.callinfos.Delete(key)
 				}
 
 			}
@@ -161,12 +161,12 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 				} else {
 					correlation_id := resultInfo.Cid
 					clinetCallInfo := c.callinfos.Get(correlation_id)
+					//删除
+					c.callinfos.Delete(correlation_id)
 					if clinetCallInfo != nil {
 						clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
 						close(clinetCallInfo.(ClinetCallInfo).call)
 					}
-					//删除
-					c.callinfos.Delete(correlation_id)
 				}
 			}
 		case <-timeout.C:

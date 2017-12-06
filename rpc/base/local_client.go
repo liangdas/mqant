@@ -118,6 +118,8 @@ func (c *LocalClient) on_timeout_handle(args interface{}) {
 	for tuple := range c.callinfos.Iter() {
 		var clinetCallInfo = tuple.Val.(*ClinetCallInfo)
 		if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+			//从Map中删除
+			c.callinfos.Remove(tuple.Key)
 			//已经超时了
 			resultInfo := &rpcpb.ResultInfo{
 				Result:     nil,
@@ -128,8 +130,6 @@ func (c *LocalClient) on_timeout_handle(args interface{}) {
 			clinetCallInfo.call <- *resultInfo
 			//关闭管道
 			close(clinetCallInfo.call)
-			//从Map中删除
-			c.callinfos.Remove(tuple.Key)
 		}
 	}
 }
