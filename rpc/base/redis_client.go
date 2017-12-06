@@ -38,9 +38,9 @@ type RedisClient struct {
 	timeout_done      chan error
 	pool              redis.Conn
 	closed            bool
-	ch                 chan int               //控制一个RPC 客户端可以同时等待的最大消息量，
-						// 如果等待的请求过多代表rpc server请求压力大，
-						// 就不要在往消息队列发消息了,客户端先阻塞
+	ch                chan int //控制一个RPC 客户端可以同时等待的最大消息量，
+	// 如果等待的请求过多代表rpc server请求压力大，
+	// 就不要在往消息队列发消息了,客户端先阻塞
 
 }
 
