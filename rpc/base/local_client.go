@@ -89,7 +89,7 @@ func (c *LocalClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		call:           callback,
 		timeout:        callInfo.RpcInfo.Expired,
 	}
-	c.callinfos.Set(correlation_id, clinetCallInfo)
+	c.callinfos.Set(correlation_id, *clinetCallInfo)
 	callInfo.Props = map[string]interface{}{
 		"reply_to": c.result_chan,
 	}
@@ -157,7 +157,7 @@ func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, don
 				//删除
 				c.callinfos.Delete(correlation_id)
 				if clinetCallInfo != nil {
-					clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
+					clinetCallInfo.(ClinetCallInfo).call <- resultInfo
 					close(clinetCallInfo.(ClinetCallInfo).call)
 				}
 			}
