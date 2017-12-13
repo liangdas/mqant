@@ -40,7 +40,12 @@ func SetTimer(inteval uint32, handler func(interface{}), args interface{}) {
 		left -= base_per_wheel[bucket_no] * (element_cnt_per_wheel[bucket_no] - newest[bucket_no] - tmp)
 		bucket_no++
 	}
-
+	if offset < 1 {
+		return
+	}
+	if inteval < base_per_wheel[bucket_no]*offset {
+		return
+	}
 	left -= base_per_wheel[bucket_no] * (offset - 1)
 	pos := (newest[bucket_no] + offset) % element_cnt_per_wheel[bucket_no] //通过类似hash的方式，找到在时间轮上的插入位置
 

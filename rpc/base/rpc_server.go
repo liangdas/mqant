@@ -405,11 +405,11 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			s.listener.OnComplete(callInfo.RpcInfo.Fn, &callInfo, resultInfo, time.Now().UnixNano()-exec_time)
 		}
 	}
+	if s.control != nil {
+		//协程数量达到最大限制
+		s.control.Wait()
+	}
 	if functionInfo.Goroutine {
-		if s.control != nil {
-			//协程数量达到最大限制
-			s.control.Wait()
-		}
 		go _runFunc()
 	} else {
 		_runFunc()

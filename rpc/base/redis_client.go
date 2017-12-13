@@ -38,6 +38,10 @@ type RedisClient struct {
 	timeout_done      chan error
 	pool              redis.Conn
 	closed            bool
+	ch                chan int //控制一个RPC 客户端可以同时等待的最大消息量，
+	// 如果等待的请求过多代表rpc server请求压力大，
+	// 就不要在往消息队列发消息了,客户端先阻塞
+
 }
 
 func createQueueName() string {
@@ -53,6 +57,7 @@ func NewRedisClient(info *conf.Redis) (client *RedisClient, err error) {
 	client.done = make(chan error)
 	client.timeout_done = make(chan error)
 	client.closed = false
+	client.ch = make(chan int, 100)
 	pool := utils.GetRedisFactory().GetPool(info.Uri).Get()
 	defer pool.Close()
 	//_, errs:=pool.Do("EXPIRE", client.callbackqueueName, 60)
@@ -68,14 +73,22 @@ func NewRedisClient(info *conf.Redis) (client *RedisClient, err error) {
 	//	log.Fatalf("error during shutdown: %s", err)
 	//}
 }
-
+func (this *RedisClient) Wait() error {
+	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
+	//this.ch <- 1
+	return nil
+}
+func (this *RedisClient) Finish() {
+	// 完成则从ch推出数据
+	//<-this.ch
+}
 func (c *RedisClient) Done() (err error) {
-	c.closed = true
-	c.timeout_done <- nil
 	pool := utils.GetRedisFactory().GetPool(c.info.Uri).Get()
 	defer pool.Close()
 	//删除临时通道
 	pool.Do("DEL", c.callbackqueueName)
+	c.closed = true
+	c.timeout_done <- nil
 	//err = c.psc.Close()
 	//清理 callinfos 列表
 	if c.pool != nil {
@@ -108,12 +121,13 @@ func (c *RedisClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		call:           callback,
 		timeout:        callInfo.RpcInfo.Expired,
 	}
-	c.callinfos.Set(correlation_id, clinetCallInfo)
 
 	body, err := c.Marshal(&callInfo.RpcInfo)
 	if err != nil {
 		return err
 	}
+	c.callinfos.Set(correlation_id, clinetCallInfo)
+	c.Wait() //阻塞等待可以发下一条消息
 	_, err = pool.Do("lpush", c.queueName, body)
 	if err != nil {
 		log.Warning("Publish: %s", err)
@@ -126,6 +140,7 @@ func (c *RedisClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 消息请求 不需要回复
 */
 func (c *RedisClient) CallNR(callInfo mqrpc.CallInfo) error {
+	c.Wait() //阻塞等待可以发下一条消息
 	pool := utils.GetRedisFactory().GetPool(c.info.Uri).Get()
 	defer pool.Close()
 	var err error
@@ -151,6 +166,9 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 			for tuple := range c.callinfos.Iter() {
 				var clinetCallInfo = tuple.Val.(*ClinetCallInfo)
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+					c.Finish() //完成一个请求
+					//从Map中删除
+					c.callinfos.Remove(tuple.Key)
 					//已经超时了
 					resultInfo := &rpcpb.ResultInfo{
 						Result:     nil,
@@ -161,8 +179,6 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 					clinetCallInfo.call <- *resultInfo
 					//关闭管道
 					close(clinetCallInfo.call)
-					//从Map中删除
-					c.callinfos.Remove(tuple.Key)
 				}
 			}
 		case <-done:
@@ -183,6 +199,7 @@ func (c *RedisClient) on_response_handle(done chan error) {
 		result, err := c.pool.Do("brpop", c.callbackqueueName, 0)
 		c.pool.Close()
 		if err == nil && result != nil {
+			c.Finish() //完成一个请求
 			resultInfo, err := c.UnmarshalResult(result.([]interface{})[1].([]byte))
 			if err != nil {
 				log.Error("Unmarshal faild", err)
@@ -194,7 +211,7 @@ func (c *RedisClient) on_response_handle(done chan error) {
 					clinetCallInfo.(*ClinetCallInfo).call <- *resultInfo
 					close(clinetCallInfo.(*ClinetCallInfo).call)
 				} else {
-					log.Warning("rpc callback no found : [%s]", correlation_id)
+					//log.Warning("rpc callback no found : [%s]", correlation_id)
 				}
 			}
 		} else if err != nil {
