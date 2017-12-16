@@ -27,6 +27,7 @@ import (
 )
 
 var RPC_PARAM_SESSION_TYPE = "SESSION"
+var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
 
 type Gate struct {
 	//module.RPCSerialize
@@ -138,6 +139,9 @@ func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err erro
 			return RPC_PARAM_SESSION_TYPE, nil, err
 		}
 		return RPC_PARAM_SESSION_TYPE, bytes, nil
+	case module.ProtocolMarshal:
+		bytes:= v2.GetData()
+		return RPC_PARAM_ProtocolMarshal_TYPE, bytes, nil
 	default:
 		return "", nil, fmt.Errorf("args [%s] Types not allowed", reflect.TypeOf(param))
 	}
@@ -151,6 +155,8 @@ func (this *Gate) Deserialize(ptype string, b []byte) (param interface{}, err er
 			return nil, errs
 		}
 		return mps, nil
+	case RPC_PARAM_ProtocolMarshal_TYPE:
+		return this.App.NewProtocolMarshal(b), nil
 	default:
 		return nil, fmt.Errorf("args [%s] Types not allowed", ptype)
 	}
