@@ -66,12 +66,13 @@ type DefaultApp struct {
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
 	judgeGuest          func(session gate.Session) bool
+	ProcessID           *string
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	wdPath := flag.String("wd", "", "Server work directory")
 	confPath := flag.String("conf", "", "Server configuration file path")
-	ProcessID := flag.String("pid", "development", "Server ProcessID?")
+	app.ProcessID = flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
 
@@ -121,7 +122,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitBeego(debug, *app.ProcessID, *Logdir, conf.Conf.Log)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -137,7 +138,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		manager.Register(mods[i])
 	}
 	app.OnInit(app.settings)
-	manager.Init(app, *ProcessID)
+	manager.Init(app, *app.ProcessID)
 	if app.startup != nil {
 		app.startup(app)
 	}
@@ -195,13 +196,15 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			if err != nil {
 				continue
 			}
-			if moduel.Rabbitmq != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRabbitmqClient(moduel.Rabbitmq)
-			}
-			if moduel.Redis != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRedisClient(moduel.Redis)
+			if moduel.ProcessID != *app.ProcessID {//远程server才需要远程client
+				if moduel.Rabbitmq != nil {
+					//如果远程的rpc存在则创建一个对应的客户端
+					client.NewRabbitmqClient(moduel.Rabbitmq)
+				}
+				if moduel.Redis != nil {
+					//如果远程的rpc存在则创建一个对应的客户端
+					client.NewRedisClient(moduel.Redis)
+				}
 			}
 			session := basemodule.NewServerSession(moduel.Id, Type, client)
 			app.serverList[moduel.Id] = session
