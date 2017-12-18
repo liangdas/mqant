@@ -33,10 +33,10 @@ import (
 	"github.com/liangdas/mqant/utils/uuid"
 )
 
-type resultInfo struct {
-	Error  string      //错误结果 如果为nil表示请求正确
-	Result interface{} //结果
-}
+//type resultInfo struct {
+//	Error  string      //错误结果 如果为nil表示请求正确
+//	Result interface{} //结果
+//}
 
 type agent struct {
 	gate.Agent
@@ -151,25 +151,38 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		}
 	}()
 
-	toResult := func(a *agent, Topic string, Result interface{}, Error string) (err error) {
-		r := &resultInfo{
-			Error:  Error,
-			Result: Result,
+	toResult := func(a *agent, Topic string, Result interface{}, Error string) (error) {
+		switch v2 := Result.(type) {
+		case module.ProtocolMarshal:
+			return a.WriteMsg(Topic, v2.GetData())
 		}
-		b, err := json.Marshal(r)
-		if err == nil {
-			a.WriteMsg(Topic, b)
+		b,err:=a.module.GetApp().ProtocolMarshal(Result,Error)
+		if err == "" {
+			return a.WriteMsg(Topic, b.GetData())
 		} else {
-			r = &resultInfo{
-				Error:  err.Error(),
-				Result: nil,
-			}
-			log.Error(err.Error())
-
-			br, _ := json.Marshal(r)
-			a.WriteMsg(Topic, br)
+			log.Error(err)
+			br, _ := a.module.GetApp().ProtocolMarshal(nil,err)
+			return a.WriteMsg(Topic, br.GetData())
 		}
-		return
+		return fmt.Errorf(err)
+		//r := &resultInfo{
+		//	Error:  Error,
+		//	Result: Result,
+		//}
+		//b, err := json.Marshal(r)
+		//if err == nil {
+		//	a.WriteMsg(Topic, b)
+		//} else {
+		//	r = &resultInfo{
+		//		Error:  err.Error(),
+		//		Result: nil,
+		//	}
+		//	log.Error(err.Error())
+		//
+		//	br, _ := json.Marshal(r)
+		//	a.WriteMsg(Topic, br)
+		//}
+		//return
 	}
 	//路由服务
 	switch pack.GetType() {
