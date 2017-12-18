@@ -23,7 +23,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
-
+	"encoding/json"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
@@ -34,6 +34,18 @@ import (
 	"github.com/liangdas/mqant/rpc/base"
 	opentracing "github.com/opentracing/opentracing-go"
 )
+type resultInfo struct {
+	Error  string      //错误结果 如果为nil表示请求正确
+	Result interface{} //结果
+}
+
+type protocolMarshalImp struct {
+	data  []byte
+}
+
+func (this *protocolMarshalImp)GetData()[]byte{
+	return this.data
+}
 
 func NewApp(version string) module.App {
 	app := new(DefaultApp)
@@ -66,6 +78,7 @@ type DefaultApp struct {
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
 	judgeGuest          func(session gate.Session) bool
+	protocolMarshal	    func(Result interface{},Error string)(module.ProtocolMarshal,string)
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -342,4 +355,31 @@ func (app *DefaultApp) OnStartup(_func func(app module.App)) error {
 func (app *DefaultApp) SetJudgeGuest(_func func(session gate.Session) bool) error {
 	app.judgeGuest = _func
 	return nil
+}
+
+func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Result interface{},Error string)(module.ProtocolMarshal,string)) error{
+	app.protocolMarshal=protocolMarshal
+	return nil
+}
+
+func (app *DefaultApp) ProtocolMarshal(Result interface{},Error string)(module.ProtocolMarshal,string) {
+	if app.protocolMarshal!=nil{
+		return app.protocolMarshal(Result,Error)
+	}
+	r := &resultInfo{
+		Error:  Error,
+		Result: Result,
+	}
+	b,err:= json.Marshal(r)
+	if err == nil {
+		return app.NewProtocolMarshal(b),""
+	} else {
+		return nil,err.Error()
+	}
+}
+
+func (app *DefaultApp) NewProtocolMarshal(data []byte)(module.ProtocolMarshal) {
+	return &protocolMarshalImp{
+		data:data,
+	}
 }

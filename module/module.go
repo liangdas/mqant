@@ -20,6 +20,10 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 )
 
+type ProtocolMarshal interface {
+	GetData()	[]byte
+}
+
 type ServerSession interface {
 	GetId() string
 	GetType() string
@@ -72,6 +76,13 @@ type App interface {
 	OnStartup(func(app App)) error
 
 	SetJudgeGuest(judgeGuest func(session gate.Session) bool) error
+
+	SetProtocolMarshal(protocolMarshal func(Result interface{},Error string)(ProtocolMarshal,string)) error
+	/**
+	与客户端通信的协议包接口
+	 */
+	ProtocolMarshal(Result interface{},Error string)(ProtocolMarshal,string)
+	NewProtocolMarshal(data []byte)(ProtocolMarshal)
 }
 
 type Module interface {

@@ -203,7 +203,7 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	case PINGREQ:
 		// Reply the heart beat
 		log.Debug("hb msg")
-		err = c.queue.WritePack(GetPingResp(1, pAndErr.pack.GetDup()))
+		err = c.queue.WritePack(GetPingResp(0, pAndErr.pack.GetDup()))
 		c.recover.OnRecover(pAndErr.pack)
 	default:
 		// Not define pack type
