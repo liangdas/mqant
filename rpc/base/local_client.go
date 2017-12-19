@@ -31,7 +31,7 @@ type LocalClient struct {
 	result_chan  chan rpcpb.ResultInfo
 	done         chan error
 	isClose      bool
-	timeout_done      chan error
+	timeout_done chan error
 }
 
 func NewLocalClient(server mqrpc.LocalServer) (*LocalClient, error) {
@@ -148,8 +148,9 @@ func (c *LocalClient) on_timeout_handle(done chan error) {
 
 		}
 	}
-	LLForEnd:
+LLForEnd:
 }
+
 //func (c *LocalClient) on_timeout_handle(args interface{}) {
 //	//处理超时的请求
 //	for key, clinetCallInfo := range c.callinfos.Items() {

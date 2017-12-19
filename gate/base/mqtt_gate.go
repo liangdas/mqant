@@ -140,7 +140,7 @@ func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err erro
 		}
 		return RPC_PARAM_SESSION_TYPE, bytes, nil
 	case module.ProtocolMarshal:
-		bytes:= v2.GetData()
+		bytes := v2.GetData()
 		return RPC_PARAM_ProtocolMarshal_TYPE, bytes, nil
 	default:
 		return "", nil, fmt.Errorf("args [%s] Types not allowed", reflect.TypeOf(param))
