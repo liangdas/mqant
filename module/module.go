@@ -83,6 +83,7 @@ type App interface {
 	 */
 	ProtocolMarshal(Result interface{},Error string)(ProtocolMarshal,string)
 	NewProtocolMarshal(data []byte)(ProtocolMarshal)
+	GetProcessID()string
 }
 
 type Module interface {

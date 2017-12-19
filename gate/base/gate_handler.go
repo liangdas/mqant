@@ -164,7 +164,7 @@ func (h *handler) Push(Sessionid string, Settings map[string]string) (result gat
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession())
 		if err != nil {
-			log.Error("gate session storage failure")
+			log.Warning("gate session storage failure : %s",err.Error())
 		}
 	}
 
@@ -186,7 +186,7 @@ func (h *handler) Set(Sessionid string, key string, value string) (result gate.S
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession())
 		if err != nil {
-			log.Error("gate session storage failure")
+			log.Error("gate session storage failure : %s",err.Error())
 		}
 	}
 
@@ -208,7 +208,7 @@ func (h *handler) Remove(Sessionid string, key string) (result interface{}, err 
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserid() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserid(), agent.(gate.Agent).GetSession())
 		if err != nil {
-			log.Error("gate session storage failure")
+			log.Error("gate session storage failure :%s",err.Error())
 		}
 	}
 

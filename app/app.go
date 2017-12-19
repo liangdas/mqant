@@ -70,6 +70,7 @@ type DefaultApp struct {
 	version             string
 	serverList          map[string]module.ServerSession
 	settings            conf.Config
+	processId	    string
 	routes              map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes       func(app module.App, Type string, hash string) module.ServerSession
 	rpcserializes       map[string]module.RPCSerialize
@@ -87,7 +88,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
-
+	app.processId=*ProcessID
 	ApplicationDir := ""
 	if *wdPath != "" {
 		_, err := os.Open(*wdPath)
@@ -208,13 +209,16 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			if err != nil {
 				continue
 			}
-			if moduel.Rabbitmq != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRabbitmqClient(moduel.Rabbitmq)
-			}
-			if moduel.Redis != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRedisClient(moduel.Redis)
+			if app.GetProcessID()!=moduel.ProcessID{
+				//同一个ProcessID下的模块直接通过local channel通信就可以了
+				if moduel.Rabbitmq != nil {
+					//如果远程的rpc存在则创建一个对应的客户端
+					client.NewRabbitmqClient(moduel.Rabbitmq)
+				}
+				if moduel.Redis != nil {
+					//如果远程的rpc存在则创建一个对应的客户端
+					client.NewRedisClient(moduel.Redis)
+				}
 			}
 			session := basemodule.NewServerSession(moduel.Id, Type, client)
 			app.serverList[moduel.Id] = session
@@ -284,7 +288,9 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 func (app *DefaultApp) GetSettings() conf.Config {
 	return app.settings
 }
-
+func (app *DefaultApp) GetProcessID() string {
+	return app.processId
+}
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
 	server, e := app.GetRouteServer(moduleType, module.GetServerId())
 	if e != nil {
