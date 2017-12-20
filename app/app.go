@@ -86,7 +86,7 @@ type DefaultApp struct {
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	wdPath := flag.String("wd", "", "Server work directory")
 	confPath := flag.String("conf", "", "Server configuration file path")
-	ProcessID := flag.String("pid", "development", "Server ProcessID?")
+	app.ProcessID = flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
 	app.processId = *ProcessID
@@ -136,7 +136,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitBeego(debug, *app.ProcessID, *Logdir, conf.Conf.Log)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -152,7 +152,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		manager.Register(mods[i])
 	}
 	app.OnInit(app.settings)
-	manager.Init(app, *ProcessID)
+	manager.Init(app, *app.ProcessID)
 	if app.startup != nil {
 		app.startup(app)
 	}
