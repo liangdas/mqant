@@ -44,7 +44,7 @@ func NewLocalClient(server mqrpc.LocalServer) (*LocalClient, error) {
 	client.isClose = false
 	client.result_chan = make(chan rpcpb.ResultInfo, 1)
 	go client.on_response_handle(client.result_chan, client.done)
-	go client.on_timeout_handle(client.timeout_done) //处理超时请求的协程
+	//go client.on_timeout_handle(client.timeout_done) //处理超时请求的协程
 	return client, nil
 	//log.Printf("shutting down")
 	//
@@ -56,7 +56,7 @@ func NewLocalClient(server mqrpc.LocalServer) (*LocalClient, error) {
 func (c *LocalClient) Done() error {
 	//关闭消息回复通道
 	c.isClose = true
-	c.timeout_done <- nil
+	//c.timeout_done <- nil
 	c.done <- nil
 	close(c.result_chan)
 	//清理 callinfos 列表
@@ -116,69 +116,70 @@ func (c *LocalClient) CallNR(callInfo mqrpc.CallInfo) (err error) {
 
 	return nil
 }
-func (c *LocalClient) on_timeout_handle(done chan error) {
-	timeout := time.NewTimer(time.Second * 1)
-	for {
-		select {
-		case <-timeout.C:
-			timeout.Reset(time.Second * 1)
-			for key, clinetCallInfo := range c.callinfos.Items() {
-				if clinetCallInfo != nil {
-					var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
-					if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
-						//从Map中删除
-						c.callinfos.Delete(key)
-						//已经超时了
-						resultInfo := &rpcpb.ResultInfo{
-							Result:     nil,
-							Error:      "timeout: This is Call",
-							ResultType: argsutil.NULL,
-						}
-						//发送一个超时的消息
-						clinetCallInfo.call <- *resultInfo
-						//关闭管道
-						close(clinetCallInfo.call)
-					}
-
-				}
-			}
-		case <-done:
-			timeout.Stop()
-			goto LLForEnd
-
-		}
-	}
-LLForEnd:
-}
-
-//func (c *LocalClient) on_timeout_handle(args interface{}) {
-//	//处理超时的请求
-//	for key, clinetCallInfo := range c.callinfos.Items() {
-//		if clinetCallInfo != nil {
-//			var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
-//			if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
-//				//从Map中删除
-//				c.callinfos.Delete(key)
-//				//已经超时了
-//				resultInfo := &rpcpb.ResultInfo{
-//					Result:     nil,
-//					Error:      "timeout: This is Call",
-//					ResultType: argsutil.NULL,
+//func (c *LocalClient) on_timeout_handle(done chan error) {
+//	timeout := time.NewTimer(time.Second * 1)
+//	for {
+//		select {
+//		case <-timeout.C:
+//			timeout.Reset(time.Second * 1)
+//			for key, clinetCallInfo := range c.callinfos.Items() {
+//				if clinetCallInfo != nil {
+//					var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
+//					if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+//						//从Map中删除
+//						c.callinfos.Delete(key)
+//						//已经超时了
+//						resultInfo := &rpcpb.ResultInfo{
+//							Result:     nil,
+//							Error:      "timeout: This is Call",
+//							ResultType: argsutil.NULL,
+//						}
+//						//发送一个超时的消息
+//						clinetCallInfo.call <- *resultInfo
+//						//关闭管道
+//						close(clinetCallInfo.call)
+//					}
+//
 //				}
-//				//发送一个超时的消息
-//				clinetCallInfo.call <- *resultInfo
-//				//关闭管道
-//				close(clinetCallInfo.call)
 //			}
+//		case <-done:
+//			timeout.Stop()
+//			goto LLForEnd
 //
 //		}
 //	}
+//LLForEnd:
 //}
+
+func (c *LocalClient) on_timeout_handle(args interface{}) {
+	//处理超时的请求
+	for key, clinetCallInfo := range c.callinfos.Items() {
+		if clinetCallInfo != nil {
+			var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
+			if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
+				//从Map中删除
+				c.callinfos.Delete(key)
+				//已经超时了
+				resultInfo := &rpcpb.ResultInfo{
+					Result:     nil,
+					Error:      "timeout: This is Call",
+					ResultType: argsutil.NULL,
+				}
+				//发送一个超时的消息
+				clinetCallInfo.call <- *resultInfo
+				//关闭管道
+				close(clinetCallInfo.call)
+			}
+
+		}
+	}
+}
 
 /**
 接收应答信息
 */
 func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, done chan error) {
+	timeout := time.NewTimer(time.Second * 1)
 	for {
 		select {
 		case <-done:
@@ -196,6 +197,9 @@ func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, don
 					close(clinetCallInfo.(ClinetCallInfo).call)
 				}
 			}
+		case <-timeout.C:
+			timeout.Reset(time.Second * 1)
+			c.on_timeout_handle(nil)
 
 		}
 
@@ -204,4 +208,5 @@ func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, don
 		}
 	}
 ForEnd:
+	timeout.Stop()
 }

@@ -180,6 +180,7 @@ func (c *AMQPClient) on_response_handle(deliveries <-chan amqp.Delivery, done ch
 		}
 	}
 LForEnd:
+	timeout.Stop()
 }
 
 func (c *AMQPClient) UnmarshalResult(data []byte) (*rpcpb.ResultInfo, error) {
