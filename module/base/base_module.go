@@ -150,7 +150,7 @@ func (m *BaseModule) BeforeHandle(fn string, session gate.Session, callInfo *mqr
 }
 
 func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
-	m.rwmutex.RLock()
+	m.rwmutex.Lock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
 		statisticalMethod.ExecTimeout++
 		statisticalMethod.ExecTotal++
@@ -163,13 +163,13 @@ func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
 		}
 		m.statistical[fn] = statisticalMethod
 	}
-	m.rwmutex.RUnlock()
+	m.rwmutex.Unlock()
 	if m.listener != nil {
 		m.listener.OnTimeOut(fn, Expired)
 	}
 }
 func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
-	m.rwmutex.RLock()
+	m.rwmutex.Lock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
 		statisticalMethod.ExecFailure++
 		statisticalMethod.ExecTotal++
@@ -182,7 +182,7 @@ func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
 		}
 		m.statistical[fn] = statisticalMethod
 	}
-	m.rwmutex.RUnlock()
+	m.rwmutex.Unlock()
 	if m.listener != nil {
 		m.listener.OnError(fn, callInfo, err)
 	}
@@ -195,7 +195,7 @@ result		执行结果
 exec_time 	方法执行时间 单位为 Nano 纳秒  1000000纳秒等于1毫秒
 */
 func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpcpb.ResultInfo, exec_time int64) {
-	m.rwmutex.RLock()
+	m.rwmutex.Lock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
 		statisticalMethod.ExecSuccess++
 		statisticalMethod.ExecTotal++
@@ -216,7 +216,7 @@ func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpc
 		}
 		m.statistical[fn] = statisticalMethod
 	}
-	m.rwmutex.RUnlock()
+	m.rwmutex.Unlock()
 	if m.listener != nil {
 		m.listener.OnComplete(fn, callInfo, result, exec_time)
 	}
@@ -225,7 +225,7 @@ func (m *BaseModule) GetExecuting() int64 {
 	return m.GetServer().GetRPCServer().GetExecuting()
 }
 func (m *BaseModule) GetStatistical() (statistical string, err error) {
-	m.rwmutex.RLock()
+	m.rwmutex.Lock()
 	//重置
 	now := time.Now().UnixNano()
 	for _, s := range m.statistical {
@@ -246,6 +246,6 @@ func (m *BaseModule) GetStatistical() (statistical string, err error) {
 	//	s.MaxExecTime=0
 	//	s.MinExecTime=math.MaxInt64
 	//}
-	m.rwmutex.RUnlock()
+	m.rwmutex.Unlock()
 	return
 }

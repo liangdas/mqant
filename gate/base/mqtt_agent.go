@@ -151,17 +151,17 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		}
 	}()
 
-	toResult := func(a *agent, Topic string, Result interface{}, Error string) (error) {
+	toResult := func(a *agent, Topic string, Result interface{}, Error string) error {
 		switch v2 := Result.(type) {
 		case module.ProtocolMarshal:
 			return a.WriteMsg(Topic, v2.GetData())
 		}
-		b,err:=a.module.GetApp().ProtocolMarshal(Result,Error)
+		b, err := a.module.GetApp().ProtocolMarshal(Result, Error)
 		if err == "" {
 			return a.WriteMsg(Topic, b.GetData())
 		} else {
 			log.Error(err)
-			br, _ := a.module.GetApp().ProtocolMarshal(nil,err)
+			br, _ := a.module.GetApp().ProtocolMarshal(nil, err)
 			return a.WriteMsg(Topic, br.GetData())
 		}
 		return fmt.Errorf(err)

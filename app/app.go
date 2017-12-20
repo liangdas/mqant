@@ -14,16 +14,9 @@
 package defaultApp
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"hash/crc32"
-	"math"
-	"os"
-	"os/exec"
-	"os/signal"
-	"path/filepath"
-	"strings"
-	"encoding/json"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
@@ -33,17 +26,25 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	opentracing "github.com/opentracing/opentracing-go"
+	"hash/crc32"
+	"math"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"strings"
 )
+
 type resultInfo struct {
 	Error  string      //错误结果 如果为nil表示请求正确
 	Result interface{} //结果
 }
 
 type protocolMarshalImp struct {
-	data  []byte
+	data []byte
 }
 
-func (this *protocolMarshalImp)GetData()[]byte{
+func (this *protocolMarshalImp) GetData() []byte {
 	return this.data
 }
 
@@ -70,6 +71,7 @@ type DefaultApp struct {
 	version             string
 	serverList          map[string]module.ServerSession
 	settings            conf.Config
+	processId           string
 	routes              map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes       func(app module.App, Type string, hash string) module.ServerSession
 	rpcserializes       map[string]module.RPCSerialize
@@ -78,7 +80,7 @@ type DefaultApp struct {
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
 	judgeGuest          func(session gate.Session) bool
-	ProcessID           *string
+	protocolMarshal     func(Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -87,7 +89,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	app.ProcessID = flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
 	flag.Parse() //解析输入的参数
-
+	app.processId = *ProcessID
 	ApplicationDir := ""
 	if *wdPath != "" {
 		_, err := os.Open(*wdPath)
@@ -208,7 +210,8 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			if err != nil {
 				continue
 			}
-			if moduel.ProcessID != *app.ProcessID {//远程server才需要远程client
+			if app.GetProcessID() != moduel.ProcessID {
+				//同一个ProcessID下的模块直接通过local channel通信就可以了
 				if moduel.Rabbitmq != nil {
 					//如果远程的rpc存在则创建一个对应的客户端
 					client.NewRabbitmqClient(moduel.Rabbitmq)
@@ -286,7 +289,9 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 func (app *DefaultApp) GetSettings() conf.Config {
 	return app.settings
 }
-
+func (app *DefaultApp) GetProcessID() string {
+	return app.processId
+}
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
 	server, e := app.GetRouteServer(moduleType, module.GetServerId())
 	if e != nil {
@@ -359,29 +364,29 @@ func (app *DefaultApp) SetJudgeGuest(_func func(session gate.Session) bool) erro
 	return nil
 }
 
-func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Result interface{},Error string)(module.ProtocolMarshal,string)) error{
-	app.protocolMarshal=protocolMarshal
+func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Result interface{}, Error string) (module.ProtocolMarshal, string)) error {
+	app.protocolMarshal = protocolMarshal
 	return nil
 }
 
-func (app *DefaultApp) ProtocolMarshal(Result interface{},Error string)(module.ProtocolMarshal,string) {
-	if app.protocolMarshal!=nil{
-		return app.protocolMarshal(Result,Error)
+func (app *DefaultApp) ProtocolMarshal(Result interface{}, Error string) (module.ProtocolMarshal, string) {
+	if app.protocolMarshal != nil {
+		return app.protocolMarshal(Result, Error)
 	}
 	r := &resultInfo{
 		Error:  Error,
 		Result: Result,
 	}
-	b,err:= json.Marshal(r)
+	b, err := json.Marshal(r)
 	if err == nil {
-		return app.NewProtocolMarshal(b),""
+		return app.NewProtocolMarshal(b), ""
 	} else {
-		return nil,err.Error()
+		return nil, err.Error()
 	}
 }
 
-func (app *DefaultApp) NewProtocolMarshal(data []byte)(module.ProtocolMarshal) {
+func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
-		data:data,
+		data: data,
 	}
 }
