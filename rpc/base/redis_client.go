@@ -211,7 +211,8 @@ func (c *RedisClient) on_response_handle(done chan error) {
 					clinetCallInfo.(*ClinetCallInfo).call <- *resultInfo
 					close(clinetCallInfo.(*ClinetCallInfo).call)
 				} else {
-					//log.Warning("rpc callback no found : [%s]", correlation_id)
+					//可能客户端已超时了，但服务端处理完还给回调了
+					log.Warning("rpc callback no found : [%s]", correlation_id)
 				}
 			}
 		} else if err != nil {

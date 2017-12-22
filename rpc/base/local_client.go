@@ -19,6 +19,7 @@ import (
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
+	"github.com/liangdas/mqant/log"
 	"sync"
 	"time"
 )
@@ -195,6 +196,9 @@ func (c *LocalClient) on_response_handle(deliveries <-chan rpcpb.ResultInfo, don
 				if clinetCallInfo != nil {
 					clinetCallInfo.(ClinetCallInfo).call <- resultInfo
 					close(clinetCallInfo.(ClinetCallInfo).call)
+				}else {
+					//可能客户端已超时了，但服务端处理完还给回调了
+					log.Warning("rpc callback no found : [%s]", correlation_id)
 				}
 			}
 		case <-timeout.C:
