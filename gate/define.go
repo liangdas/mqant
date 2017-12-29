@@ -54,6 +54,7 @@ type Session interface {
 	UnBind() (err string)
 	Push() (err string)
 	Set(key string, value string) (err string)
+	SetPush(key string, value string) (err string)	//设置值以后立即推送到gate网关
 	Get(key string) (result string)
 	Remove(key string) (err string)
 	Send(topic string, body []byte) (err string)

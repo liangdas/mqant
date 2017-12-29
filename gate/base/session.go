@@ -240,21 +240,19 @@ func (this *sessionagent) Set(key string, value string) (err string) {
 		this.session.Settings = map[string]string{}
 	}
 	this.session.Settings[key] = value
-	//server,e:=session.app.GetServerById(session.Serverid)
-	//if e!=nil{
-	//	err=fmt.Sprintf("Service not found id(%s)",session.Serverid)
-	//	return
-	//}
-	//result,err:=server.Call("Set",session.Sessionid,key,value)
-	//if err==""{
-	//	if result!=nil{
-	//		//绑定成功,重新更新当前Session
-	//		session.update(result.(map[string]interface {}))
-	//	}
-	//}
 	return
 }
-
+func (this *sessionagent) SetPush(key string, value string) (err string) {
+	if this.app == nil {
+		err = fmt.Sprintf("Module.App is nil")
+		return
+	}
+	if this.session.Settings == nil {
+		this.session.Settings = map[string]string{}
+	}
+	this.session.Settings[key] = value
+	return	this.Push()
+}
 func (this *sessionagent) Get(key string) (result string) {
 	if this.session.Settings == nil {
 		return
