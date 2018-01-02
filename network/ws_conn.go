@@ -54,7 +54,6 @@ func newWSConn(conn *websocket.Conn) *WSConn {
 				wsConn.buf_lock <- nil
 			}
 		}
-
 		conn.Close()
 		wsConn.Lock()
 		wsConn.closeFlag = true
