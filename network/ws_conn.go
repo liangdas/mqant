@@ -47,6 +47,7 @@ func newWSConn(conn *websocket.Conn) *WSConn {
 			if err != nil {
 				//log.Error("读取数据失败 %s",err.Error())
 				wsConn.buf_lock <- err
+				break
 			} else {
 				wsConn.buffer.Write(b)
 				wsConn.readfirst = true
