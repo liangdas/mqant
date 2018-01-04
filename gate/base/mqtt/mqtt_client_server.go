@@ -80,7 +80,9 @@ func (c *Client) Listen_loop() (e error) {
 	c.queue.ReadPackInLoop()
 
 	// Start push 读取数据包
+	//pingtime := time.NewTimer(time.Second * time.Duration(c.queue.alive*2))
 loop:
+
 	for {
 		select {
 		case pAndErr, ok := <-c.readChan:
@@ -88,10 +90,14 @@ loop:
 				log.Info("Get a connection error")
 				break loop
 			}
+			//pingtime.Reset(time.Second * time.Duration(c.queue.alive*2)) //重置
 			if err = c.waitPack(pAndErr); err != nil {
 				log.Info("Get a connection error , will break(%v)", err)
 				break loop
 			}
+		//case <-pingtime.C:
+		//	pingtime.Reset(time.Second * time.Duration(c.queue.alive*2))
+		//	c.timeout()
 		case <-c.closeChan:
 			c.waitQuit()
 			break loop
@@ -99,6 +105,7 @@ loop:
 	}
 
 	c.lock.Lock()
+	//pingtime.Stop()
 	c.isStop = true
 	c.lock.Unlock()
 	// Wrte the onlines msg to the db
@@ -120,7 +127,10 @@ func (c *Client) getOnlineMsgId() int {
 		return c.curr_id
 	}
 }
-
+func (c *Client) timeout()(err error){
+	log.Info("timeout 主动关闭连接")
+	return c.queue.conn.Close()
+}
 func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	// If connetion has a error, should break
 	// if it return a timeout error, illustrate

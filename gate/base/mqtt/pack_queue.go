@@ -189,6 +189,8 @@ func (queue *PackQueue) ReadPackInLoop() {
 		for {
 			if queue.alive > 0 {
 				queue.conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(queue.alive)))
+			}else{
+				queue.conn.SetReadDeadline(time.Now().Add(time.Second * 90))
 			}
 			if is_continue {
 				p.pack, p.err = ReadPack(queue.r)
