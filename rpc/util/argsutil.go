@@ -37,8 +37,6 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 	switch v2 := arg.(type) {
 	case []uint8:
 		return BYTES, v2, nil
-	}
-	switch v2 := arg.(type) {
 	case nil:
 		return NULL, nil, nil
 	case string:
