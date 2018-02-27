@@ -237,10 +237,10 @@ func (h *handler) Send(Sessionid string, topic string, body []byte) (result inte
 /**
  *批量发送消息,sessionid之间用,分割
  */
-func (h *handler) SendBatch(SessionidStr string, topic string, body []byte) (int64,string) {
-	sessionids:=strings.Split(SessionidStr,",")
-	var count int64=0
-	for _,sessionid:=range sessionids{
+func (h *handler) SendBatch(SessionidStr string, topic string, body []byte) (int64, string) {
+	sessionids := strings.Split(SessionidStr, ",")
+	var count int64 = 0
+	for _, sessionid := range sessionids {
 		agent := h.sessions.Get(sessionid)
 		if agent == nil {
 			//log.Warning("No Sesssion found")
@@ -248,24 +248,24 @@ func (h *handler) SendBatch(SessionidStr string, topic string, body []byte) (int
 		}
 		e := agent.(gate.Agent).WriteMsg(topic, body)
 		if e != nil {
-			log.Warning("WriteMsg error:",e.Error())
+			log.Warning("WriteMsg error:", e.Error())
 		} else {
 			count++
 		}
 	}
-	return	count,""
+	return count, ""
 }
-func (h *handler) BroadCast(topic string, body []byte) (int64,string) {
-	var count int64=0
-	for _,agent:=range h.sessions.Items(){
+func (h *handler) BroadCast(topic string, body []byte) (int64, string) {
+	var count int64 = 0
+	for _, agent := range h.sessions.Items() {
 		e := agent.(gate.Agent).WriteMsg(topic, body)
 		if e != nil {
-			log.Warning("WriteMsg error:",e.Error())
+			log.Warning("WriteMsg error:", e.Error())
 		} else {
 			count++
 		}
 	}
-	return	count,""
+	return count, ""
 }
 
 /**

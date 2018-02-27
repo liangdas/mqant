@@ -127,7 +127,7 @@ func (c *Client) getOnlineMsgId() int {
 		return c.curr_id
 	}
 }
-func (c *Client) timeout()(err error){
+func (c *Client) timeout() (err error) {
 	log.Info("timeout 主动关闭连接")
 	return c.queue.conn.Close()
 }
