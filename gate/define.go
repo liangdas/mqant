@@ -28,6 +28,8 @@ type GateHandler interface {
 	Remove(Sessionid string, key string) (result interface{}, err string)              //Remove value from the session.
 	Push(Sessionid string, Settings map[string]string) (result Session, err string)    //推送信息给Session
 	Send(Sessionid string, topic string, body []byte) (result interface{}, err string) //Send message
+	SendBatch(Sessionids string, topic string, body []byte) (int64,  string) //批量发送
+	BroadCast(topic string, body []byte) (int64, string) //广播消息给网关所有在连客户端
 	//查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
 	IsConnect(Sessionid string, Userid string) (result bool, err string)
 	Close(Sessionid string) (result interface{}, err string) //主动关闭连接
@@ -59,6 +61,7 @@ type Session interface {
 	Remove(key string) (err string)
 	Send(topic string, body []byte) (err string)
 	SendNR(topic string, body []byte) (err string)
+	SendBatch(Sessionids string, topic string, body []byte) (int64, string) //想该客户端的网关批量发送消息
 	//查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
 	IsConnect(Userid string) (result bool, err string)
 	//是否是访客(未登录) ,默认判断规则为 userId==""代表访客

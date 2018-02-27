@@ -219,6 +219,8 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 	this.GetServer().RegisterGO("Set", this.handler.Set)
 	this.GetServer().RegisterGO("Remove", this.handler.Remove)
 	this.GetServer().RegisterGO("Send", this.handler.Send)
+	this.GetServer().RegisterGO("SendBatch", this.handler.SendBatch)
+	this.GetServer().RegisterGO("BroadCast", this.handler.BroadCast)
 	this.GetServer().RegisterGO("IsConnect", this.handler.IsConnect)
 	this.GetServer().RegisterGO("Close", this.handler.Close)
 }

@@ -283,6 +283,22 @@ func (this *sessionagent) Send(topic string, body []byte) string {
 	_, err := server.Call("Send", this.session.Sessionid, topic, body)
 	return err
 }
+
+func (this *sessionagent) SendBatch(Sessionids string, topic string, body []byte) (int64,string) {
+	if this.app == nil {
+		return 0,fmt.Sprintf("Module.App is nil")
+	}
+	server, e := this.app.GetServerById(this.session.Serverid)
+	if e != nil {
+		return 0,fmt.Sprintf("Service not found id(%s)", this.session.Serverid)
+	}
+	count, err := server.Call("SendBatch", Sessionids, topic, body)
+	if err!=""{
+		return 0,err
+	}
+	return count.(int64),err
+}
+
 func (this *sessionagent) IsConnect(userId string) (bool, string) {
 	if this.app == nil {
 		return false, fmt.Sprintf("Module.App is nil")
