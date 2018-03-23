@@ -249,6 +249,7 @@ func (m *Master) ModuleList(w http.ResponseWriter, req *http.Request) {
 */
 func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
 	args := m.GetArgs(req)
+	const function = "ReloadAsset"
 	rets := []map[string]interface{}{}
 
 	moduleType := args["type"]
@@ -260,7 +261,7 @@ func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if moduleId != "" {
-		ret, err := m.RpcInvoke(moduleId, "ReloadAsset")
+		ret, err := m.RpcInvoke(moduleId, function)
 		rets = append(rets, map[string]interface{}{
 			"Ret": ret,
 			"err": err,
@@ -268,7 +269,7 @@ func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
 	} else if moduleType != "" {
 		servers := m.app.GetServersByType(moduleType)
 		for _, server := range servers {
-			ret, err := server.Call(moduleId, "ReloadAsset")
+			ret, err := server.Call(function)
 			rets = append(rets, map[string]interface{}{
 				"Ret": ret,
 				"err": err,
