@@ -89,8 +89,8 @@ func (wsConn *WSConn) Close() error {
 	return wsConn.conn.Close()
 }
 
-func (wsConn *WSConn) Write(p []byte) (n int, err error) {
-	err = wsConn.conn.WriteMessage(websocket.BinaryMessage, p)
+func (wsConn *WSConn) Write(p []byte) (int, error) {
+	err := wsConn.conn.WriteMessage(websocket.BinaryMessage, p)
 	if err != nil {
 		return 0, err
 	}

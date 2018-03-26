@@ -127,7 +127,7 @@ func (c *Client) getOnlineMsgId() int {
 		return c.curr_id
 	}
 }
-func (c *Client) timeout()(err error){
+func (c *Client) timeout() (err error) {
 	log.Info("timeout 主动关闭连接")
 	return c.queue.conn.Close()
 }
@@ -212,7 +212,7 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 		c.recover.OnRecover(pAndErr.pack)
 	case PINGREQ:
 		// Reply the heart beat
-		log.Debug("hb msg")
+		//log.Debug("hb msg")
 		err = c.queue.WritePack(GetPingResp(0, pAndErr.pack.GetDup()))
 		c.recover.OnRecover(pAndErr.pack)
 	default:

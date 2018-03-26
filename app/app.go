@@ -22,7 +22,6 @@ import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
-	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -145,7 +144,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 
 	manager := basemodule.NewModuleManager()
-	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
+	//manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
 	for i := 0; i < len(mods); i++ {
 		mods[i].OnAppConfigurationLoaded(app)

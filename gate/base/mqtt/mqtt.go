@@ -133,8 +133,8 @@ func (c *Connect) GetReturnCode() byte {
 }
 
 func (c *Connect) GetKeepAlive() int {
-	if c.keep_alive_timer==0{
-		c.keep_alive_timer=60
+	if c.keep_alive_timer == 0 {
+		c.keep_alive_timer = 60
 	}
 	return c.keep_alive_timer
 }

@@ -178,11 +178,11 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 
 	this.MaxConnNum = int(settings.Settings["MaxConnNum"].(float64))
 	this.MaxMsgLen = uint32(settings.Settings["MaxMsgLen"].(float64))
-	if WSAddr,ok:=settings.Settings["WSAddr"];ok{
+	if WSAddr, ok := settings.Settings["WSAddr"]; ok {
 		this.WSAddr = WSAddr.(string)
 	}
 	this.HTTPTimeout = time.Second * time.Duration(settings.Settings["HTTPTimeout"].(float64))
-	if TCPAddr,ok:=settings.Settings["TCPAddr"];ok{
+	if TCPAddr, ok := settings.Settings["TCPAddr"]; ok {
 		this.TCPAddr = TCPAddr.(string)
 	}
 	if Tls, ok := settings.Settings["Tls"]; ok {
@@ -219,6 +219,8 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 	this.GetServer().RegisterGO("Set", this.handler.Set)
 	this.GetServer().RegisterGO("Remove", this.handler.Remove)
 	this.GetServer().RegisterGO("Send", this.handler.Send)
+	this.GetServer().RegisterGO("SendBatch", this.handler.SendBatch)
+	this.GetServer().RegisterGO("BroadCast", this.handler.BroadCast)
 	this.GetServer().RegisterGO("IsConnect", this.handler.IsConnect)
 	this.GetServer().RegisterGO("Close", this.handler.Close)
 }
