@@ -263,16 +263,19 @@ func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
 	if moduleId != "" {
 		ret, err := m.RpcInvoke(moduleId, function)
 		rets = append(rets, map[string]interface{}{
-			"Ret": ret,
-			"err": err,
+			"ModuleID": moduleId,
+			"Ret":      ret,
+			"Err":      err,
 		})
 	} else if moduleType != "" {
 		servers := m.app.GetServersByType(moduleType)
 		for _, server := range servers {
 			ret, err := server.Call(function)
 			rets = append(rets, map[string]interface{}{
-				"Ret": ret,
-				"err": err,
+				"ModuleType": server.GetType(),
+				"ModuleID":   server.GetId(),
+				"Ret":        ret,
+				"Err":        err,
 			})
 		}
 	}

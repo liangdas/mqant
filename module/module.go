@@ -138,3 +138,10 @@ type RPCSerialize interface {
 	*/
 	GetTypes() []string
 }
+
+/**
+资源操作监听器
+*/
+type AssetOperateListener interface {
+	Reload() (result string, err string)
+}

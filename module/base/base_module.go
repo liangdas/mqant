@@ -47,13 +47,14 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 }
 
 type BaseModule struct {
-	App         module.App
-	subclass    module.RPCModule
-	settings    *conf.ModuleSettings
-	server      *rpcserver
-	listener    mqrpc.RPCListener
-	statistical map[string]*StatisticalMethod //统计
-	rwmutex     sync.RWMutex
+	App           module.App
+	subclass      module.RPCModule
+	settings      *conf.ModuleSettings
+	server        *rpcserver
+	listener      mqrpc.RPCListener
+	assetListener module.AssetOperateListener
+	statistical   map[string]*StatisticalMethod //统计
+	rwmutex       sync.RWMutex
 }
 
 func (m *BaseModule) GetServerId() string {
@@ -91,6 +92,8 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	//创建一个远程调用的RPC
 	m.GetServer().OnInit(subclass, app, settings)
 	m.GetServer().GetRPCServer().SetListener(m)
+
+	m.GetServer().RegisterGO("ReloadAsset", m.onReloadAsset)
 }
 
 func (m *BaseModule) OnDestroy() {
@@ -101,6 +104,11 @@ func (m *BaseModule) OnDestroy() {
 func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 	m.listener = listener
 }
+
+func (m *BaseModule) SetAssetListener(listener module.AssetOperateListener) {
+	m.assetListener = listener
+}
+
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
@@ -168,6 +176,15 @@ func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
 		m.listener.OnTimeOut(fn, Expired)
 	}
 }
+
+func (m *BaseModule) onReloadAsset() (result string, err string) {
+	if m.assetListener == nil {
+		return "no assetListener found in module", ""
+	}
+
+	return m.assetListener.Reload()
+}
+
 func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
 	m.rwmutex.Lock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
