@@ -36,6 +36,7 @@ type RPCServer struct {
 	remote_server      *AMQPServer
 	local_server       *LocalServer
 	redis_server       *RedisServer
+	udp_server         *UDPServer
 	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
 	callback_chan      chan mqrpc.CallInfo //信息处理完成的队列
 	wg                 sync.WaitGroup      //任务阻塞
@@ -103,6 +104,19 @@ func (s *RPCServer) NewRedisRPCServer(info *conf.Redis) (err error) {
 	s.redis_server = redis_server
 	return
 }
+
+/**
+创建一个支持远程UDP RPC的服务
+*/
+func (s *RPCServer) NewUdpRPCServer(info *conf.UDP) (err error) {
+	udp_server, err := NewUdpServer(info, s.mq_chan)
+	if err != nil {
+		log.Error("RedisServer Dial: %s", err)
+	}
+	s.udp_server = udp_server
+	return
+}
+
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {
 	s.listener = listener
 }

@@ -38,6 +38,17 @@ func LoadConfig(Path string) {
 	if Conf.Rpc.MaxCoroutine == 0 {
 		Conf.Rpc.MaxCoroutine = 100
 	}
+	if Conf.Rpc.UDPMaxPacketSize == 0 {
+		Conf.Rpc.UDPMaxPacketSize = 4096
+	}
+	for _, module := range Conf.Module {
+		for _, ModuleSettings := range module {
+			if ModuleSettings.UDP != nil {
+				ModuleSettings.UDP.UDPMaxPacketSize = Conf.Rpc.UDPMaxPacketSize
+			}
+		}
+	}
+
 }
 
 type Config struct {
@@ -50,10 +61,11 @@ type Config struct {
 }
 
 type Rpc struct {
-	MaxCoroutine int  //模块同时可以创建的最大协程数量默认是100
-	RpcExpired   int  //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
-	LogSuccess   bool //是否打印请求处理成功的日志
-	Log          bool //是否打印RPC的日志
+	UDPMaxPacketSize int  //udp rpc 每一个包最大数据量 默认 4096
+	MaxCoroutine     int  //模块同时可以创建的最大协程数量默认是100
+	RpcExpired       int  //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+	LogSuccess       bool //是否打印请求处理成功的日志
+	Log              bool //是否打印RPC的日志
 }
 
 type Rabbitmq struct {
@@ -70,6 +82,12 @@ type Redis struct {
 	Queue string
 }
 
+type UDP struct {
+	Uri              string //udp服务端监听ip		0.0.0.0:8080
+	Port             int    //端口
+	UDPMaxPacketSize int
+}
+
 type ModuleSettings struct {
 	Id        string
 	Host      string
@@ -77,6 +95,7 @@ type ModuleSettings struct {
 	Settings  map[string]interface{}
 	Rabbitmq  *Rabbitmq
 	Redis     *Redis
+	UDP       *UDP
 }
 
 type Mqtt struct {

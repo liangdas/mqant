@@ -41,6 +41,7 @@ type Session interface {
 	GetIP() string
 	GetNetwork() string
 	GetUserid() string
+	GetUserIdInt64() int64
 	GetSessionid() string
 	GetServerid() string
 	GetSettings() map[string]string

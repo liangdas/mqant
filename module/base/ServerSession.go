@@ -51,7 +51,14 @@ func (c *serverSession) Call(_func string, params ...interface{}) (interface{}, 
 }
 
 /**
-消息请求 需要回复
+使用不可靠的udp rpc传输通道
+*/
+func (c *serverSession) CallUnreliable(_func string, params ...interface{}) (interface{}, string) {
+	return c.Rpc.CallUnreliable(_func, params...)
+}
+
+/**
+消息请求 不需要回复
 */
 func (c *serverSession) CallNR(_func string, params ...interface{}) (err error) {
 	return c.Rpc.CallNR(_func, params...)
@@ -65,8 +72,16 @@ func (c *serverSession) CallArgs(_func string, ArgsType []string, args [][]byte)
 }
 
 /**
-消息请求 需要回复
+消息请求 不需要回复
 */
 func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
 	return c.Rpc.CallNRArgs(_func, ArgsType, args)
+}
+
+/**
+使用不可靠的udp rpc传输通道
+消息请求 需要回复
+*/
+func (c *serverSession) CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
+	return c.Rpc.CallArgsUnreliable(_func, ArgsType, args)
 }

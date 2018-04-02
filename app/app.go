@@ -22,6 +22,7 @@ import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -67,12 +68,14 @@ func NewApp(version string) module.App {
 
 type DefaultApp struct {
 	//module.App
-	version             string
-	serverList          map[string]module.ServerSession
-	settings            conf.Config
-	processId           string
-	routes              map[string]func(app module.App, Type string, hash string) module.ServerSession
-	defaultRoutes       func(app module.App, Type string, hash string) module.ServerSession
+	version       string
+	serverList    map[string]module.ServerSession
+	settings      conf.Config
+	processId     string
+	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
+	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
+	//将一个RPC调用路由到新的路由上
+	mapRoute            func(app module.App, route string) string
 	rpcserializes       map[string]module.RPCSerialize
 	getTracer           func() opentracing.Tracer
 	configurationLoaded func(app module.App)
@@ -144,7 +147,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 
 	manager := basemodule.NewModuleManager()
-	//manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
+	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
 	for i := 0; i < len(mods); i++ {
 		mods[i].OnAppConfigurationLoaded(app)
@@ -168,6 +171,12 @@ func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type str
 	app.routes[moduleType] = fn
 	return nil
 }
+
+func (app *DefaultApp) SetMapRoute(fn func(app module.App, route string) string) error {
+	app.mapRoute = fn
+	return nil
+}
+
 func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type string, hash string) module.ServerSession {
 	fn := app.routes[moduleType]
 	if fn == nil {
@@ -209,16 +218,17 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			if err != nil {
 				continue
 			}
-			if app.GetProcessID() != moduel.ProcessID {
-				//同一个ProcessID下的模块直接通过local channel通信就可以了
-				if moduel.Rabbitmq != nil {
-					//如果远程的rpc存在则创建一个对应的客户端
-					client.NewRabbitmqClient(moduel.Rabbitmq)
-				}
-				if moduel.Redis != nil {
-					//如果远程的rpc存在则创建一个对应的客户端
-					client.NewRedisClient(moduel.Redis)
-				}
+			if moduel.Rabbitmq != nil {
+				//如果远程的rpc存在则创建一个对应的客户端
+				client.NewRabbitmqClient(moduel.Rabbitmq)
+			}
+			if moduel.Redis != nil {
+				//如果远程的rpc存在则创建一个对应的客户端
+				client.NewRedisClient(moduel.Redis)
+			}
+			if moduel.UDP != nil {
+				//如果远程的rpc存在则创建一个对应的客户端
+				client.NewUdpClient(moduel.UDP)
 			}
 			session := basemodule.NewServerSession(moduel.Id, Type, client)
 			app.serverList[moduel.Id] = session
@@ -269,6 +279,10 @@ func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
 }
 
 func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
+	if app.mapRoute != nil {
+		//进行一次路由转换
+		filter = app.mapRoute(app, filter)
+	}
 	sl := strings.Split(filter, "@")
 	if len(sl) == 2 {
 		moduleID := sl[1]
@@ -324,6 +338,24 @@ func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType strin
 	}
 	return server.CallNRArgs(_func, ArgsType, args)
 }
+
+func (app *DefaultApp) RpcInvokeUnreliable(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
+	server, e := app.GetRouteServer(moduleType, module.GetServerId())
+	if e != nil {
+		err = e.Error()
+		return
+	}
+	return server.CallUnreliable(_func, params...)
+}
+
+func (app *DefaultApp) RpcInvokeArgsUnreliable(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
+	server, err := app.GetRouteServer(moduleType, module.GetServerId())
+	if err != nil {
+		return nil, err.Error()
+	}
+	return server.CallArgsUnreliable(_func, ArgsType, args)
+}
+
 func (app *DefaultApp) DefaultTracer(_func func() opentracing.Tracer) error {
 	app.getTracer = _func
 	return nil
