@@ -15,7 +15,7 @@ package defaultrpc
 
 import (
 	"fmt"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
