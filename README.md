@@ -110,6 +110,9 @@ bug请直接通过issue提交
 4. [bjfumac【mqant-docker】[MQTT-Laya]](https://github.com/bjfumac)
 
 
+## 打赏作者
+
+![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png "打赏码")
 
 ## 版本日志
 
