@@ -112,7 +112,7 @@ bug请直接通过issue提交
 
 ## 打赏作者
 
-![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png "打赏码")
+![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png){:height="100" width="100"}
 
 ## 版本日志
 

@@ -25,7 +25,7 @@ func (m *Timer) GetType() string {
 }
 
 func (m *Timer) OnInit(app module.App, settings *conf.ModuleSettings) {
-	timewheel.SetTimeWheel(timewheel.New(1*time.Millisecond, 3600))
+	timewheel.SetTimeWheel(timewheel.New(10*time.Millisecond, 36))
 	// 时间轮使用方式
 	//import "github.com/liangdas/mqant/module/modules/timer"
 	//执行过的定时器会自动被删除
