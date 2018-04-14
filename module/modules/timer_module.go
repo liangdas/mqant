@@ -7,6 +7,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/modules/timer"
+	"time"
 )
 
 var TimerModule = func() module.Module {
@@ -24,18 +25,19 @@ func (m *Timer) GetType() string {
 }
 
 func (m *Timer) OnInit(app module.App, settings *conf.ModuleSettings) {
-	// 定时器2，不传参数
-	//SetTimer("callback2", 100, m.callback2, time.Now().UnixNano())
+	timewheel.SetTimeWheel(timewheel.New(10*time.Millisecond, 36))
+	// 时间轮使用方式
+	//import "github.com/liangdas/mqant/module/modules/timer"
+	//执行过的定时器会自动被删除
+	//timewheel.GetTimeWheel().AddTimer(66 * time.Millisecond , nil,self.Update)
+	//
+	//timewheel.GetTimeWheel().AddTimerCustom(66 * time.Millisecond ,"baba", nil,self.Update)
+	//删除一个为执行的定时器, 参数为添加定时器传递的唯一标识
+	//timewheel.GetTimeWheel().RemoveTimer("baba")
 }
 
-//func (m *Timer)callback2(args interface{}) {
-//	//每次在当前时间点之后5s插入一个定时器，这样就能形成每隔5秒调用一次callback2回调函数，可以用于周期性事件
-//	SetTimer("callback2", 60, m.callback2, time.Now().UnixNano())
-//	log.Debug("time",(time.Now().UnixNano()-args.(int64))/1000000)
-//	fmt.Println(time.Now().Format("2006-01-02 15:04:05"))
-//}
 func (m *Timer) Run(closeSig chan bool) {
-	timer.Run(closeSig)
+	timewheel.GetTimeWheel().Start(closeSig)
 }
 
 func (m *Timer) OnDestroy() {

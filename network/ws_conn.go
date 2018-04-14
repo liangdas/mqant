@@ -47,13 +47,13 @@ func newWSConn(conn *websocket.Conn) *WSConn {
 			if err != nil {
 				//log.Error("读取数据失败 %s",err.Error())
 				wsConn.buf_lock <- err
+				break
 			} else {
 				wsConn.buffer.Write(b)
 				wsConn.readfirst = true
 				wsConn.buf_lock <- nil
 			}
 		}
-
 		conn.Close()
 		wsConn.Lock()
 		wsConn.closeFlag = true
@@ -89,8 +89,8 @@ func (wsConn *WSConn) Close() error {
 	return wsConn.conn.Close()
 }
 
-func (wsConn *WSConn) Write(p []byte) (n int, err error) {
-	err = wsConn.conn.WriteMessage(websocket.BinaryMessage, p)
+func (wsConn *WSConn) Write(p []byte) (int, error) {
+	err := wsConn.conn.WriteMessage(websocket.BinaryMessage, p)
 	if err != nil {
 		return 0, err
 	}

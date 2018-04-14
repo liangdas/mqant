@@ -142,6 +142,24 @@ func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType [
 	return server.CallNRArgs(_func, ArgsType, args)
 }
 
+func (m *BaseModule) RpcInvokeUnreliable(moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
+	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
+	if e != nil {
+		err = e.Error()
+		return
+	}
+	return server.CallUnreliable(_func, params...)
+}
+
+func (m *BaseModule) RpcInvokeArgsUnreliable(moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
+	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
+	if e != nil {
+		err = e.Error()
+		return
+	}
+	return server.CallArgsUnreliable(_func, ArgsType, args)
+}
+
 func (m *BaseModule) BeforeHandle(fn string, session gate.Session, callInfo *mqrpc.CallInfo) error {
 	if m.listener != nil {
 		return m.listener.BeforeHandle(fn, session, callInfo)

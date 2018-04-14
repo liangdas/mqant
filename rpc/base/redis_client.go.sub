@@ -25,7 +25,7 @@ import (
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/util"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type RedisClient struct {

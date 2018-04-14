@@ -44,6 +44,10 @@ func (s *rpcserver) OnInit(module module.Module, app module.App, settings *conf.
 		//存在远程rpc的配置
 		server.NewRedisRPCServer(settings.Redis)
 	}
+	if settings.UDP != nil {
+		//存在远程rpc的配置
+		server.NewUdpRPCServer(settings.UDP)
+	}
 	s.server = server
 	err = app.RegisterLocalClient(settings.Id, server)
 	if err != nil {

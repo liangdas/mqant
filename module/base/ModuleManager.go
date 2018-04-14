@@ -18,7 +18,6 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/modules/timer"
 )
 
 func NewModuleManager() (m *ModuleManager) {
@@ -78,7 +77,7 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 		m.wg.Add(1)
 		go run(m)
 	}
-	timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
+	//timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
 }
 
 /**
@@ -133,6 +132,6 @@ func (mer *ModuleManager) ReportStatistics(args interface{}) {
 			default:
 			}
 		}
-		timer.SetTimer(3, mer.ReportStatistics, nil)
+		//timer.SetTimer(3, mer.ReportStatistics, nil)
 	}
 }

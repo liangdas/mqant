@@ -14,53 +14,57 @@
 package defaultrpc
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/liangdas/mqant/utils"
+	"net"
 	"runtime"
 )
 
-type RedisServer struct {
+type UDPServer struct {
 	call_chan chan mqrpc.CallInfo
-	url       string
-	info      *conf.Redis
-	queueName string
+	uri       string
+	info      *conf.UDP
+	conn      *net.UDPConn
+	data      []byte
 	done      chan error
-	pool      redis.Conn
 	closed    bool
 }
 
-func NewRedisServer(info *conf.Redis, call_chan chan mqrpc.CallInfo) (*RedisServer, error) {
-	var queueName = info.Queue
-	var url = info.Uri
-	server := new(RedisServer)
+func NewUdpServer(info *conf.UDP, call_chan chan mqrpc.CallInfo) (*UDPServer, error) {
+	server := new(UDPServer)
 	server.call_chan = call_chan
-	server.url = url
 	server.info = info
-	server.queueName = queueName
 	server.done = make(chan error)
 	server.closed = false
+	server.data = make([]byte, info.UDPMaxPacketSize)
+	//addr,err:=net.ResolveUDPAddr("udp4",server.uri)
+	//if err != nil {
+	//	return	err
+	//}
+	socket, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   net.IPv4(0, 0, 0, 0),
+		Port: info.Port,
+	})
+	if err != nil {
+		return nil, err
+	}
+	server.conn = socket
 	go server.on_request_handle(server.done)
 
 	return server, nil
-	//log.Printf("shutting down")
-	//
-	//if err := c.Shutdown(); err != nil {
-	//	log.Fatalf("error during shutdown: %s", err)
-	//}
 }
 
 /**
 停止接收请求
 */
-func (s *RedisServer) StopConsume() error {
-	s.closed = true
-	if s.pool != nil {
-		return s.pool.Close()
+func (this *UDPServer) StopConsume() error {
+	this.closed = true
+	if this.conn != nil {
+		this.conn.Close()
+		this.conn = nil
 	}
 	return nil
 }
@@ -68,15 +72,16 @@ func (s *RedisServer) StopConsume() error {
 /**
 注销消息队列
 */
-func (s *RedisServer) Shutdown() error {
-	s.closed = true
-	if s.pool != nil {
-		return s.pool.Close()
+func (this *UDPServer) Shutdown() error {
+	this.closed = true
+	if this.conn != nil {
+		this.conn.Close()
+		this.conn = nil
 	}
 	return nil
 }
 
-func (s *RedisServer) Callback(callinfo mqrpc.CallInfo) error {
+func (s *UDPServer) Callback(callinfo mqrpc.CallInfo) error {
 	body, _ := s.MarshalResult(callinfo.Result)
 	return s.response(callinfo.Props, body)
 }
@@ -84,14 +89,16 @@ func (s *RedisServer) Callback(callinfo mqrpc.CallInfo) error {
 /**
 消息应答
 */
-func (s *RedisServer) response(props map[string]interface{}, body []byte) error {
-	pool := utils.GetRedisFactory().GetPool(s.info.Uri).Get()
-	defer pool.Close()
-	var err error
-	_, err = pool.Do("lpush", props["reply_to"].(string), body)
+func (this *UDPServer) response(props map[string]interface{}, body []byte) error {
+	remoteAddr := props["reply_to"].(*net.UDPAddr)
+	// 发送数据
+	count, err := this.conn.WriteToUDP(body, remoteAddr)
 	if err != nil {
-		log.Warning("Publish: %s", err)
+		log.Warning("UDP RPC Server: %s", err.Error())
 		return err
+	}
+	if count != len(body) {
+		log.Warning("UDP RPC Server: Sending data length is wrong send(%d) body(%d)", count, len(body))
 	}
 	return nil
 }
@@ -99,7 +106,7 @@ func (s *RedisServer) response(props map[string]interface{}, body []byte) error 
 /**
 接收请求信息
 */
-func (s *RedisServer) on_request_handle(done chan error) {
+func (this *UDPServer) on_request_handle(done chan error) {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -116,23 +123,28 @@ func (s *RedisServer) on_request_handle(done chan error) {
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-	for !s.closed {
-		s.pool = utils.GetRedisFactory().GetPool(s.info.Uri).Get()
-		result, err := s.pool.Do("brpop", s.queueName, 0)
-		s.pool.Close()
+
+	for !this.closed {
+		// 读取数据
+		read, remoteAddr, err := this.conn.ReadFromUDP(this.data)
+		if err != nil {
+			log.Warning("UDP RPC Server: ReadFromUDP ERROR %s", err.Error())
+			continue
+		}
+		result := this.data[:read]
 		if err == nil && result != nil {
-			rpcInfo, err := s.Unmarshal(result.([]interface{})[1].([]byte))
+			rpcInfo, err := this.Unmarshal(result)
 			if err == nil {
 				callInfo := &mqrpc.CallInfo{
 					RpcInfo: *rpcInfo,
 				}
 				callInfo.Props = map[string]interface{}{
-					"reply_to": callInfo.RpcInfo.ReplyTo,
+					"reply_to": remoteAddr,
 				}
 
-				callInfo.Agent = s //设置代理为AMQPServer
+				callInfo.Agent = this //设置代理为AMQPServer
 
-				s.call_chan <- *callInfo
+				this.call_chan <- *callInfo
 			} else {
 				log.Error("error ", err)
 			}
@@ -143,7 +155,7 @@ func (s *RedisServer) on_request_handle(done chan error) {
 	log.Debug("finish on_request_handle")
 }
 
-func (s *RedisServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
+func (s *UDPServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
 	var rpcInfo rpcpb.RPCInfo
@@ -158,7 +170,7 @@ func (s *RedisServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 }
 
 // goroutine safe
-func (s *RedisServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
+func (s *UDPServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
 	//log.Error("",map2)
 	b, err := proto.Marshal(&resultInfo)
 	return b, err

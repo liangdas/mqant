@@ -19,6 +19,7 @@ import (
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/utils"
+	"strings"
 )
 
 type handler struct {
@@ -231,6 +232,40 @@ func (h *handler) Send(Sessionid string, topic string, body []byte) (result inte
 		result = "success"
 	}
 	return
+}
+
+/**
+ *批量发送消息,sessionid之间用,分割
+ */
+func (h *handler) SendBatch(SessionidStr string, topic string, body []byte) (int64, string) {
+	sessionids := strings.Split(SessionidStr, ",")
+	var count int64 = 0
+	for _, sessionid := range sessionids {
+		agent := h.sessions.Get(sessionid)
+		if agent == nil {
+			//log.Warning("No Sesssion found")
+			continue
+		}
+		e := agent.(gate.Agent).WriteMsg(topic, body)
+		if e != nil {
+			log.Warning("WriteMsg error:", e.Error())
+		} else {
+			count++
+		}
+	}
+	return count, ""
+}
+func (h *handler) BroadCast(topic string, body []byte) (int64, string) {
+	var count int64 = 0
+	for _, agent := range h.sessions.Items() {
+		e := agent.(gate.Agent).WriteMsg(topic, body)
+		if e != nil {
+			log.Warning("WriteMsg error:", e.Error())
+		} else {
+			count++
+		}
+	}
+	return count, ""
 }
 
 /**

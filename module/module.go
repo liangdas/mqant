@@ -32,6 +32,11 @@ type ServerSession interface {
 	CallNR(_func string, params ...interface{}) (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
+
+	//不可靠的RPC传输,底层基于udp协议
+	CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string)
+	//不可靠的RPC传输,底层基于udp协议
+	CallUnreliable(_func string, params ...interface{}) (interface{}, string)
 }
 type App interface {
 	Run(debug bool, mods ...Module) error
@@ -40,6 +45,7 @@ type App interface {
 	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)
 	*/
 	Route(moduleType string, fn func(app App, Type string, hash string) ServerSession) error
+	SetMapRoute(fn func(app App, route string) string) error
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
@@ -103,6 +109,8 @@ type RPCModule interface {
 	RpcInvokeNR(moduleType string, _func string, params ...interface{}) error
 	RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string)
 	RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) error
+	RpcInvokeUnreliable(moduleType string, _func string, params ...interface{}) (interface{}, string)
+	RpcInvokeArgsUnreliable(moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string)
 	GetModuleSettings() (settings *conf.ModuleSettings)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
