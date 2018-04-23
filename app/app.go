@@ -24,7 +24,7 @@ import (
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"hash/crc32"
 	"math"
 	"os"
@@ -32,6 +32,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 type resultInfo struct {
@@ -157,11 +158,13 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	// close
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
+
+	log.Info("mqant closing down (signal: %v)", sig)
+
 	manager.Destroy()
 	app.OnDestroy()
-	log.Info("mqant closing down (signal: %v)", sig)
 	return nil
 }
 func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {
