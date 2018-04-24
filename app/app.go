@@ -161,10 +161,12 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
 
-	log.Info("mqant closing down (signal: %v)", sig)
+	log.Info("mqant prcess (%s) closing down (signal: %v)", ProcessID, sig)
 
 	manager.Destroy()
 	app.OnDestroy()
+
+	log.Flush()
 	return nil
 }
 func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {

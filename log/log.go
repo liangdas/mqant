@@ -62,6 +62,10 @@ func Warning(format string, a ...interface{}) {
 	LogBeego().Warning(format, a...)
 }
 
+func Flush() {
+	LogBeego().Flush()
+}
+
 func Close() {
 	LogBeego().Close()
 }
