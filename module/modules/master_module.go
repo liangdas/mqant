@@ -261,7 +261,7 @@ func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if moduleId != "" {
-		ret, err := m.RpcInvoke(moduleId, function)
+		ret, err := m.RpcInvoke("@"+moduleId, function)
 		rets = append(rets, map[string]interface{}{
 			"ModuleID": moduleId,
 			"Ret":      ret,
