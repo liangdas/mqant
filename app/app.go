@@ -161,7 +161,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
 
-	log.Info("mqant prcess (%s) closing down (signal: %v)", ProcessID, sig)
+	log.Info("mqant prcess (%s) closing down (signal: %v)", *ProcessID, sig)
 
 	manager.Destroy()
 	app.OnDestroy()
