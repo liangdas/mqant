@@ -15,22 +15,25 @@ package basemodule
 
 import (
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/util"
 	"github.com/liangdas/mqant/rpc"
 )
 
 func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
 	session := &serverSession{
-		Id:    Id,
-		Stype: Stype,
-		Rpc:   Rpc,
+		Id:     Id,
+		Stype:  Stype,
+		Rpc:    Rpc,
+		status: &module.ServerStatus{Running: true, LoadHash: 0},
 	}
 	return session
 }
 
 type serverSession struct {
-	Id    string
-	Stype string
-	Rpc   mqrpc.RPCClient
+	Id     string
+	Stype  string
+	Rpc    mqrpc.RPCClient
+	status *module.ServerStatus
 }
 
 func (c *serverSession) GetId() string {
@@ -69,4 +72,18 @@ func (c *serverSession) CallArgs(_func string, ArgsType []string, args [][]byte)
 */
 func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
 	return c.Rpc.CallNRArgs(_func, ArgsType, args)
+}
+
+/**
+获取服务器状态
+*/
+func (c *serverSession) GetServerStatus() *module.ServerStatus {
+	return c.status
+}
+
+/**
+读取服务器状态
+*/
+func (c *serverSession) ReadServerStatus(app module.App) {
+	c.status = util.ReadServerStatus(app, c.Id)
 }
