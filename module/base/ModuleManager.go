@@ -18,7 +18,13 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/util"
 	"time"
+)
+
+const (
+	ReportStatisticsInterval = time.Second * 10 // 定时上报状态的时间间隔
+	ModuleStatusSaveInterval = time.Second * 5  // 模块状态保存的时间间隔
 )
 
 func NewModuleManager() (m *ModuleManager) {
@@ -27,10 +33,11 @@ func NewModuleManager() (m *ModuleManager) {
 }
 
 type ModuleManager struct {
-	app         module.App
-	mods        []*DefaultModule
-	runMods     []*DefaultModule
-	reportTimer *time.Timer
+	app             module.App
+	mods            []*DefaultModule // app.Run中传入的模块
+	runMods         []*DefaultModule // 在当前进程中运行的所有模块
+	reportTimer     *time.Timer
+	saveStatusTimer *time.Timer
 }
 
 func (mer *ModuleManager) Register(mi module.Module) {
@@ -80,7 +87,8 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 		go run(m)
 	}
 
-	mer.reportTimer = time.AfterFunc(time.Second*10, mer.ReportStatistics)
+	mer.reportTimer = time.AfterFunc(ReportStatisticsInterval, mer.ReportStatistics)
+	mer.saveStatusTimer = time.AfterFunc(ModuleStatusSaveInterval, mer.SaveModuleStatus)
 }
 
 /**
@@ -119,6 +127,8 @@ func (mer *ModuleManager) Destroy() {
 
 	mer.reportTimer.Stop()
 	mer.ReportStatistics()
+
+	mer.saveStatusTimer.Stop()
 }
 
 func (mer *ModuleManager) ReportStatistics() {
@@ -140,6 +150,20 @@ func (mer *ModuleManager) ReportStatistics() {
 			}
 		}
 
-		mer.reportTimer.Reset(time.Second * 10)
+		mer.reportTimer.Reset(ReportStatisticsInterval)
 	}
+}
+
+func (mer *ModuleManager) SaveModuleStatus() {
+	mer.saveStatusTimer.Reset(ModuleStatusSaveInterval)
+
+	for _, m := range mer.runMods {
+		mi := m.mi
+		switch value := mi.(type) {
+		case module.RPCModule:
+			util.SaveServerStatus(mer.app, value.GetServerId(), m.running, value.GetLoadHash())
+		default:
+		}
+	}
+
 }

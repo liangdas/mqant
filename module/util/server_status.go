@@ -21,7 +21,7 @@ func statusDataKey(serverId string) string {
 }
 
 // 保存服务器状态
-func SaveServerStatus(app module.App, serverId string, running bool, loadHash int32) {
+func SaveServerStatus(app module.App, serverId string, running bool, loadHash int64) {
 	config := app.GetSettings()
 	url := config.Rpc.SessionRedisUrl
 	if url == "" {

@@ -24,6 +24,7 @@ import (
 type DefaultModule struct {
 	mi       module.Module
 	settings *conf.ModuleSettings
+	running  bool
 	closeSig chan bool
 	wg       sync.WaitGroup
 }
@@ -40,6 +41,7 @@ func run(m *DefaultModule) {
 			}
 		}
 	}()
+	m.running = true
 	m.mi.Run(m.closeSig)
 	m.wg.Done()
 }
@@ -56,5 +58,6 @@ func destroy(m *DefaultModule) {
 			}
 		}
 	}()
+	m.running = false
 	m.mi.OnDestroy()
 }

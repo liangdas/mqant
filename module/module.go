@@ -113,6 +113,7 @@ type RPCModule interface {
 	GetRouteServer(filter string, hash string) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
+	GetLoadHash() int64
 }
 
 /**
@@ -151,5 +152,5 @@ type AssetOperateListener interface {
 // RPC服务器的当前状态
 type ServerStatus struct {
 	Running  bool  // 正在运行中
-	LoadHash int32 // 负载哈希值：由上层应用计算定义的负载程度，值越大，表示负载越高
+	LoadHash int64 // 负载哈希值：由上层应用计算定义的负载程度，值越大，表示负载越高
 }
