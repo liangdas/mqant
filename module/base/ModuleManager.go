@@ -18,6 +18,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
+	"time"
 )
 
 func NewModuleManager() (m *ModuleManager) {
@@ -26,9 +27,10 @@ func NewModuleManager() (m *ModuleManager) {
 }
 
 type ModuleManager struct {
-	app     module.App
-	mods    []*DefaultModule
-	runMods []*DefaultModule
+	app         module.App
+	mods        []*DefaultModule
+	runMods     []*DefaultModule
+	reportTimer *time.Timer
 }
 
 func (mer *ModuleManager) Register(mi module.Module) {
@@ -77,7 +79,8 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 		m.wg.Add(1)
 		go run(m)
 	}
-	//timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
+
+	mer.reportTimer = time.AfterFunc(time.Second*10, mer.ReportStatistics)
 }
 
 /**
@@ -113,8 +116,12 @@ func (mer *ModuleManager) Destroy() {
 		m.wg.Wait()
 		destroy(m)
 	}
+
+	mer.reportTimer.Stop()
+	mer.ReportStatistics()
 }
-func (mer *ModuleManager) ReportStatistics(args interface{}) {
+
+func (mer *ModuleManager) ReportStatistics() {
 	if mer.app.GetSettings().Master.Enable {
 		for _, m := range mer.runMods {
 			mi := m.mi
@@ -132,6 +139,7 @@ func (mer *ModuleManager) ReportStatistics(args interface{}) {
 			default:
 			}
 		}
-		//timer.SetTimer(3, mer.ReportStatistics, nil)
+
+		mer.reportTimer.Reset(time.Second * 10)
 	}
 }
