@@ -11,6 +11,7 @@ import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/utils"
+	"math"
 	"time"
 )
 
@@ -22,6 +23,7 @@ func statusDataKey(serverId string) string {
 
 // 保存服务器状态
 func SaveServerStatus(app module.App, serverId string, running bool, loadHash int64) {
+	//log.Debug("SaveServerStatus serverId(%s) running(%t) loadHash(%d)", serverId, running, loadHash)
 	config := app.GetSettings()
 	url := config.Rpc.SessionRedisUrl
 	if url == "" {
@@ -87,4 +89,40 @@ func ReadServerStatus(app module.App, serverId string) (status *module.ServerSta
 	}
 
 	return status
+}
+
+/**
+获取指定类型的运行中的所有模块
+*/
+func GetRunningServersByType(app module.App, moduleType string) []module.ServerSession {
+	servers := app.GetServersByType(moduleType)
+
+	rets := make([]module.ServerSession, 0)
+	for _, session := range servers {
+		if session.GetServerStatus().Running {
+			rets = append(rets, session)
+		}
+	}
+	return rets
+}
+
+/**
+获取指定类型的运行中的负载最低模块
+*/
+func GetMinLoadRunningServerByType(app module.App, moduleType string) module.ServerSession {
+	servers := app.GetServersByType(moduleType)
+
+	var ret module.ServerSession
+	var minLoad = int64(math.MaxInt64)
+
+	for _, session := range servers {
+		status := session.GetServerStatus()
+		if status.Running {
+			if status.LoadHash < minLoad {
+				minLoad = status.LoadHash
+				ret = session
+			}
+		}
+	}
+	return ret
 }

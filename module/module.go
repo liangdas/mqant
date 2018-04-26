@@ -53,7 +53,6 @@ type App interface {
 	*/
 	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(moduleType string) []ServerSession
-	GetRunningServersByType(moduleType string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
 	RpcInvokeNR(module RPCModule, moduleType string, _func string, params ...interface{}) error

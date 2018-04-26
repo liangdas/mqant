@@ -22,6 +22,7 @@ import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/util"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	"github.com/opentracing/opentracing-go"
@@ -37,7 +38,7 @@ import (
 )
 
 const (
-	ReadServerStatusInterval = time.Second * 5
+	ReadServerStatusInterval = time.Second * 1
 )
 
 type resultInfo struct {
@@ -59,7 +60,7 @@ func NewApp(version string) module.App {
 	app.serverList = map[string]module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		// 根据hash值，选取一个可以
-		servers := app.GetRunningServersByType(Type)
+		servers := util.GetRunningServersByType(app, Type)
 		if len(servers) == 0 {
 			return nil
 		}
@@ -238,12 +239,17 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 		}
 	}
 
+	app.statusReaderTimer = time.AfterFunc(ReadServerStatusInterval, app.onReadServerStatus)
+	app.onReadServerStatus()
+
 	return nil
 }
 
 func (app *DefaultApp) OnDestroy() error {
+	app.statusReaderTimer.Stop()
+
 	for id, session := range app.serverList {
-		log.Info("RPCClient closeing type(%s) id(%s)", session.GetType(), id)
+		log.Info("RPCClient closing type(%s) id(%s)", session.GetType(), id)
 		err := session.GetRpc().Done()
 		if err != nil {
 			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)
@@ -251,6 +257,7 @@ func (app *DefaultApp) OnDestroy() error {
 			log.Info("RPCClient close success type(%s) id(%s)", session.GetType(), id)
 		}
 	}
+
 	return nil
 }
 
@@ -267,7 +274,7 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 	if session, ok := app.serverList[serverId]; ok {
 		return session, nil
 	} else {
-		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
+		return nil, fmt.Errorf("server type(%s) not found", serverId)
 	}
 }
 
@@ -275,16 +282,6 @@ func (app *DefaultApp) GetServersByType(moduleType string) []module.ServerSessio
 	sessions := make([]module.ServerSession, 0)
 	for _, session := range app.serverList {
 		if session.GetType() == moduleType {
-			sessions = append(sessions, session)
-		}
-	}
-	return sessions
-}
-
-func (app *DefaultApp) GetRunningServersByType(moduleType string) []module.ServerSession {
-	sessions := make([]module.ServerSession, 0)
-	for _, session := range app.serverList {
-		if session.GetType() == moduleType && session.GetServerStatus().Running {
 			sessions = append(sessions, session)
 		}
 	}
@@ -303,7 +300,7 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 	route := app.getRoute(moduleType)
 	s = route(app, moduleType, hash)
 	if s == nil {
-		err = fmt.Errorf("Server(type : %s) Not Found", moduleType)
+		err = fmt.Errorf("server type (%s) not found", moduleType)
 	}
 	return
 }

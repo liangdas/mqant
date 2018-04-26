@@ -89,6 +89,7 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 
 	mer.reportTimer = time.AfterFunc(ReportStatisticsInterval, mer.ReportStatistics)
 	mer.saveStatusTimer = time.AfterFunc(ModuleStatusSaveInterval, mer.SaveModuleStatus)
+	mer.SaveModuleStatus()
 }
 
 /**
@@ -122,12 +123,15 @@ func (mer *ModuleManager) Destroy() {
 		m := mer.runMods[i]
 		m.closeSig <- true
 		m.wg.Wait()
+	}
+
+	for i := len(mer.runMods) - 1; i >= 0; i-- {
+		m := mer.runMods[i]
 		destroy(m)
 	}
 
+	mer.SaveModuleStatus()
 	mer.reportTimer.Stop()
-	mer.ReportStatistics()
-
 	mer.saveStatusTimer.Stop()
 }
 
@@ -161,7 +165,7 @@ func (mer *ModuleManager) SaveModuleStatus() {
 		mi := m.mi
 		switch value := mi.(type) {
 		case module.RPCModule:
-			util.SaveServerStatus(mer.app, value.GetServerId(), m.running, value.GetLoadHash())
+			util.SaveServerStatus(mer.app, value.GetServerId(), m.isRunning(), value.GetLoadHash())
 		default:
 		}
 	}

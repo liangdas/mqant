@@ -19,12 +19,13 @@ import (
 	"github.com/liangdas/mqant/module"
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 type DefaultModule struct {
 	mi       module.Module
 	settings *conf.ModuleSettings
-	running  bool
+	running  int32
 	closeSig chan bool
 	wg       sync.WaitGroup
 }
@@ -41,7 +42,8 @@ func run(m *DefaultModule) {
 			}
 		}
 	}()
-	m.running = true
+
+	atomic.StoreInt32(&m.running, 1)
 	m.mi.Run(m.closeSig)
 	m.wg.Done()
 }
@@ -58,6 +60,10 @@ func destroy(m *DefaultModule) {
 			}
 		}
 	}()
-	m.running = false
+	atomic.StoreInt32(&m.running, 0)
 	m.mi.OnDestroy()
+}
+
+func (m *DefaultModule) isRunning() bool {
+	return atomic.LoadInt32(&m.running) != 0
 }
