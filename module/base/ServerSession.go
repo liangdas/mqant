@@ -17,6 +17,7 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/util"
 	"github.com/liangdas/mqant/rpc"
+	"sync"
 )
 
 func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
@@ -34,6 +35,7 @@ type serverSession struct {
 	Stype  string
 	Rpc    mqrpc.RPCClient
 	status *module.ServerStatus
+	lock   sync.RWMutex
 }
 
 func (c *serverSession) GetId() string {
@@ -78,6 +80,8 @@ func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byt
 获取服务器状态
 */
 func (c *serverSession) GetServerStatus() *module.ServerStatus {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
 	return c.status
 }
 
@@ -85,5 +89,8 @@ func (c *serverSession) GetServerStatus() *module.ServerStatus {
 读取服务器状态
 */
 func (c *serverSession) ReadServerStatus(app module.App) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
 	c.status = util.ReadServerStatus(app, c.Id)
 }
