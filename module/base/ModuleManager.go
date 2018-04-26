@@ -18,6 +18,13 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/util"
+	"time"
+)
+
+const (
+	ReportStatisticsInterval = time.Second * 10 // 定时上报状态的时间间隔
+	ModuleStatusSaveInterval = time.Second * 5  // 模块状态保存的时间间隔
 )
 
 func NewModuleManager() (m *ModuleManager) {
@@ -26,9 +33,11 @@ func NewModuleManager() (m *ModuleManager) {
 }
 
 type ModuleManager struct {
-	app     module.App
-	mods    []*DefaultModule
-	runMods []*DefaultModule
+	app             module.App
+	mods            []*DefaultModule // app.Run中传入的模块
+	runMods         []*DefaultModule // 在当前进程中运行的所有模块
+	reportTimer     *time.Timer
+	saveStatusTimer *time.Timer
 }
 
 func (mer *ModuleManager) Register(mi module.Module) {
@@ -77,7 +86,9 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 		m.wg.Add(1)
 		go run(m)
 	}
-	//timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
+
+	mer.reportTimer = time.AfterFunc(ReportStatisticsInterval, mer.ReportStatistics)
+	mer.saveStatusTimer = time.AfterFunc(ModuleStatusSaveInterval, mer.SaveModuleStatus)
 }
 
 /**
@@ -113,8 +124,14 @@ func (mer *ModuleManager) Destroy() {
 		m.wg.Wait()
 		destroy(m)
 	}
+
+	mer.reportTimer.Stop()
+	mer.ReportStatistics()
+
+	mer.saveStatusTimer.Stop()
 }
-func (mer *ModuleManager) ReportStatistics(args interface{}) {
+
+func (mer *ModuleManager) ReportStatistics() {
 	if mer.app.GetSettings().Master.Enable {
 		for _, m := range mer.runMods {
 			mi := m.mi
@@ -132,6 +149,21 @@ func (mer *ModuleManager) ReportStatistics(args interface{}) {
 			default:
 			}
 		}
-		//timer.SetTimer(3, mer.ReportStatistics, nil)
+
+		mer.reportTimer.Reset(ReportStatisticsInterval)
 	}
+}
+
+func (mer *ModuleManager) SaveModuleStatus() {
+	mer.saveStatusTimer.Reset(ModuleStatusSaveInterval)
+
+	for _, m := range mer.runMods {
+		mi := m.mi
+		switch value := mi.(type) {
+		case module.RPCModule:
+			util.SaveServerStatus(mer.app, value.GetServerId(), m.running, value.GetLoadHash())
+		default:
+		}
+	}
+
 }

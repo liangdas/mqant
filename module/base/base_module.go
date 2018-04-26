@@ -47,14 +47,15 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 }
 
 type BaseModule struct {
-	App           module.App
-	subclass      module.RPCModule
-	settings      *conf.ModuleSettings
-	server        *rpcserver
-	listener      mqrpc.RPCListener
-	assetListener module.AssetOperateListener
-	statistical   map[string]*StatisticalMethod //统计
-	rwmutex       sync.RWMutex
+	App                module.App
+	subclass           module.RPCModule
+	settings           *conf.ModuleSettings
+	server             *rpcserver
+	listener           mqrpc.RPCListener
+	assetReloader      func() (result string, err string) // 用于扩展的资源重载器
+	loadHashCalculator func() int64                       // 用于扩展的负载hash计算器
+	statistical        map[string]*StatisticalMethod      //统计
+	rwmutex            sync.RWMutex
 }
 
 func (m *BaseModule) GetServerId() string {
@@ -105,8 +106,12 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 	m.listener = listener
 }
 
-func (m *BaseModule) SetAssetListener(listener module.AssetOperateListener) {
-	m.assetListener = listener
+func (m *BaseModule) OnAssetReload(reloader func() (result string, err string)) {
+	m.assetReloader = reloader
+}
+
+func (m *BaseModule) OnCalculateLoadHash(calculator func() int64) {
+	m.loadHashCalculator = calculator
 }
 
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
@@ -178,11 +183,11 @@ func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
 }
 
 func (m *BaseModule) onReloadAsset() (result string, err string) {
-	if m.assetListener == nil {
-		return "no assetListener found in module", ""
+	if m.assetReloader == nil {
+		return "no asset reloader found in module", ""
 	}
 
-	return m.assetListener.Reload()
+	return m.assetReloader()
 }
 
 func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
@@ -241,6 +246,15 @@ func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpc
 func (m *BaseModule) GetExecuting() int64 {
 	return m.GetServer().GetRPCServer().GetExecuting()
 }
+
+func (m *BaseModule) GetLoadHash() int64 {
+	if m.loadHashCalculator != nil {
+		return m.loadHashCalculator()
+	} else {
+		return m.GetExecuting()
+	}
+}
+
 func (m *BaseModule) GetStatistical() (statistical string, err error) {
 	m.rwmutex.Lock()
 	//重置

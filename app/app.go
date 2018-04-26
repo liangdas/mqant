@@ -33,6 +33,11 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
+)
+
+const (
+	ReadServerStatusInterval = time.Second * 5
 )
 
 type resultInfo struct {
@@ -53,8 +58,8 @@ func NewApp(version string) module.App {
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
 	app.serverList = map[string]module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
-		//默认使用第一个Server
-		servers := app.GetServersByType(Type)
+		// 根据hash值，选取一个可以
+		servers := app.GetRunningServersByType(Type)
 		if len(servers) == 0 {
 			return nil
 		}
@@ -68,13 +73,15 @@ func NewApp(version string) module.App {
 
 type DefaultApp struct {
 	//module.App
-	version             string
-	serverList          map[string]module.ServerSession
-	settings            conf.Config
-	processId           string
-	routes              map[string]func(app module.App, Type string, hash string) module.ServerSession
-	defaultRoutes       func(app module.App, Type string, hash string) module.ServerSession
-	rpcserializes       map[string]module.RPCSerialize
+	version           string
+	serverList        map[string]module.ServerSession
+	settings          conf.Config
+	processId         string
+	routes            map[string]func(app module.App, Type string, hash string) module.ServerSession
+	defaultRoutes     func(app module.App, Type string, hash string) module.ServerSession
+	rpcserializes     map[string]module.RPCSerialize
+	statusReaderTimer *time.Timer
+
 	getTracer           func() opentracing.Tracer
 	configurationLoaded func(app module.App)
 	startup             func(app module.App)
@@ -230,6 +237,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
 		}
 	}
+
 	return nil
 }
 
@@ -263,10 +271,20 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 	}
 }
 
-func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+func (app *DefaultApp) GetServersByType(moduleType string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
 	for _, session := range app.serverList {
-		if session.GetType() == Type {
+		if session.GetType() == moduleType {
+			sessions = append(sessions, session)
+		}
+	}
+	return sessions
+}
+
+func (app *DefaultApp) GetRunningServersByType(moduleType string) []module.ServerSession {
+	sessions := make([]module.ServerSession, 0)
+	for _, session := range app.serverList {
+		if session.GetType() == moduleType && session.GetServerStatus().Running {
 			sessions = append(sessions, session)
 		}
 	}
@@ -393,4 +411,12 @@ func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,
 	}
+}
+
+func (app *DefaultApp) onReadServerStatus() {
+	for _, server := range app.serverList {
+		server.ReadServerStatus(app)
+	}
+
+	app.statusReaderTimer.Reset(ReadServerStatusInterval)
 }

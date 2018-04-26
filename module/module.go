@@ -32,6 +32,8 @@ type ServerSession interface {
 	CallNR(_func string, params ...interface{}) (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
+	GetServerStatus() *ServerStatus
+	ReadServerStatus(app App)
 }
 type App interface {
 	Run(debug bool, mods ...Module) error
@@ -50,7 +52,8 @@ type App interface {
 	Type	   	想要调用的服务类型
 	*/
 	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
-	GetServersByType(Type string) []ServerSession
+	GetServersByType(moduleType string) []ServerSession
+	GetRunningServersByType(moduleType string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
 	RpcInvokeNR(module RPCModule, moduleType string, _func string, params ...interface{}) error
@@ -111,6 +114,7 @@ type RPCModule interface {
 	GetRouteServer(filter string, hash string) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
+	GetLoadHash() int64
 }
 
 /**
@@ -144,4 +148,10 @@ type RPCSerialize interface {
 */
 type AssetOperateListener interface {
 	Reload() (result string, err string)
+}
+
+// RPC服务器的当前状态
+type ServerStatus struct {
+	Running  bool  // 正在运行中
+	LoadHash int64 // 负载哈希值：由上层应用计算定义的负载程度，值越大，表示负载越高
 }
