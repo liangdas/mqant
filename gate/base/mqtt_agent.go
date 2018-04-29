@@ -16,13 +16,13 @@ package basegate
 import (
 	"bufio"
 	"container/list"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"runtime"
 	"strings"
 	"time"
 
+	"encoding/json"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/gate/base/mqtt"
@@ -201,22 +201,29 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		}
 		var ArgsType []string = make([]string, 2)
 		var args [][]byte = make([][]byte, 2)
-		if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
-			//尝试解析为json为map
-			var obj interface{} // var obj map[string]interface{}
-			err := json.Unmarshal(pub.GetMsg(), &obj)
-			if err != nil {
-				if msgid != "" {
-					toResult(a, *pub.GetTopic(), nil, "The JSON format is incorrect")
+
+		if len(pub.GetMsg()) > 0 {
+			if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
+				//尝试解析为json为map
+				var obj interface{} // var obj map[string]interface{}
+				err := json.Unmarshal(pub.GetMsg(), &obj)
+				if err != nil {
+					if msgid != "" {
+						toResult(a, *pub.GetTopic(), nil, "The JSON format is incorrect")
+					}
+					return
 				}
-				return
+				ArgsType[1] = argsutil.MAP
+				args[1] = pub.GetMsg()
+			} else {
+				ArgsType[1] = argsutil.BYTES
+				args[1] = pub.GetMsg()
 			}
-			ArgsType[1] = argsutil.MAP
-			args[1] = pub.GetMsg()
 		} else {
 			ArgsType[1] = argsutil.BYTES
-			args[1] = pub.GetMsg()
+			args[1] = nil
 		}
+
 		hash := ""
 		if a.session.GetUserid() != "" {
 			hash = a.session.GetUserid()
