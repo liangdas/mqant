@@ -91,11 +91,12 @@ type DefaultApp struct {
 	protocolMarshal     func(Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
-func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
+func (app *DefaultApp) Run(mods ...module.Module) error {
 	wdPath := flag.String("wd", "", "Server work directory")
 	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
+	debug := flag.Bool("d", false, "debug module")
 	flag.Parse() //解析输入的参数
 	app.processId = *ProcessID
 	ApplicationDir := ""
@@ -114,7 +115,6 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 			ApplicationPath, _ := filepath.Abs(file)
 			ApplicationDir, _ = filepath.Split(ApplicationPath)
 		}
-
 	}
 
 	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
@@ -144,7 +144,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitBeego(*debug, *ProcessID, *Logdir, conf.Conf.Log)
 
 	log.Info("mqant %v starting up", app.version)
 
