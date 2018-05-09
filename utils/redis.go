@@ -15,6 +15,7 @@ package utils
 
 import (
 	"github.com/garyburd/redigo/redis"
+	"github.com/liangdas/mqant/log"
 	"time"
 )
 
@@ -52,6 +53,7 @@ func (this RedisFactory) GetPool(url string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
+			log.Info("redis dial")
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
