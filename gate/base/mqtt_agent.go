@@ -30,6 +30,7 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
+	"github.com/liangdas/mqant/utils"
 	"github.com/liangdas/mqant/utils/uuid"
 )
 
@@ -249,23 +250,20 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			return
 		}
 
+		// 会话参数
+		ArgsType[0] = RPC_PARAM_SESSION_TYPE
+		sessionBuffer := utils.GetProtoBuffer()
+		defer utils.PutProtoBuffer(sessionBuffer)
+		err = a.GetSession().Serialize(sessionBuffer)
+		if err != nil {
+			return
+		}
+		args[0] = sessionBuffer.Bytes()
+
 		if msgid != "" {
-			ArgsType[0] = RPC_PARAM_SESSION_TYPE
-			b, err := a.GetSession().Serializable()
-			if err != nil {
-				return
-			}
-			args[0] = b
 			result, e := serverSession.CallArgs(topics[1], ArgsType, args)
 			toResult(a, *pub.GetTopic(), result, e)
 		} else {
-			ArgsType[0] = RPC_PARAM_SESSION_TYPE
-			b, err := a.GetSession().Serializable()
-			if err != nil {
-				return
-			}
-			args[0] = b
-
 			e := serverSession.CallNRArgs(topics[1], ArgsType, args)
 			if e != nil {
 				log.Warning("Gate RPC", e.Error())

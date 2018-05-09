@@ -143,6 +143,10 @@ func (this *sessionagent) update(s gate.Session) error {
 	return nil
 }
 
+func (this *sessionagent) Serialize(buffer *proto.Buffer) error {
+	return buffer.Marshal(this.session)
+}
+
 func (this *sessionagent) Serializable() ([]byte, error) {
 	data, err := proto.Marshal(this.session)
 	if err != nil {

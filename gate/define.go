@@ -14,6 +14,7 @@
 package gate
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/network"
 	opentracing "github.com/opentracing/opentracing-go"
 )
@@ -51,6 +52,7 @@ type Session interface {
 	SetServerid(serverid string)
 	SetSettings(settings map[string]string)
 	Serializable() ([]byte, error)
+	Serialize(buffer *proto.Buffer) error
 	Update() (err string)
 	Bind(Userid string) (err string)
 	UnBind() (err string)
