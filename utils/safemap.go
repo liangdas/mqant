@@ -97,3 +97,14 @@ func (m *BeeMap) Items() map[interface{}]interface{} {
 	m.lock.RUnlock()
 	return r
 }
+
+// Values returns all values in safemap
+func (m *BeeMap) Values() []interface{} {
+	m.lock.RLock()
+	r := make([]interface{}, 0, len(m.bm))
+	for _, v := range m.bm {
+		r = append(r, v)
+	}
+	m.lock.RUnlock()
+	return r
+}

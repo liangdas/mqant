@@ -34,9 +34,10 @@ type RedisFactory struct {
 }
 
 func (this RedisFactory) GetPool(url string) *redis.Pool {
-	if pool, ok := this.pools.Items()[url]; ok {
+	if pool := this.pools.Get(url); pool != nil {
 		return pool.(*redis.Pool)
 	}
+
 	pool := &redis.Pool{
 		// 最大的空闲连接数，表示即使没有redis连接时依然可以保持N个空闲的连接，而不被清除，随时处于待命状态
 		MaxIdle: 10,
@@ -64,7 +65,7 @@ func (this RedisFactory) GetPool(url string) *redis.Pool {
 	return pool
 }
 func (this RedisFactory) CloseAllPool() {
-	for _, pool := range this.pools.Items() {
+	for _, pool := range this.pools.Values() {
 		pool.(*redis.Pool).Close()
 	}
 	this.pools.DeleteAll()
