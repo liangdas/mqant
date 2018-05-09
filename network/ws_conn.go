@@ -42,14 +42,27 @@ func newWSConn(conn *websocket.Conn) *WSConn {
 	wsConn.buf_lock = make(chan error)
 	wsConn.readfirst = false
 	go func() {
+		tempBuff := make([]byte, 4096)
+
 		for {
-			_, b, err := wsConn.conn.ReadMessage()
+			_, r, err := wsConn.conn.NextReader()
+			if err != nil {
+				wsConn.buf_lock <- err
+				break
+			}
+
+			n, err := r.Read(tempBuff)
+			if err != nil {
+				wsConn.buf_lock <- err
+				break
+			}
+
 			if err != nil {
 				//log.Error("读取数据失败 %s",err.Error())
 				wsConn.buf_lock <- err
 				break
 			} else {
-				wsConn.buffer.Write(b)
+				wsConn.buffer.Write(tempBuff[:n])
 				wsConn.readfirst = true
 				wsConn.buf_lock <- nil
 			}
