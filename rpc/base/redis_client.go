@@ -122,13 +122,15 @@ func (c *RedisClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		timeout:        callInfo.RpcInfo.Expired,
 	}
 
-	body, err := c.Marshal(&callInfo.RpcInfo)
+	buffer, err := c.Marshal(&callInfo.RpcInfo)
+	defer utils.PutProtoBuffer(buffer)
 	if err != nil {
 		return err
 	}
+
 	c.callinfos.Set(correlation_id, clinetCallInfo)
 	c.Wait() //阻塞等待可以发下一条消息
-	_, err = pool.Do("lpush", c.queueName, body)
+	_, err = pool.Do("lpush", c.queueName, buffer.Bytes())
 	if err != nil {
 		log.Warning("Publish: %s", err)
 		return err
@@ -145,11 +147,13 @@ func (c *RedisClient) CallNR(callInfo mqrpc.CallInfo) error {
 	defer pool.Close()
 	var err error
 
-	body, err := c.Marshal(&callInfo.RpcInfo)
+	buffer, err := c.Marshal(&callInfo.RpcInfo)
+	defer utils.PutProtoBuffer(buffer)
 	if err != nil {
 		return err
 	}
-	_, err = pool.Do("lpush", c.queueName, body)
+
+	_, err = pool.Do("lpush", c.queueName, buffer.Bytes())
 	if err != nil {
 		log.Warning("Publish: %s", err)
 		return err
@@ -249,8 +253,8 @@ func (c *RedisClient) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 }
 
 // goroutine safe
-func (c *RedisClient) Marshal(rpcInfo *rpcpb.RPCInfo) ([]byte, error) {
-	//map2:= structs.Map(callInfo)
-	b, err := proto.Marshal(rpcInfo)
-	return b, err
+func (c *RedisClient) Marshal(rpcInfo *rpcpb.RPCInfo) (*proto.Buffer, error) {
+	buffer := utils.GetProtoBuffer()
+	err := buffer.Marshal(rpcInfo)
+	return buffer, err
 }
