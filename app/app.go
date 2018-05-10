@@ -28,6 +28,8 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"hash/crc32"
 	"math"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -98,6 +100,14 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	Logdir := flag.String("log", "", "Log file directory?")
 	debug := flag.Bool("d", false, "debug module")
 	flag.Parse() //解析输入的参数
+
+	if *debug {
+		// pprof
+		go func() {
+			http.ListenAndServe("0.0.0.0:8687", http.DefaultServeMux)
+		}()
+	}
+
 	app.processId = *ProcessID
 	ApplicationDir := ""
 	if *wdPath != "" {
