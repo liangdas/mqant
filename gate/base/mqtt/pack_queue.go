@@ -22,6 +22,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
+	"sync/atomic"
 )
 
 // Tcp write queue
@@ -40,7 +41,8 @@ type PackQueue struct {
 
 	conn network.Conn
 
-	alive int
+	alive  int
+	closed int32
 }
 
 type packAndErr struct {
@@ -76,6 +78,7 @@ func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network
 		writeChan: make(chan *packAndType, conf.WirteLoopChanNum),
 		readChan:  readChan,
 		errorChan: make(chan error, 1),
+		closed:    0,
 	}
 }
 
@@ -220,6 +223,11 @@ func (queue *PackQueue) ReadPackInLoop() {
 
 // Close the all of queue's channels
 func (queue *PackQueue) Close() error {
+	if atomic.LoadInt32(&queue.closed) > 0 {
+		return nil
+	}
+
+	atomic.StoreInt32(&queue.closed, 1)
 	close(queue.writeChan)
 	close(queue.readChan)
 	close(queue.errorChan)
