@@ -94,7 +94,7 @@ func (c *RedisClient) Done() (err error) {
 	if c.pool != nil {
 		c.pool.Close()
 	}
-	for tuple := range c.callinfos.Iter() {
+	for tuple := range c.callinfos.IterBuffered() {
 		//关闭管道
 		close(tuple.Val.(*ClinetCallInfo).call)
 		//从Map中删除
@@ -167,7 +167,7 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 		select {
 		case <-timeout.C:
 			timeout.Reset(time.Second * 1)
-			for tuple := range c.callinfos.Iter() {
+			for tuple := range c.callinfos.IterBuffered() {
 				var clinetCallInfo = tuple.Val.(*ClinetCallInfo)
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
 					c.Finish() //完成一个请求
@@ -182,7 +182,7 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 					//发送一个超时的消息
 					clinetCallInfo.call <- *resultInfo
 					//关闭管道
-					close(clinetCallInfo.call)
+					//close(clinetCallInfo.call)
 				}
 			}
 		case <-done:
@@ -213,7 +213,7 @@ func (c *RedisClient) on_response_handle(done chan error) {
 				if ok {
 					c.callinfos.Remove(correlation_id)
 					clinetCallInfo.(*ClinetCallInfo).call <- *resultInfo
-					close(clinetCallInfo.(*ClinetCallInfo).call)
+					//close(clinetCallInfo.(*ClinetCallInfo).call)
 				} else {
 					//可能客户端已超时了，但服务端处理完还给回调了
 					log.Warning("rpc callback no found : [%s]", correlation_id)
