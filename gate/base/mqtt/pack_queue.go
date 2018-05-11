@@ -202,6 +202,9 @@ func (queue *PackQueue) ReadPackInLoop() {
 				}
 				select {
 				case queue.readChan <- p:
+					if p.err != nil {
+						queue.noticeFin <- 0
+					}
 					// Without anything to do
 				case <-queue.noticeFin:
 					//queue.Close()
