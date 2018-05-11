@@ -112,7 +112,6 @@ loop:
 	// Free resources
 	// Close channels
 
-	c.queue.Close()
 	close(c.closeChan)
 	log.Info("listen_loop Groutine will esc.")
 	return
