@@ -16,14 +16,14 @@ package mqtt
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"time"
-	"runtime"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"errors"
+	"runtime"
 	"sync/atomic"
+	"time"
 )
 
 // Tcp write queue
@@ -95,7 +95,6 @@ func (queue *PackQueue) writeLoop() {
 			queue.errorChan <- errors.New(errstr)
 			queue.noticeFin <- 0
 		}
-
 
 	}()
 	var err error
@@ -201,7 +200,6 @@ func (queue *PackQueue) ReadPackInLoop() {
 			if r := recover(); r != nil {
 				queue.noticeFin <- 0
 			}
-
 
 		}()
 		is_continue := true

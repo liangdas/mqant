@@ -90,6 +90,7 @@ func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byt
 func (c *serverSession) CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
 	return c.Rpc.CallArgsUnreliable(_func, ArgsType, args)
 }
+
 /*
 获取服务器状态
 */

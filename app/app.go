@@ -78,16 +78,16 @@ func NewApp(version string) module.App {
 type DefaultApp struct {
 	//module.App
 
-	version           string
-	serverList        map[string]module.ServerSession
-	settings          conf.Config
-	processId         string
-	routes            map[string]func(app module.App, Type string, hash string) module.ServerSession
-	defaultRoutes     func(app module.App, Type string, hash string) module.ServerSession
+	version       string
+	serverList    map[string]module.ServerSession
+	settings      conf.Config
+	processId     string
+	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
+	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	//将一个RPC调用路由到新的路由上
 	mapRoute            func(app module.App, route string) string
-	rpcserializes     map[string]module.RPCSerialize
-	statusReaderTimer *time.Timer
+	rpcserializes       map[string]module.RPCSerialize
+	statusReaderTimer   *time.Timer
 	getTracer           func() opentracing.Tracer
 	configurationLoaded func(app module.App)
 	startup             func(app module.App)
