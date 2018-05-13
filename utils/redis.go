@@ -15,6 +15,7 @@ package utils
 
 import (
 	"github.com/gomodule/redigo/redis"
+	"github.com/liangdas/mqant/log"
 	"time"
 )
 
@@ -34,12 +35,13 @@ type RedisFactory struct {
 }
 
 func (this RedisFactory) GetPool(url string) *redis.Pool {
-	if pool, ok := this.pools.Items()[url]; ok {
+	if pool := this.pools.Get(url); pool != nil {
 		return pool.(*redis.Pool)
 	}
+
 	pool := &redis.Pool{
 		// 最大的空闲连接数，表示即使没有redis连接时依然可以保持N个空闲的连接，而不被清除，随时处于待命状态
-		MaxIdle: 10,
+		MaxIdle: 100,
 		// 最大的激活连接数，表示同时最多有N个连接 ，为0事表示没有限制
 		MaxActive: 100,
 		//最大的空闲连接等待时间，超过此时间后，空闲连接将被关闭
@@ -51,6 +53,7 @@ func (this RedisFactory) GetPool(url string) *redis.Pool {
 			if err != nil {
 				return nil, err
 			}
+			log.Info("redis dial")
 			return c, err
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
@@ -64,7 +67,7 @@ func (this RedisFactory) GetPool(url string) *redis.Pool {
 	return pool
 }
 func (this RedisFactory) CloseAllPool() {
-	for _, pool := range this.pools.Items() {
+	for _, pool := range this.pools.Values() {
 		pool.(*redis.Pool).Close()
 	}
 	this.pools.DeleteAll()

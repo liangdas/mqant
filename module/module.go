@@ -32,14 +32,15 @@ type ServerSession interface {
 	CallNR(_func string, params ...interface{}) (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
-
 	//不可靠的RPC传输,底层基于udp协议
 	CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	//不可靠的RPC传输,底层基于udp协议
 	CallUnreliable(_func string, params ...interface{}) (interface{}, string)
+	GetServerStatus() *ServerStatus
+	ReadServerStatus(app App)
 }
 type App interface {
-	Run(debug bool, mods ...Module) error
+	Run(mods ...Module) error
 	/**
 	当同一个类型的Module存在多个服务时,需要根据情况选择最终路由到哪一个服务去
 	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)
@@ -56,7 +57,7 @@ type App interface {
 	Type	   	想要调用的服务类型
 	*/
 	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
-	GetServersByType(Type string) []ServerSession
+	GetServersByType(moduleType string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
 	RpcInvokeNR(module RPCModule, moduleType string, _func string, params ...interface{}) error
@@ -119,6 +120,7 @@ type RPCModule interface {
 	GetRouteServer(filter string, hash string) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
+	GetLoadHash() int64
 }
 
 /**
@@ -145,4 +147,17 @@ type RPCSerialize interface {
 	返回这个接口能够处理的所有类型
 	*/
 	GetTypes() []string
+}
+
+/**
+资源操作监听器
+*/
+type AssetOperateListener interface {
+	Reload() (result string, err string)
+}
+
+// RPC服务器的当前状态
+type ServerStatus struct {
+	Running  bool  // 正在运行中
+	LoadHash int64 // 负载哈希值：由上层应用计算定义的负载程度，值越大，表示负载越高
 }

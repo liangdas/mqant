@@ -178,7 +178,7 @@ func (c *RPCClient) CallArgsUnreliable(_func string, ArgsType []string, args [][
 		return nil, fmt.Sprintf("rpc service (%s) connection failed", c.serverId)
 	}
 	if err != nil {
-		return nil, err.Error()
+		return nil, fmt.Sprintf("%s err: %s", _func, err.Error())
 	}
 	resultInfo, ok := <-callback
 	if !ok {

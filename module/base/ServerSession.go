@@ -15,22 +15,27 @@ package basemodule
 
 import (
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/module/util"
 	"github.com/liangdas/mqant/rpc"
+	"sync"
 )
 
 func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
 	session := &serverSession{
-		Id:    Id,
-		Stype: Stype,
-		Rpc:   Rpc,
+		Id:     Id,
+		Stype:  Stype,
+		Rpc:    Rpc,
+		status: &module.ServerStatus{Running: true, LoadHash: 0},
 	}
 	return session
 }
 
 type serverSession struct {
-	Id    string
-	Stype string
-	Rpc   mqrpc.RPCClient
+	Id     string
+	Stype  string
+	Rpc    mqrpc.RPCClient
+	status *module.ServerStatus
+	lock   sync.RWMutex
 }
 
 func (c *serverSession) GetId() string {
@@ -84,4 +89,22 @@ func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byt
 */
 func (c *serverSession) CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
 	return c.Rpc.CallArgsUnreliable(_func, ArgsType, args)
+}
+/*
+获取服务器状态
+*/
+func (c *serverSession) GetServerStatus() *module.ServerStatus {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.status
+}
+
+/**
+读取服务器状态
+*/
+func (c *serverSession) ReadServerStatus(app module.App) {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	c.status = util.ReadServerStatus(app, c.Id)
 }

@@ -6,6 +6,7 @@ package modules
 import (
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules/master"
@@ -119,27 +120,27 @@ func (m *Master) OnInit(app module.App, settings *conf.ModuleSettings) {
 }
 
 func (m *Master) Run(closeSig chan bool) {
-	//if m.app.GetSettings().Master.WebHost != "" {
-	//	//app := golf.New()
-	//	//app.Static("/", m.app.GetSettings().Master.WebRoot)
-	//	//app.Run(m.app.GetSettings().Master.WebHost)
-	//	l, _ := net.Listen("tcp", m.app.GetSettings().Master.WebHost)
-	//	m.listener = l
-	//	go func() {
-	//		log.Info("Master web server Listen : %s", m.app.GetSettings().Master.WebHost)
-	//		http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(m.app.GetSettings().Master.WebRoot))))
-	//		http.HandleFunc("/api/process/list.json", m.ProcessList)
-	//		http.HandleFunc("/api/process/state/update.json", m.UpdateProcessState)
-	//		http.HandleFunc("/api/process/start.json", m.StartProcess)
-	//		http.HandleFunc("/api/process/stop.json", m.StopProcess)
-	//		http.HandleFunc("/api/module/list.json", m.ModuleList)
-	//		http.Serve(m.listener, nil)
-	//	}()
-	//	<-closeSig
-	//	log.Info("Master web server Shutting down...")
-	//	m.listener.Close()
-	//}
-
+	if m.app.GetSettings().Master.WebHost != "" {
+		//app := golf.New()
+		//app.Static("/", m.app.GetSettings().Master.WebRoot)
+		//app.Run(m.app.GetSettings().Master.WebHost)
+		l, _ := net.Listen("tcp", m.app.GetSettings().Master.WebHost)
+		m.listener = l
+		go func() {
+			log.Info("Master web server Listen : %s", m.app.GetSettings().Master.WebHost)
+			http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir(m.app.GetSettings().Master.WebRoot))))
+			http.HandleFunc("/api/process/list.json", m.ProcessList)
+			http.HandleFunc("/api/process/state/update.json", m.UpdateProcessState)
+			http.HandleFunc("/api/process/start.json", m.StartProcess)
+			http.HandleFunc("/api/process/stop.json", m.StopProcess)
+			http.HandleFunc("/api/module/list.json", m.ModuleList)
+			http.HandleFunc("/api/module/reload/asset.json", m.ReloadModuleAssets)
+			http.Serve(m.listener, nil)
+		}()
+		<-closeSig
+		log.Info("Master web server Shutting down...")
+		m.listener.Close()
+	}
 }
 
 func (m *Master) GetArgs(req *http.Request) map[string]string {
@@ -238,9 +239,49 @@ func (m *Master) ModuleList(w http.ResponseWriter, req *http.Request) {
 			"ReportForm": module.ReportForm,
 		})
 	}
+
 	response := NewHttpResponse("success", list)
 	io.WriteString(w, response.String())
+}
 
+/**
+重新加载数据
+*/
+func (m *Master) ReloadModuleAssets(w http.ResponseWriter, req *http.Request) {
+	args := m.GetArgs(req)
+	const function = "ReloadAsset"
+	rets := []map[string]interface{}{}
+
+	moduleType := args["type"]
+	moduleId := args["mid"]
+	if moduleType == "" && moduleId == "" {
+		response := NewErrorResponse("fail", "You must specify type or mid")
+		io.WriteString(w, response.String())
+		return
+	}
+
+	if moduleId != "" {
+		ret, err := m.RpcInvoke("@"+moduleId, function)
+		rets = append(rets, map[string]interface{}{
+			"ModuleID": moduleId,
+			"Ret":      ret,
+			"Err":      err,
+		})
+	} else if moduleType != "" {
+		servers := m.app.GetServersByType(moduleType)
+		for _, server := range servers {
+			ret, err := server.Call(function)
+			rets = append(rets, map[string]interface{}{
+				"ModuleType": server.GetType(),
+				"ModuleID":   server.GetId(),
+				"Ret":        ret,
+				"Err":        err,
+			})
+		}
+	}
+
+	response := NewHttpResponse("success", rets)
+	io.WriteString(w, response.String())
 }
 
 /**
