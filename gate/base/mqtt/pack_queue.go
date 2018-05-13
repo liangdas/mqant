@@ -18,10 +18,11 @@ import (
 	"bufio"
 	"fmt"
 	"time"
-
+	"runtime"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
+	"github.com/juju/errors"
 )
 
 // Tcp write queue
@@ -82,7 +83,18 @@ func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network
 // Start a pack write queue
 // It should run in a new grountine
 func (queue *PackQueue) writeLoop() {
-	// defer recover()
+	defer func() {
+		if r := recover(); r != nil {
+			buf := make([]byte, 1024)
+			l := runtime.Stack(buf, false)
+			errstr := string(buf[:l])
+			queue.writeError = errors.New(errstr)
+			queue.errorChan <- errors.New(errstr)
+			queue.noticeFin <- 0
+		}
+
+
+	}()
 	var err error
 loop:
 	for {
