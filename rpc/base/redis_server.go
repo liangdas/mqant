@@ -14,8 +14,8 @@
 package defaultrpc
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
@@ -77,8 +77,10 @@ func (s *RedisServer) Shutdown() error {
 }
 
 func (s *RedisServer) Callback(callinfo mqrpc.CallInfo) error {
-	body, _ := s.MarshalResult(callinfo.Result)
-	return s.response(callinfo.Props, body)
+	buffer, _ := s.MarshalResult(callinfo.Result)
+	defer utils.PutProtoBuffer(buffer)
+
+	return s.response(callinfo.Props, buffer.Bytes())
 }
 
 /**
@@ -147,7 +149,11 @@ func (s *RedisServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
 	var rpcInfo rpcpb.RPCInfo
-	err := proto.Unmarshal(data, &rpcInfo)
+	buffer := utils.GetProtoBuffer()
+	defer utils.PutProtoBuffer(buffer)
+
+	buffer.SetBuf(data)
+	err := buffer.Unmarshal(&rpcInfo)
 	if err != nil {
 		return nil, err
 	} else {
@@ -158,8 +164,8 @@ func (s *RedisServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 }
 
 // goroutine safe
-func (s *RedisServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
-	//log.Error("",map2)
-	b, err := proto.Marshal(&resultInfo)
-	return b, err
+func (s *RedisServer) MarshalResult(resultInfo rpcpb.ResultInfo) (*proto.Buffer, error) {
+	buffer := utils.GetProtoBuffer()
+	err := buffer.Marshal(&resultInfo)
+	return buffer, err
 }

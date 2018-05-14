@@ -438,10 +438,10 @@ func ReadPack(r *bufio.Reader) (pack *Pack, err error) {
 			break
 		}
 		vlen := pack.length - n - 2
-		if n < 1 || vlen < 2 {
-			err = fmt.Errorf("length error :%v", vlen)
-			break
-		}
+		//if n < 1 || vlen < 2 {
+		//	err = fmt.Errorf("length error :%v", vlen)
+		//	break
+		//}
 		if pack.GetQos() > 0 {
 			// Read the msg id
 			pub.mid, err = readInt(r, 2)

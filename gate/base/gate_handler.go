@@ -58,7 +58,7 @@ func (h *handler) DisConnect(a gate.Agent) {
 }
 
 func (h *handler) OnDestroy() {
-	for _, v := range h.sessions.Items() {
+	for _, v := range h.sessions.Values() {
 		v.(gate.Agent).Close()
 	}
 	h.sessions.DeleteAll()
@@ -128,7 +128,7 @@ func (h *handler) Bind(Sessionid string, Userid string) (result gate.Session, er
  */
 func (h *handler) IsConnect(Sessionid string, Userid string) (bool, string) {
 
-	for _, agent := range h.sessions.Items() {
+	for _, agent := range h.sessions.Values() {
 		if agent.(gate.Agent).GetSession().GetUserid() == Userid {
 			return !agent.(gate.Agent).IsClosed(), ""
 		}
@@ -257,7 +257,7 @@ func (h *handler) SendBatch(SessionidStr string, topic string, body []byte) (int
 }
 func (h *handler) BroadCast(topic string, body []byte) (int64, string) {
 	var count int64 = 0
-	for _, agent := range h.sessions.Items() {
+	for _, agent := range h.sessions.Values() {
 		e := agent.(gate.Agent).WriteMsg(topic, body)
 		if e != nil {
 			log.Warning("WriteMsg error:", e.Error())

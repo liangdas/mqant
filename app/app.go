@@ -23,16 +23,25 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
+	"github.com/liangdas/mqant/module/util"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"hash/crc32"
 	"math"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
+)
+
+const (
+	ReadServerStatusInterval = time.Second * 1
 )
 
 type resultInfo struct {
@@ -53,8 +62,8 @@ func NewApp(version string) module.App {
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
 	app.serverList = map[string]module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
-		//默认使用第一个Server
-		servers := app.GetServersByType(Type)
+		// 根据hash值，选取一个可以
+		servers := util.GetRunningServersByType(app, Type)
 		if len(servers) == 0 {
 			return nil
 		}
@@ -68,6 +77,7 @@ func NewApp(version string) module.App {
 
 type DefaultApp struct {
 	//module.App
+
 	version       string
 	serverList    map[string]module.ServerSession
 	settings      conf.Config
@@ -77,6 +87,7 @@ type DefaultApp struct {
 	//将一个RPC调用路由到新的路由上
 	mapRoute            func(app module.App, route string) string
 	rpcserializes       map[string]module.RPCSerialize
+	statusReaderTimer   *time.Timer
 	getTracer           func() opentracing.Tracer
 	configurationLoaded func(app module.App)
 	startup             func(app module.App)
@@ -85,12 +96,21 @@ type DefaultApp struct {
 	protocolMarshal     func(Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
-func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
+func (app *DefaultApp) Run(mods ...module.Module) error {
 	wdPath := flag.String("wd", "", "Server work directory")
 	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
+	debug := flag.Bool("debug", true, "debug module")
 	flag.Parse() //解析输入的参数
+
+	if *debug {
+		// pprof
+		go func() {
+			http.ListenAndServe("0.0.0.0:8687", http.DefaultServeMux)
+		}()
+	}
+
 	app.processId = *ProcessID
 	ApplicationDir := ""
 	if *wdPath != "" {
@@ -108,7 +128,6 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 			ApplicationPath, _ := filepath.Abs(file)
 			ApplicationDir, _ = filepath.Split(ApplicationPath)
 		}
-
 	}
 
 	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
@@ -138,7 +157,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitBeego(*debug, *ProcessID, *Logdir, conf.Conf.Log)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -160,11 +179,15 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	// close
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
+
+	log.Info("mqant prcess (%s) closing down (signal: %v)", *ProcessID, sig)
+
 	manager.Destroy()
 	app.OnDestroy()
-	log.Info("mqant closing down (signal: %v)", sig)
+
+	log.Flush()
 	return nil
 }
 func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {
@@ -235,12 +258,18 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
 		}
 	}
+
+	app.statusReaderTimer = time.AfterFunc(ReadServerStatusInterval, app.onReadServerStatus)
+	app.onReadServerStatus()
+
 	return nil
 }
 
 func (app *DefaultApp) OnDestroy() error {
+	app.statusReaderTimer.Stop()
+
 	for id, session := range app.serverList {
-		log.Info("RPCClient closeing type(%s) id(%s)", session.GetType(), id)
+		log.Info("RPCClient closing type(%s) id(%s)", session.GetType(), id)
 		err := session.GetRpc().Done()
 		if err != nil {
 			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)
@@ -248,6 +277,7 @@ func (app *DefaultApp) OnDestroy() error {
 			log.Info("RPCClient close success type(%s) id(%s)", session.GetType(), id)
 		}
 	}
+
 	return nil
 }
 
@@ -264,14 +294,14 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 	if session, ok := app.serverList[serverId]; ok {
 		return session, nil
 	} else {
-		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
+		return nil, fmt.Errorf("server type(%s) not found", serverId)
 	}
 }
 
-func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+func (app *DefaultApp) GetServersByType(moduleType string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
 	for _, session := range app.serverList {
-		if session.GetType() == Type {
+		if session.GetType() == moduleType {
 			sessions = append(sessions, session)
 		}
 	}
@@ -294,7 +324,7 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 	route := app.getRoute(moduleType)
 	s = route(app, moduleType, hash)
 	if s == nil {
-		err = fmt.Errorf("Server(type : %s) Not Found", moduleType)
+		err = fmt.Errorf("server type (%s) not found", moduleType)
 	}
 	return
 }
@@ -420,4 +450,12 @@ func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,
 	}
+}
+
+func (app *DefaultApp) onReadServerStatus() {
+	for _, server := range app.serverList {
+		server.ReadServerStatus(app)
+	}
+
+	app.statusReaderTimer.Reset(ReadServerStatusInterval)
 }

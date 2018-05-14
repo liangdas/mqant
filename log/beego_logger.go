@@ -44,7 +44,12 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		log.SetLogger("error_file", string(config))
 
 		file["filename"] = fmt.Sprintf("%s/%s.access.log", Logdir, ProcessID)
-		file["level"] = logs.LevelTrace
+		if debug {
+			file["level"] = logs.LevelTrace
+		} else {
+			file["level"] = logs.LevelInfo
+		}
+
 		file["maxlevel"] = logs.LevelWarn
 		config, err = json.Marshal(file)
 		if err != nil {
@@ -65,7 +70,11 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		log.SetLogger("error_file", string(config))
 
 		file["filename"] = fmt.Sprintf("%s/%s.access.log", Logdir, ProcessID)
-		file["level"] = logs.LevelTrace
+		if debug {
+			file["level"] = logs.LevelTrace
+		} else {
+			file["level"] = logs.LevelInfo
+		}
 		file["minlevel"] = logs.LevelNotice
 		config, err = json.Marshal(file)
 		if err != nil {

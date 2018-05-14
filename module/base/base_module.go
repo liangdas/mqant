@@ -47,13 +47,15 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 }
 
 type BaseModule struct {
-	App         module.App
-	subclass    module.RPCModule
-	settings    *conf.ModuleSettings
-	server      *rpcserver
-	listener    mqrpc.RPCListener
-	statistical map[string]*StatisticalMethod //统计
-	rwmutex     sync.RWMutex
+	App                module.App
+	subclass           module.RPCModule
+	settings           *conf.ModuleSettings
+	server             *rpcserver
+	listener           mqrpc.RPCListener
+	assetReloader      func() (result string, err string) // 用于扩展的资源重载器
+	loadHashCalculator func() int64                       // 用于扩展的负载hash计算器
+	statistical        map[string]*StatisticalMethod      //统计
+	rwmutex            sync.RWMutex
 }
 
 func (m *BaseModule) GetServerId() string {
@@ -91,6 +93,8 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	//创建一个远程调用的RPC
 	m.GetServer().OnInit(subclass, app, settings)
 	m.GetServer().GetRPCServer().SetListener(m)
+
+	m.GetServer().RegisterGO("ReloadAsset", m.onReloadAsset)
 }
 
 func (m *BaseModule) OnDestroy() {
@@ -101,6 +105,15 @@ func (m *BaseModule) OnDestroy() {
 func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 	m.listener = listener
 }
+
+func (m *BaseModule) OnAssetReload(reloader func() (result string, err string)) {
+	m.assetReloader = reloader
+}
+
+func (m *BaseModule) OnCalculateLoadHash(calculator func() int64) {
+	m.loadHashCalculator = calculator
+}
+
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
@@ -186,6 +199,15 @@ func (m *BaseModule) OnTimeOut(fn string, Expired int64) {
 		m.listener.OnTimeOut(fn, Expired)
 	}
 }
+
+func (m *BaseModule) onReloadAsset() (result string, err string) {
+	if m.assetReloader == nil {
+		return "no asset reloader found in module", ""
+	}
+
+	return m.assetReloader()
+}
+
 func (m *BaseModule) OnError(fn string, callInfo *mqrpc.CallInfo, err error) {
 	m.rwmutex.Lock()
 	if statisticalMethod, ok := m.statistical[fn]; ok {
@@ -242,6 +264,15 @@ func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpc
 func (m *BaseModule) GetExecuting() int64 {
 	return m.GetServer().GetRPCServer().GetExecuting()
 }
+
+func (m *BaseModule) GetLoadHash() int64 {
+	if m.loadHashCalculator != nil {
+		return m.loadHashCalculator()
+	} else {
+		return m.GetExecuting()
+	}
+}
+
 func (m *BaseModule) GetStatistical() (statistical string, err error) {
 	m.rwmutex.Lock()
 	//重置

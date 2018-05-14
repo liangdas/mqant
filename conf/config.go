@@ -61,11 +61,12 @@ type Config struct {
 }
 
 type Rpc struct {
-	UDPMaxPacketSize int  //udp rpc 每一个包最大数据量 默认 4096
-	MaxCoroutine     int  //模块同时可以创建的最大协程数量默认是100
-	RpcExpired       int  //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
-	LogSuccess       bool //是否打印请求处理成功的日志
-	Log              bool //是否打印RPC的日志
+	UDPMaxPacketSize int    //udp rpc 每一个包最大数据量 默认 4096
+	MaxCoroutine     int    //模块同时可以创建的最大协程数量默认是100
+	RpcExpired       int    //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+	LogSuccess       bool   //是否打印请求处理成功的日志
+	Log              bool   //是否打印RPC的日志
+	SessionRedisUrl  string //保存会话信息的redis的url
 }
 
 type Rabbitmq struct {

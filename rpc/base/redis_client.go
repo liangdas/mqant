@@ -15,8 +15,8 @@ package defaultrpc
 
 import (
 	"fmt"
-	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"
@@ -94,7 +94,7 @@ func (c *RedisClient) Done() (err error) {
 	if c.pool != nil {
 		c.pool.Close()
 	}
-	for tuple := range c.callinfos.Iter() {
+	for tuple := range c.callinfos.IterBuffered() {
 		//关闭管道
 		close(tuple.Val.(*ClinetCallInfo).call)
 		//从Map中删除
@@ -122,13 +122,15 @@ func (c *RedisClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultIn
 		timeout:        callInfo.RpcInfo.Expired,
 	}
 
-	body, err := c.Marshal(&callInfo.RpcInfo)
+	buffer, err := c.Marshal(&callInfo.RpcInfo)
+	defer utils.PutProtoBuffer(buffer)
 	if err != nil {
 		return err
 	}
+
 	c.callinfos.Set(correlation_id, clinetCallInfo)
 	c.Wait() //阻塞等待可以发下一条消息
-	_, err = pool.Do("lpush", c.queueName, body)
+	_, err = pool.Do("lpush", c.queueName, buffer.Bytes())
 	if err != nil {
 		log.Warning("Publish: %s", err)
 		return err
@@ -145,11 +147,13 @@ func (c *RedisClient) CallNR(callInfo mqrpc.CallInfo) error {
 	defer pool.Close()
 	var err error
 
-	body, err := c.Marshal(&callInfo.RpcInfo)
+	buffer, err := c.Marshal(&callInfo.RpcInfo)
+	defer utils.PutProtoBuffer(buffer)
 	if err != nil {
 		return err
 	}
-	_, err = pool.Do("lpush", c.queueName, body)
+
+	_, err = pool.Do("lpush", c.queueName, buffer.Bytes())
 	if err != nil {
 		log.Warning("Publish: %s", err)
 		return err
@@ -163,7 +167,7 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 		select {
 		case <-timeout.C:
 			timeout.Reset(time.Second * 1)
-			for tuple := range c.callinfos.Iter() {
+			for tuple := range c.callinfos.IterBuffered() {
 				var clinetCallInfo = tuple.Val.(*ClinetCallInfo)
 				if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
 					c.Finish() //完成一个请求
@@ -178,7 +182,7 @@ func (c *RedisClient) on_timeout_handle(done chan error) {
 					//发送一个超时的消息
 					clinetCallInfo.call <- *resultInfo
 					//关闭管道
-					close(clinetCallInfo.call)
+					//close(clinetCallInfo.call)
 				}
 			}
 		case <-done:
@@ -209,7 +213,7 @@ func (c *RedisClient) on_response_handle(done chan error) {
 				if ok {
 					c.callinfos.Remove(correlation_id)
 					clinetCallInfo.(*ClinetCallInfo).call <- *resultInfo
-					close(clinetCallInfo.(*ClinetCallInfo).call)
+					//close(clinetCallInfo.(*ClinetCallInfo).call)
 				} else {
 					//可能客户端已超时了，但服务端处理完还给回调了
 					log.Warning("rpc callback no found : [%s]", correlation_id)
@@ -249,8 +253,8 @@ func (c *RedisClient) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 }
 
 // goroutine safe
-func (c *RedisClient) Marshal(rpcInfo *rpcpb.RPCInfo) ([]byte, error) {
-	//map2:= structs.Map(callInfo)
-	b, err := proto.Marshal(rpcInfo)
-	return b, err
+func (c *RedisClient) Marshal(rpcInfo *rpcpb.RPCInfo) (*proto.Buffer, error) {
+	buffer := utils.GetProtoBuffer()
+	err := buffer.Marshal(rpcInfo)
+	return buffer, err
 }

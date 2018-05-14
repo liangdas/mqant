@@ -42,7 +42,7 @@ func (m *MqantLog) GetLogger(debug bool, ProcessID string, Logdir string) {
 		t2.MinLevel = log.LevelEmergency
 		t3 := log.NewFileTarget()
 		t3.FileName = fmt.Sprintf("%s/%s.access.log", Logdir, ProcessID)
-		t3.MinLevel = log.LevelNotice
+		t3.MinLevel = log.LevelEmergency
 		t3.MaxLevel = log.LevelDebug
 		logger.Targets = append(logger.Targets, t2, t3)
 	}
