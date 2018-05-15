@@ -108,11 +108,12 @@ bug请直接通过issue提交
 2. [lulucas](https://github.com/lulucas/mqant-UnityExample)
 3. [c2matrix](https://github.com/c2matrix)
 4. [bjfumac【mqant-docker】[MQTT-Laya]](https://github.com/bjfumac)
+5. [jarekzha 【jarekzha-master】](https://github.com/jarekzha)
 
 
 ## 打赏作者
 
-![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png){:height="100" width="100"}
+![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png)
 
 ## 版本日志
 
