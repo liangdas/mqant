@@ -165,7 +165,12 @@ func (mer *ModuleManager) SaveModuleStatus() {
 		mi := m.mi
 		switch value := mi.(type) {
 		case module.RPCModule:
-			util.SaveServerStatus(mer.app, value.GetServerId(), m.isRunning(), value.GetLoadHash())
+			running := m.isRunning()
+			var loadHash int64
+			if running {
+				loadHash = value.GetLoadHash()
+			}
+			util.SaveServerStatus(mer.app, value.GetServerId(), running, loadHash)
 		default:
 		}
 	}
