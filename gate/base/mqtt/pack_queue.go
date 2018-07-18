@@ -127,6 +127,7 @@ loop:
 			}
 		}
 	}
+	log.Info("write_loop Groutine will esc.")
 }
 
 // Write a pack , and get the last error
@@ -220,19 +221,17 @@ func (queue *PackQueue) ReadPackInLoop() {
 					// Without anything to do
 				case <-queue.noticeFin:
 					//queue.Close()
-					log.Info("Queue FIN")
 					break loop
 				}
 			} else {
 				<-queue.noticeFin
-				//
-				log.Info("Queue not continue")
 				break loop
 			}
 
 			p = new(packAndErr)
 		}
 		queue.Close()
+		log.Info("read_loop Groutine will esc.")
 	}()
 }
 
