@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
@@ -112,9 +111,6 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 		Args:     args,
 		ArgsType: ArgsType,
 	}
-	if c.app.GetSettings().Rpc.Log {
-		log.Info("request %s rpc func(%s) [%s]", c.serverId, _func, correlation_id)
-	}
 
 	callInfo := &mqrpc.CallInfo{
 		RpcInfo: *rpcInfo,
@@ -141,53 +137,6 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 		return nil, "client closed"
 	}
 	result, err := argsutil.Bytes2Args(c.app, resultInfo.ResultType, resultInfo.Result)
-	if c.app.GetSettings().Rpc.Log {
-		log.Info("response %s rpc func(%s) [%s]", c.serverId, _func, correlation_id)
-	}
-	if err != nil {
-		return nil, err.Error()
-	}
-	return result, resultInfo.Error
-}
-
-func (c *RPCClient) CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
-	var correlation_id = uuid.Rand().Hex()
-	rpcInfo := &rpcpb.RPCInfo{
-		Fn:       *proto.String(_func),
-		Reply:    *proto.Bool(true),
-		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)).UnixNano()) / 1000000),
-		Cid:      *proto.String(correlation_id),
-		Args:     args,
-		ArgsType: ArgsType,
-	}
-	if c.app.GetSettings().Rpc.Log {
-		log.Info("request %s rpc func(%s) [%s]", c.serverId, _func, correlation_id)
-	}
-
-	callInfo := &mqrpc.CallInfo{
-		RpcInfo: *rpcInfo,
-	}
-	callback := make(chan rpcpb.ResultInfo, 1)
-	var err error
-	//优先使用本地rpc
-	if c.local_client != nil {
-		err = c.local_client.Call(*callInfo, callback)
-	} else if c.udp_client != nil {
-		err = c.udp_client.Call(*callInfo, callback)
-	} else {
-		return nil, fmt.Sprintf("rpc service (%s) connection failed", c.serverId)
-	}
-	if err != nil {
-		return nil, err.Error()
-	}
-	resultInfo, ok := <-callback
-	if !ok {
-		return nil, "client closed"
-	}
-	result, err := argsutil.Bytes2Args(c.app, resultInfo.ResultType, resultInfo.Result)
-	if c.app.GetSettings().Rpc.Log {
-		log.Info("response %s rpc func(%s) [%s]", c.serverId, _func, correlation_id)
-	}
 	if err != nil {
 		return nil, err.Error()
 	}
@@ -203,9 +152,6 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
-	}
-	if c.app.GetSettings().Rpc.Log {
-		log.Info("request %s rpc(nr) func(%s) [%s]", c.serverId, _func, correlation_id)
 	}
 	callInfo := &mqrpc.CallInfo{
 		RpcInfo: *rpcInfo,
@@ -231,43 +177,25 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 func (c *RPCClient) Call(_func string, params ...interface{}) (interface{}, string) {
 	var ArgsType []string = make([]string, len(params))
 	var args [][]byte = make([][]byte, len(params))
+	var span log.TraceSpan = nil
 	for k, param := range params {
 		var err error = nil
 		ArgsType[k], args[k], err = argsutil.ArgsTypeAnd2Bytes(c.app, param)
 		if err != nil {
 			return nil, fmt.Sprintf("args[%d] error %s", k, err.Error())
 		}
-
 		switch v2 := param.(type) { //多选语句switch
-		case gate.Session:
+		case log.TraceSpan:
 			//如果参数是这个需要拷贝一份新的再传
-			param = v2.Clone()
+			span = v2
 		}
 	}
-	return c.CallArgs(_func, ArgsType, args)
-}
-
-/**
-使用不可靠的udp rpc传输通道
-消息请求 需要回复
-*/
-func (c *RPCClient) CallUnreliable(_func string, params ...interface{}) (interface{}, string) {
-	var ArgsType []string = make([]string, len(params))
-	var args [][]byte = make([][]byte, len(params))
-	for k, param := range params {
-		var err error = nil
-		ArgsType[k], args[k], err = argsutil.ArgsTypeAnd2Bytes(c.app, param)
-		if err != nil {
-			return nil, fmt.Sprintf("args[%d] error %s", k, err.Error())
-		}
-
-		switch v2 := param.(type) { //多选语句switch
-		case gate.Session:
-			//如果参数是这个需要拷贝一份新的再传
-			param = v2.Clone()
-		}
+	start := time.Now()
+	r, errstr := c.CallArgs(_func, ArgsType, args)
+	if c.app.GetSettings().Rpc.Log {
+		log.TInfo(span, "RPC Call ServerId = %v Func = %v Elapsed = %v Result = %v ERROR = %v", c.serverId, _func, time.Since(start), r, errstr)
 	}
-	return c.CallArgsUnreliable(_func, ArgsType, args)
+	return r, errstr
 }
 
 /**
@@ -276,6 +204,7 @@ func (c *RPCClient) CallUnreliable(_func string, params ...interface{}) (interfa
 func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
 	var ArgsType []string = make([]string, len(params))
 	var args [][]byte = make([][]byte, len(params))
+	var span log.TraceSpan = nil
 	for k, param := range params {
 		ArgsType[k], args[k], err = argsutil.ArgsTypeAnd2Bytes(c.app, param)
 		if err != nil {
@@ -283,10 +212,15 @@ func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
 		}
 
 		switch v2 := param.(type) { //多选语句switch
-		case gate.Session:
+		case log.TraceSpan:
 			//如果参数是这个需要拷贝一份新的再传
-			param = v2.Clone()
+			span = v2
 		}
 	}
-	return c.CallNRArgs(_func, ArgsType, args)
+	start := time.Now()
+	err = c.CallNRArgs(_func, ArgsType, args)
+	if c.app.GetSettings().Rpc.Log {
+		log.TInfo(span, "RPC CallNR ServerId = %v Func = %v Elapsed = %v ERROR = %v", c.serverId, _func, time.Since(start), err)
+	}
+	return err
 }

@@ -80,10 +80,6 @@ type RPCClient interface {
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
 	Call(_func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
-	//不可靠的RPC传输,底层基于udp协议
-	CallArgsUnreliable(_func string, ArgsType []string, args [][]byte) (interface{}, string)
-	//不可靠的RPC传输,底层基于udp协议
-	CallUnreliable(_func string, params ...interface{}) (interface{}, string)
 }
 
 type LocalClient interface {

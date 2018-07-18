@@ -14,52 +14,100 @@
 package log
 
 import (
-	"github.com/liangdas/mqant/log/beego"
-	"github.com/liangdas/mqant/logger/ozzo-log"
+	beegolog "github.com/liangdas/mqant/log/beego"
+	"github.com/liangdas/mqant/utils"
 )
 
-var mqlog *log.Logger
-var beego *logs.BeeLogger
-var defaultLogger *log.Logger
+var beego *beegolog.BeeLogger
 
-func Init(debug bool, ProcessID string, Logdir string) {
-	mqlog = NewMqantLog(debug, ProcessID, Logdir)
-}
 func InitBeego(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
 	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings)
 }
-func Log() *log.Logger {
-	if mqlog == nil {
-		if defaultLogger == nil {
-			defaultLogger = NewDefaultLogger()
-		}
-		return defaultLogger
-	}
-	return mqlog
-}
-func LogBeego() *logs.BeeLogger {
+func LogBeego() *beegolog.BeeLogger {
 	if beego == nil {
-		beego = logs.NewLogger()
+		beego = beegolog.NewLogger()
 	}
 	return beego
 }
+
+func CreateRootTrace() TraceSpan {
+	return &TraceSpanImp{
+		Trace: utils.GenerateID().String(),
+		Span:  utils.GenerateID().String(),
+	}
+}
+
+func CreateTrace(trace, span string) TraceSpan {
+	return &TraceSpanImp{
+		Trace: trace,
+		Span:  span,
+	}
+}
+
 func Debug(format string, a ...interface{}) {
 	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
-	LogBeego().Debug(format, a...)
+	LogBeego().Debug(nil, format, a...)
 }
 func Info(format string, a ...interface{}) {
 	//gLogger.doPrintf(releaseLevel, printReleaseLevel, format, a...)
-	LogBeego().Info(format, a...)
+	LogBeego().Info(nil, format, a...)
 }
 
 func Error(format string, a ...interface{}) {
 	//gLogger.doPrintf(errorLevel, printErrorLevel, format, a...)
-	LogBeego().Error(format, a...)
+	LogBeego().Error(nil, format, a...)
 }
 
 func Warning(format string, a ...interface{}) {
 	//gLogger.doPrintf(fatalLevel, printFatalLevel, format, a...)
-	LogBeego().Warning(format, a...)
+	LogBeego().Warning(nil, format, a...)
+}
+
+func TDebug(span TraceSpan, format string, a ...interface{}) {
+	if span != nil {
+		LogBeego().Debug(
+			&beegolog.BeegoTraceSpan{
+				Trace: span.TraceId(),
+				Span:  span.SpanId(),
+			}, format, a...)
+	} else {
+		LogBeego().Debug(nil, format, a...)
+	}
+}
+func TInfo(span TraceSpan, format string, a ...interface{}) {
+	if span != nil {
+		LogBeego().Info(
+			&beegolog.BeegoTraceSpan{
+				Trace: span.TraceId(),
+				Span:  span.SpanId(),
+			}, format, a...)
+	} else {
+		LogBeego().Info(nil, format, a...)
+	}
+}
+
+func TError(span TraceSpan, format string, a ...interface{}) {
+	if span != nil {
+		LogBeego().Error(
+			&beegolog.BeegoTraceSpan{
+				Trace: span.TraceId(),
+				Span:  span.SpanId(),
+			}, format, a...)
+	} else {
+		LogBeego().Error(nil, format, a...)
+	}
+}
+
+func TWarning(span TraceSpan, format string, a ...interface{}) {
+	if span != nil {
+		LogBeego().Warning(
+			&beegolog.BeegoTraceSpan{
+				Trace: span.TraceId(),
+				Span:  span.SpanId(),
+			}, format, a...)
+	} else {
+		LogBeego().Warning(nil, format, a...)
+	}
 }
 
 func Close() {

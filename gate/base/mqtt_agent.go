@@ -15,10 +15,8 @@ package basegate
 
 import (
 	"bufio"
-	"container/list"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"runtime"
 	"strings"
 	"time"
@@ -30,7 +28,7 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
-	"github.com/liangdas/mqant/utils/uuid"
+	"github.com/liangdas/mqant/utils"
 )
 
 //type resultInfo struct {
@@ -109,7 +107,7 @@ func (a *agent) Run() (err error) {
 	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
 	a.client = c
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
-		"Sessionid": Get_uuid(),
+		"Sessionid": utils.GenerateID().String(),
 		"Network":   a.conn.RemoteAddr().Network(),
 		"IP":        a.conn.RemoteAddr().String(),
 		"Serverid":  a.module.GetServerId(),
@@ -119,7 +117,7 @@ func (a *agent) Run() (err error) {
 		log.Error("gate create agent fail", err.Error())
 		return
 	}
-
+	a.session.CreateTrace()             //代码跟踪
 	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
 
 	//回复客户端 CONNECT
@@ -218,14 +216,14 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			args[1] = pub.GetMsg()
 		}
 		hash := ""
-		if a.session.GetUserid() != "" {
-			hash = a.session.GetUserid()
+		if a.session.GetUserId() != "" {
+			hash = a.session.GetUserId()
 		} else {
 			hash = a.module.GetServerId()
 		}
-		if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
-			a.session.CreateRootSpan("gate")
-		}
+		//if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
+		//	a.session.CreateRootSpan("gate")
+		//}
 
 		serverSession, err := a.module.GetRouteServer(topics[0], hash)
 		if err != nil {
@@ -265,26 +263,26 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 			}
 		}
 
-		if a.GetSession().GetUserid() != "" {
+		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
 			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于一秒
 				if a.gate.GetStorageHandler() != nil {
-					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserid())
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
 					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}
 		}
 	case mqtt.PINGREQ:
 		//客户端发送的心跳包
-		if a.GetSession().GetUserid() != "" {
+		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
 			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于60秒
 				if a.gate.GetStorageHandler() != nil {
-					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserid())
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
 					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
 				}
 			}
@@ -303,53 +301,4 @@ func (a *agent) Close() {
 
 func (a *agent) Destroy() {
 	a.conn.Destroy()
-}
-
-func Get_uuid() string {
-	mid, err := TransNumToString(time.Now().UnixNano())
-	if err != nil {
-		return uuid.Rand().Hex()
-	} else {
-		return fmt.Sprintf("%s:%d", mid, RandInt64(100, 10000))
-	}
-}
-
-func TransNumToString(num int64) (string, error) {
-	var base int64
-	base = 62
-	baseHex := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	output_list := list.New()
-	for num/base != 0 {
-		output_list.PushFront(num % base)
-		num = num / base
-	}
-	output_list.PushFront(num % base)
-	str := ""
-	for iter := output_list.Front(); iter != nil; iter = iter.Next() {
-		str = str + string(baseHex[int(iter.Value.(int64))])
-	}
-	return str, nil
-}
-
-func TransStringToNum(str string) (int64, error) {
-
-	return 0, nil
-}
-
-// 函　数：生成随机数
-// 概　要：
-// 参　数：
-//      min: 最小值
-//      max: 最大值
-// 返回值：
-//      int64: 生成的随机数
-func RandInt64(min, max int64) int64 {
-	if min >= max {
-		return max
-	}
-	return rand.Int63n(max-min) + min
-}
-
-func TimeNow() time.Time {
-	return time.Now()
 }

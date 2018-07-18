@@ -42,8 +42,6 @@ QQ交流群 :463735103
 	go get github.com/streadway/amqp
 	go get github.com/golang/protobuf
 	go get github.com/golang/net/context
-	go get github.com/opentracing/basictracer-go
-	go get github.com/opentracing/opentracing-go
 	go get github.com/gomodule/redigo
 
 #	文档

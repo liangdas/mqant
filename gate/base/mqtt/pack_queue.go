@@ -17,12 +17,12 @@ package mqtt
 import (
 	"bufio"
 	"fmt"
-	"time"
-	"runtime"
+	"github.com/juju/errors"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
-	"github.com/juju/errors"
+	"runtime"
+	"time"
 )
 
 // Tcp write queue
@@ -93,7 +93,6 @@ func (queue *PackQueue) writeLoop() {
 			queue.noticeFin <- 0
 		}
 
-
 	}()
 	var err error
 loop:
@@ -135,7 +134,13 @@ func (queue *PackQueue) WritePack(pack *Pack) error {
 	if queue.writeError != nil {
 		return queue.writeError
 	}
-	queue.writeChan <- &packAndType{pack: pack}
+	select {
+	case queue.writeChan <- &packAndType{pack: pack}:
+		//do nothing
+	default:
+		//warnning!
+		return fmt.Errorf("write_channel is full!")
+	}
 	return nil
 }
 
@@ -208,6 +213,7 @@ func (queue *PackQueue) ReadPackInLoop() {
 				p.pack, p.err = ReadPack(queue.r)
 				if p.err != nil {
 					is_continue = false
+					break loop
 				}
 				select {
 				case queue.readChan <- p:

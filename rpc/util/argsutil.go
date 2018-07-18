@@ -14,7 +14,9 @@
 package argsutil
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/utils"
 	"reflect"
@@ -31,6 +33,7 @@ var (
 	STRING = "string" //string
 	MAP    = "map"    //map[string]interface{}
 	MAPSTR = "mapstr" //map[string]string{}
+	TRACE  = "trace"  //log.TraceSpanImp
 )
 
 func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) {
@@ -67,6 +70,18 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 			return MAPSTR, nil, err
 		}
 		return MAPSTR, bytes, nil
+	case log.TraceSpanImp:
+		bytes, err := json.Marshal(v2)
+		if err != nil {
+			return TRACE, nil, err
+		}
+		return TRACE, bytes, nil
+	case *log.TraceSpanImp:
+		bytes, err := json.Marshal(v2)
+		if err != nil {
+			return TRACE, nil, err
+		}
+		return TRACE, bytes, nil
 	default:
 		for _, v := range app.GetRPCSerialize() {
 			ptype, vk, err := v.Serialize(arg)
@@ -109,6 +124,13 @@ func Bytes2Args(app module.App, argsType string, args []byte) (interface{}, erro
 			return nil, errs
 		}
 		return mps, nil
+	case TRACE:
+		trace := &log.TraceSpanImp{}
+		err := json.Unmarshal(args, trace)
+		if err != nil {
+			return nil, err
+		}
+		return trace, nil
 	default:
 		for _, v := range app.GetRPCSerialize() {
 			vk, err := v.Deserialize(argsType, args)

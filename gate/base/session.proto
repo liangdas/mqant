@@ -1,11 +1,13 @@
 syntax = "proto3";
-package gate;
-message session {
+package basegate;
+message sessionImp {
     string IP = 1;
     string Network = 2;
-    string Userid = 3;
-    string Sessionid = 4;
-    string Serverid = 5;
-    map<string, string> Settings = 6;
-    map<string, string> Tracer=7;
+    string UserId = 3;
+    string SessionId = 4;
+    string ServerId = 5;
+    string TraceId = 6;
+    string SpanId = 7;
+    map<string, string> Settings = 8;
+    map<string, string> Carrier=9;
 }

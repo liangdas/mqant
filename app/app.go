@@ -25,7 +25,6 @@ import (
 	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
-	opentracing "github.com/opentracing/opentracing-go"
 	"hash/crc32"
 	"math"
 	"os"
@@ -33,6 +32,8 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 )
 
 type resultInfo struct {
@@ -77,7 +78,6 @@ type DefaultApp struct {
 	//将一个RPC调用路由到新的路由上
 	mapRoute            func(app module.App, route string) string
 	rpcserializes       map[string]module.RPCSerialize
-	getTracer           func() opentracing.Tracer
 	configurationLoaded func(app module.App)
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
@@ -160,11 +160,23 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	// close
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
-	manager.Destroy()
-	app.OnDestroy()
-	log.Info("mqant closing down (signal: %v)", sig)
+
+	//如果一分钟都关不了则强制关闭
+	timeout := time.NewTimer(time.Minute)
+	wait := make(chan struct{})
+	go func() {
+		manager.Destroy()
+		app.OnDestroy()
+		wait <- struct{}{}
+	}()
+	select {
+	case <-timeout.C:
+		panic(fmt.Sprintf("mqant close timeout (signal: %v)", sig))
+	case <-wait:
+		log.Info("mqant closing down (signal: %v)", sig)
+	}
 	return nil
 }
 func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {
@@ -337,34 +349,6 @@ func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType strin
 		return
 	}
 	return server.CallNRArgs(_func, ArgsType, args)
-}
-
-func (app *DefaultApp) RpcInvokeUnreliable(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := app.GetRouteServer(moduleType, module.GetServerId())
-	if e != nil {
-		err = e.Error()
-		return
-	}
-	return server.CallUnreliable(_func, params...)
-}
-
-func (app *DefaultApp) RpcInvokeArgsUnreliable(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
-	server, err := app.GetRouteServer(moduleType, module.GetServerId())
-	if err != nil {
-		return nil, err.Error()
-	}
-	return server.CallArgsUnreliable(_func, ArgsType, args)
-}
-
-func (app *DefaultApp) DefaultTracer(_func func() opentracing.Tracer) error {
-	app.getTracer = _func
-	return nil
-}
-func (app *DefaultApp) GetTracer() opentracing.Tracer {
-	if app.getTracer != nil {
-		return app.getTracer()
-	}
-	return nil
 }
 
 func (app *DefaultApp) GetModuleInited() func(app module.App, module module.Module) {

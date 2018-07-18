@@ -211,7 +211,6 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 
 	this.agentLearner = handler
 	this.handler = handler
-
 	this.GetServer().RegisterGO("Update", this.handler.Update)
 	this.GetServer().RegisterGO("Bind", this.handler.Bind)
 	this.GetServer().RegisterGO("UnBind", this.handler.UnBind)

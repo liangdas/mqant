@@ -14,8 +14,8 @@
 package defaultrpc
 
 import (
-	"github.com/gomodule/redigo/redis"
 	"github.com/golang/protobuf/proto"
+	"github.com/gomodule/redigo/redis"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/rpc"

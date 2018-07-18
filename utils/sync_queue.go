@@ -101,9 +101,9 @@ func (q *SyncQueue) Close() {
 	q.lock.Unlock()
 }
 
-func (q *SyncQueue) IsClose()(v bool){
+func (q *SyncQueue) IsClose() (v bool) {
 	q.lock.Lock()
-	v=q.closed
+	v = q.closed
 	q.lock.Unlock()
 	return
 }
