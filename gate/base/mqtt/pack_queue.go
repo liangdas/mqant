@@ -17,10 +17,10 @@ package mqtt
 import (
 	"bufio"
 	"fmt"
-	"github.com/juju/errors"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
+	"github.com/pkg/errors"
 	"runtime"
 	"time"
 )

@@ -118,7 +118,7 @@ func formatTimeHeader(when time.Time) ([]byte, int) {
 	//buf[19] = ' '
 	//
 	//return buf[0:], d
-	return []byte(when.Format(time.RFC3339)), d
+	return []byte(when.Format(time.RFC3339Nano)), d
 }
 
 var (
