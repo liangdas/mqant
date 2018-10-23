@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/utils/x/crypto/ssh"
 	"net"
 	"os/exec"
 	"strconv"
@@ -95,25 +94,25 @@ func (p *Process) SSHExec(name string, arg ...string) (output string, errput str
 		errput = fmt.Sprintf("No host() found in SSH configuration ", p.Process.Host)
 		return
 	}
-	client, err := ssh.Dial("tcp", sshconf.GetSSHHost(), &ssh.ClientConfig{
-		User: sshconf.User,
-		Auth: []ssh.AuthMethod{ssh.Password(sshconf.Password)},
-	})
-	if err != nil {
-		errput = err.Error()
-		return
-	}
-
-	cmd := name + " " + strings.Join(arg, " ")
-	log.Info("ssh[%s] exec :%s", sshconf.GetSSHHost(), cmd)
-	session, err := client.NewSession()
-	b, err := session.Output(cmd)
-	if err != nil {
-		errput = err.Error()
-		return
-	}
-	output = string(b)
-	defer session.Close()
+	//client, err := ssh.Dial("tcp", sshconf.GetSSHHost(), &ssh.ClientConfig{
+	//	User: sshconf.User,
+	//	Auth: []ssh.AuthMethod{ssh.Password(sshconf.Password)},
+	//})
+	//if err != nil {
+	//	errput = err.Error()
+	//	return
+	//}
+	//
+	//cmd := name + " " + strings.Join(arg, " ")
+	//log.Info("ssh[%s] exec :%s", sshconf.GetSSHHost(), cmd)
+	//session, err := client.NewSession()
+	//b, err := session.Output(cmd)
+	//if err != nil {
+	//	errput = err.Error()
+	//	return
+	//}
+	//output = string(b)
+	//defer session.Close()
 	return
 }
 
