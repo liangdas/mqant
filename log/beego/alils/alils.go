@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/astaxie/beego/logs"
+	logs "github.com/liangdas/mqant/log/beego"
 	"github.com/gogo/protobuf/proto"
 )
 
@@ -105,7 +105,7 @@ func (c *aliLSWriter) Init(jsonConfig string) (err error) {
 // if connection is down, try to re-connect.
 func (c *aliLSWriter) WriteMsg(when time.Time, msg string, level int) (err error) {
 
-	if level > c.Level {
+	if level < c.Level {
 		return nil
 	}
 

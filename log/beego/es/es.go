@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/astaxie/beego/logs"
+	logs "github.com/liangdas/mqant/log/beego"
 	"github.com/belogik/goes"
 )
 
@@ -49,7 +49,7 @@ func (el *esLogger) Init(jsonconfig string) error {
 
 // WriteMsg will write the msg and level into es
 func (el *esLogger) WriteMsg(when time.Time, msg string, level int) error {
-	if level > el.Level {
+	if level < el.Level {
 		return nil
 	}
 
