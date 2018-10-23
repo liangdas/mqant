@@ -91,9 +91,12 @@ func (queue *PackQueue) writeLoop() {
 			buf := make([]byte, 1024)
 			l := runtime.Stack(buf, false)
 			errstr := string(buf[:l])
-			queue.writeError = errors.New(errstr)
-			queue.errorChan <- errors.New(errstr)
-			queue.noticeFin <- 0
+			log.Error("writeLoop fail: %s", errstr)
+			if atomic.LoadInt32(&queue.closed) == 0 {
+				queue.writeError = errors.New(errstr)
+				queue.errorChan <- errors.New(errstr)
+				queue.noticeFin <- 0
+			}
 		}
 
 	}()

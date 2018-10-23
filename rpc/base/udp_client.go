@@ -110,7 +110,7 @@ func (this *UDPClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultI
 	}
 	this.callinfos.Set(correlation_id, *clinetCallInfo)
 	callInfo.Props = map[string]interface{}{
-	//"reply_to": this.result_chan,
+		//"reply_to": this.result_chan,
 	}
 
 	body, err := this.Marshal(&callInfo.RpcInfo)

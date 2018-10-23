@@ -63,8 +63,8 @@ func NewMqttAgent(module module.RPCModule) *agent {
 func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
 	this.conn = conn
 	this.gate = gate
-	this.r = bufio.NewReaderSize(conn, 256)
-	this.w = bufio.NewWriterSize(conn, 256)
+	this.r = bufio.NewReaderSize(conn, 2048)
+	this.w = bufio.NewWriterSize(conn, 2048)
 	this.isclose = false
 	this.rev_num = 0
 	this.send_num = 0

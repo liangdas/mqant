@@ -101,7 +101,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
-	debug := flag.Bool("debug", true, "debug module")
+	debug := flag.Bool("debug", false, "debug module")
 	flag.Parse() //解析输入的参数
 
 	if *debug {
