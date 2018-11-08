@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"math"
 )
 
 // fileLogWriter implements LoggerInterface.
@@ -66,7 +67,7 @@ type fileLogWriter struct {
 func newFileWriter() Logger {
 	w := &fileLogWriter{
 		Daily:      true,
-		MaxDays:    7,
+		MaxDays:    math.MaxInt64,
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
@@ -80,7 +81,7 @@ func newFileWriter() Logger {
 func NewFileWriter() Logger {
 	w := &fileLogWriter{
 		Daily:      true,
-		MaxDays:    7,
+		MaxDays:    math.MaxInt64,
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
