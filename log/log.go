@@ -19,15 +19,26 @@ import (
 )
 
 var beego *beegolog.BeeLogger
+var bi *beegolog.BeeLogger
 
-func InitBeego(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
+func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
 	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings)
+}
+func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
+	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings)
 }
 func LogBeego() *beegolog.BeeLogger {
 	if beego == nil {
 		beego = beegolog.NewLogger()
 	}
 	return beego
+}
+
+func BiBeego() *beegolog.BeeLogger {
+	if bi == nil {
+		bi = beegolog.NewLogger()
+	}
+	return bi
 }
 
 func CreateRootTrace() TraceSpan {
@@ -42,6 +53,11 @@ func CreateTrace(trace, span string) TraceSpan {
 		Trace: trace,
 		Span:  span,
 	}
+}
+
+func BiReport(bi map[string]interface{}) {
+	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
+	BiBeego().BiReport(bi)
 }
 
 func Debug(format string, a ...interface{}) {

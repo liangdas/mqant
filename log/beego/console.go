@@ -86,6 +86,10 @@ func (c *consoleWriter) WriteMsg(when time.Time, msg string, level int) error {
 	return nil
 }
 
+func (c *consoleWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return c.WriteMsg(when, msg, level)
+}
+
 // Destroy implementing method. empty.
 func (c *consoleWriter) Destroy() {
 

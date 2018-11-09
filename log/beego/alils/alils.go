@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	logs "github.com/liangdas/mqant/log/beego"
 	"github.com/gogo/protobuf/proto"
+	logs "github.com/liangdas/mqant/log/beego"
 )
 
 const (
@@ -154,6 +154,10 @@ func (c *aliLSWriter) WriteMsg(when time.Time, msg string, level int) (err error
 	}
 
 	return nil
+}
+
+func (s *aliLSWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return s.WriteMsg(when, msg, level)
 }
 
 // Flush implementing method. empty.

@@ -35,6 +35,7 @@ package logs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -87,6 +88,7 @@ type newLoggerFunc func() Logger
 type Logger interface {
 	Init(config string) error
 	WriteMsg(when time.Time, msg string, level int) error
+	WriteOriginalMsg(when time.Time, msg string, level int) error
 	Destroy()
 	Flush()
 }
@@ -132,9 +134,10 @@ type nameLogger struct {
 }
 
 type logMsg struct {
-	level int
-	msg   string
-	when  time.Time
+	level    int
+	original bool
+	msg      string
+	when     time.Time
 }
 
 var logMsgPool *sync.Pool
@@ -233,12 +236,20 @@ func (bl *BeeLogger) DelLogger(adapterName string) error {
 	return nil
 }
 
-func (bl *BeeLogger) writeToLoggers(when time.Time, msg string, level int) {
+func (bl *BeeLogger) writeToLoggers(original bool, when time.Time, msg string, level int) {
 	for _, l := range bl.outputs {
-		err := l.WriteMsg(when, msg, level)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+		if original {
+			err := l.WriteOriginalMsg(when, msg, level)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+			}
+		} else {
+			err := l.WriteMsg(when, msg, level)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
+			}
 		}
+
 	}
 }
 
@@ -308,7 +319,32 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 		lm.when = when
 		bl.msgChan <- lm
 	} else {
-		bl.writeToLoggers(when, msg, logLevel)
+		bl.writeToLoggers(false, when, msg, logLevel)
+	}
+	return nil
+}
+
+func (bl *BeeLogger) writeBiReport(bi map[string]interface{}, logLevel int) error {
+	if !bl.init {
+		bl.lock.Lock()
+		bl.setLogger(AdapterConsole)
+		bl.lock.Unlock()
+	}
+	bys, err := json.Marshal(bi)
+	if err != nil {
+		return err
+	}
+	msg := string(bys)
+	when := time.Now()
+	if bl.asynchronous {
+		lm := logMsgPool.Get().(*logMsg)
+		lm.level = LevelError
+		lm.msg = msg
+		lm.original = true
+		lm.when = when
+		bl.msgChan <- lm
+	} else {
+		bl.writeToLoggers(true, when, msg, logLevel)
 	}
 	return nil
 }
@@ -387,7 +423,7 @@ func (bl *BeeLogger) startLogger() {
 	for {
 		select {
 		case bm := <-bl.msgChan:
-			bl.writeToLoggers(bm.when, bm.msg, bm.level)
+			bl.writeToLoggers(bm.original, bm.when, bm.msg, bm.level)
 			logMsgPool.Put(bm)
 		case sg := <-bl.signalChan:
 			// Now should only send "flush" or "close" to bl.signalChan
@@ -498,6 +534,13 @@ func (bl *BeeLogger) Trace(span *BeegoTraceSpan, format string, v ...interface{}
 	bl.writeMsg(span, LevelDebug, format, v...)
 }
 
+func (bl *BeeLogger) BiReport(bi map[string]interface{}) {
+	if LevelEmergency > bl.level {
+		return
+	}
+	bl.writeBiReport(bi, LevelEmergency)
+}
+
 // Flush flush all chan data.
 func (bl *BeeLogger) Flush() {
 	if bl.asynchronous {
@@ -539,7 +582,7 @@ func (bl *BeeLogger) flush() {
 		for {
 			if len(bl.msgChan) > 0 {
 				bm := <-bl.msgChan
-				bl.writeToLoggers(bm.when, bm.msg, bm.level)
+				bl.writeToLoggers(bm.original, bm.when, bm.msg, bm.level)
 				logMsgPool.Put(bm)
 				continue
 			}

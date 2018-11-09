@@ -90,6 +90,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
 	Logdir := flag.String("log", "", "Log file directory?")
+	BIdir := flag.String("bi", "", "bi file directory?")
 	flag.Parse() //解析输入的参数
 	app.processId = *ProcessID
 	ApplicationDir := ""
@@ -113,6 +114,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 
 	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
+	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
 	if *confPath == "" {
 		*confPath = defaultConfPath
@@ -120,6 +122,10 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 
 	if *Logdir == "" {
 		*Logdir = defaultLogPath
+	}
+
+	if *BIdir == "" {
+		*BIdir = defaultBIPath
 	}
 
 	f, err := os.Open(*confPath)
@@ -135,10 +141,20 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 			fmt.Println(err)
 		}
 	}
+
+	_, err = os.Open(*BIdir)
+	if err != nil {
+		//文件不存在
+		err := os.Mkdir(*BIdir, os.ModePerm) //
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 	fmt.Println("Server configuration file path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	app.Configure(conf.Conf)  //配置信息
-	log.InitBeego(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitLog(debug, *ProcessID, *Logdir, conf.Conf.Log)
+	log.InitBI(debug, *ProcessID, *BIdir, conf.Conf.BI)
 
 	log.Info("mqant %v starting up", app.version)
 

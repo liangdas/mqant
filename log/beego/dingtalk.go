@@ -60,6 +60,10 @@ func (s *DingtalkWriter) WriteMsg(when time.Time, msg string, level int) error {
 	return nil
 }
 
+func (s *DingtalkWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return s.WriteMsg(when, msg, level)
+}
+
 // Flush implementing method. empty.
 func (s *DingtalkWriter) Flush() {
 }

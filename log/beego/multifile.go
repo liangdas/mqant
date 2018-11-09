@@ -98,6 +98,10 @@ func (f *multiFileLogWriter) WriteMsg(when time.Time, msg string, level int) err
 	return nil
 }
 
+func (s *multiFileLogWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return s.WriteMsg(when, msg, level)
+}
+
 func (f *multiFileLogWriter) Flush() {
 	for i := 0; i < len(f.writers); i++ {
 		if f.writers[i] != nil {

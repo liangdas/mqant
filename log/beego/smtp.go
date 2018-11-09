@@ -136,6 +136,10 @@ func (s *SMTPWriter) WriteMsg(when time.Time, msg string, level int) error {
 	return s.sendMail(s.Host, auth, s.FromAddress, s.RecipientAddresses, mailmsg)
 }
 
+func (s *SMTPWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return s.WriteMsg(when, msg, level)
+}
+
 // Flush implementing method. empty.
 func (s *SMTPWriter) Flush() {
 }

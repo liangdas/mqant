@@ -171,6 +171,39 @@ func (w *fileLogWriter) WriteMsg(when time.Time, msg string, level int) error {
 	return err
 }
 
+// WriteMsg write logger message into file.
+func (w *fileLogWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	if (level > w.Level) || (level < w.MinLevel) {
+		return nil
+	}
+	_, d := formatTimeHeader(when)
+	msg = msg + "\n"
+	if w.Rotate {
+		w.RLock()
+		if w.needRotate(len(msg), d) {
+			w.RUnlock()
+			w.Lock()
+			if w.needRotate(len(msg), d) {
+				if err := w.doRotate(when); err != nil {
+					fmt.Fprintf(os.Stderr, "FileLogWriter(%q): %s\n", w.Filename, err)
+				}
+			}
+			w.Unlock()
+		} else {
+			w.RUnlock()
+		}
+	}
+
+	w.Lock()
+	_, err := w.fileWriter.Write([]byte(msg))
+	if err == nil {
+		w.maxLinesCurLines++
+		w.maxSizeCurSize += len(msg)
+	}
+	w.Unlock()
+	return err
+}
+
 func (w *fileLogWriter) createLogFile() (*os.File, error) {
 	// Open the log file
 	perm, err := strconv.ParseInt(w.Perm, 8, 64)

@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"time"
 
-	logs "github.com/liangdas/mqant/log/beego"
 	"github.com/belogik/goes"
+	logs "github.com/liangdas/mqant/log/beego"
 )
 
 // NewES return a LoggerInterface
@@ -63,6 +63,10 @@ func (el *esLogger) WriteMsg(when time.Time, msg string, level int) error {
 	}
 	_, err := el.Index(d, nil)
 	return err
+}
+
+func (s *esLogger) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return s.WriteMsg(when, msg, level)
 }
 
 // Destroy is a empty method

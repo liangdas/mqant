@@ -53,6 +53,7 @@ func LoadConfig(Path string) {
 
 type Config struct {
 	Log      map[string]interface{}
+	BI       map[string]interface{}
 	Rpc      Rpc
 	Module   map[string][]*ModuleSettings
 	Mqtt     Mqtt

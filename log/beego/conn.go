@@ -67,6 +67,10 @@ func (c *connWriter) WriteMsg(when time.Time, msg string, level int) error {
 	return nil
 }
 
+func (c *connWriter) WriteOriginalMsg(when time.Time, msg string, level int) error {
+	return c.WriteMsg(when, msg, level)
+}
+
 // Flush implementing method. empty.
 func (c *connWriter) Flush() {
 
