@@ -67,7 +67,7 @@ type fileLogWriter struct {
 func newFileWriter() Logger {
 	w := &fileLogWriter{
 		Daily:      true,
-		MaxDays:    math.MaxInt64,
+		MaxDays:    365,
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
@@ -81,7 +81,7 @@ func newFileWriter() Logger {
 func NewFileWriter() Logger {
 	w := &fileLogWriter{
 		Daily:      true,
-		MaxDays:    math.MaxInt64,
+		MaxDays:    365,
 		Rotate:     true,
 		RotatePerm: "0440",
 		Level:      LevelTrace,
@@ -325,12 +325,12 @@ func (w *fileLogWriter) deleteOldLog() {
 			return
 		}
 
-		if !info.IsDir() && info.ModTime().Add(24*time.Hour*time.Duration(w.MaxDays)).Before(time.Now()) {
-			if strings.HasPrefix(filepath.Base(path), filepath.Base(w.fileNameOnly)) &&
-				strings.HasSuffix(filepath.Base(path), w.suffix) {
-				os.Remove(path)
-			}
-		}
+		//if !info.IsDir() && info.ModTime().Add(24*time.Hour*time.Duration(w.MaxDays)).Before(time.Now()) {
+		//	if strings.HasPrefix(filepath.Base(path), filepath.Base(w.fileNameOnly)) &&
+		//		strings.HasSuffix(filepath.Base(path), w.suffix) {
+		//		os.Remove(path)
+		//	}
+		//}
 		return
 	})
 }
