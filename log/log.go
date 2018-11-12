@@ -55,9 +55,9 @@ func CreateTrace(trace, span string) TraceSpan {
 	}
 }
 
-func BiReport(bi map[string]interface{}) {
+func BiReport(msg string) {
 	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
-	BiBeego().BiReport(bi)
+	BiBeego().BiReport(msg)
 }
 
 func Debug(format string, a ...interface{}) {

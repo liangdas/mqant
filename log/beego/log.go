@@ -35,7 +35,6 @@ package logs
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -324,17 +323,13 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 	return nil
 }
 
-func (bl *BeeLogger) writeBiReport(bi map[string]interface{}, logLevel int) error {
+func (bl *BeeLogger) writeBiReport(msg string, logLevel int) error {
 	if !bl.init {
 		bl.lock.Lock()
 		bl.setLogger(AdapterConsole)
 		bl.lock.Unlock()
 	}
-	bys, err := json.Marshal(bi)
-	if err != nil {
-		return err
-	}
-	msg := string(bys)
+
 	when := time.Now()
 	if bl.asynchronous {
 		lm := logMsgPool.Get().(*logMsg)
@@ -534,11 +529,11 @@ func (bl *BeeLogger) Trace(span *BeegoTraceSpan, format string, v ...interface{}
 	bl.writeMsg(span, LevelDebug, format, v...)
 }
 
-func (bl *BeeLogger) BiReport(bi map[string]interface{}) {
+func (bl *BeeLogger) BiReport(msg string) {
 	if LevelEmergency > bl.level {
 		return
 	}
-	bl.writeBiReport(bi, LevelEmergency)
+	bl.writeBiReport(msg, LevelEmergency)
 }
 
 // Flush flush all chan data.
