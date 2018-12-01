@@ -31,7 +31,7 @@ import (
 type RPCServer struct {
 	module             module.Module
 	app                module.App
-	functions          map[string]mqrpc.FunctionInfo
+	functions          map[string]*mqrpc.FunctionInfo
 	remote_server      *AMQPServer
 	local_server       *LocalServer
 	redis_server       *RedisServer
@@ -53,7 +53,7 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.module = module
 	rpc_server.call_chan_done = make(chan error)
 	rpc_server.callback_chan_done = make(chan error)
-	rpc_server.functions = make(map[string]mqrpc.FunctionInfo)
+	rpc_server.functions = make(map[string]*mqrpc.FunctionInfo)
 	rpc_server.mq_chan = make(chan mqrpc.CallInfo)
 	rpc_server.callback_chan = make(chan mqrpc.CallInfo, 1)
 	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
@@ -140,7 +140,7 @@ func (s *RPCServer) Register(id string, f interface{}) {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
 
-	s.functions[id] = *&mqrpc.FunctionInfo{
+	s.functions[id] = &mqrpc.FunctionInfo{
 		Function:  f,
 		Goroutine: false,
 	}
@@ -153,7 +153,7 @@ func (s *RPCServer) RegisterGO(id string, f interface{}) {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
 
-	s.functions[id] = *&mqrpc.FunctionInfo{
+	s.functions[id] = &mqrpc.FunctionInfo{
 		Function:  f,
 		Goroutine: true,
 	}
@@ -285,8 +285,14 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 
 	functionInfo, ok := s.functions[callInfo.RpcInfo.Fn]
 	if !ok {
-		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("Remote function(%s) not found", callInfo.RpcInfo.Fn), nil)
-		return
+		if s.listener != nil {
+			fInfo, err := s.listener.NoFoundFunction(callInfo.RpcInfo.Fn)
+			if err != nil {
+				_errorCallback(callInfo.RpcInfo.Cid, err.Error(), nil)
+				return
+			}
+			functionInfo = fInfo
+		}
 	}
 	_func := functionInfo.Function
 	params := callInfo.RpcInfo.Args
@@ -310,6 +316,11 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		s.executing++
 		var span log.TraceSpan = nil
 		defer func() {
+			s.wg.Add(-1)
+			s.executing--
+			if s.control != nil {
+				s.control.Finish()
+			}
 			if r := recover(); r != nil {
 				var rn = ""
 				switch r.(type) {
@@ -325,11 +336,6 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 				allError := fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s", s.module.GetType(), callInfo.RpcInfo.Fn, rn, errstr)
 				log.Error(allError)
 				_errorCallback(callInfo.RpcInfo.Cid, allError, span)
-			}
-			s.wg.Add(-1)
-			s.executing--
-			if s.control != nil {
-				s.control.Finish()
 			}
 		}()
 
@@ -371,7 +377,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 		}
 
 		if s.listener != nil {
-			errs := s.listener.BeforeHandle(callInfo.RpcInfo.Fn, session, &callInfo)
+			errs := s.listener.BeforeHandle(callInfo.RpcInfo.Fn, &callInfo)
 			if errs != nil {
 				_errorCallback(callInfo.RpcInfo.Cid, errs.Error(), span)
 				return

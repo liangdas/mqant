@@ -16,10 +16,10 @@ package basemodule
 import (
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/pkg/errors"
 	"sync"
 	"time"
 )
@@ -142,9 +142,16 @@ func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType [
 	return server.CallNRArgs(_func, ArgsType, args)
 }
 
-func (m *BaseModule) BeforeHandle(fn string, session gate.Session, callInfo *mqrpc.CallInfo) error {
+func (m *BaseModule) NoFoundFunction(fn string) (*mqrpc.FunctionInfo, error) {
 	if m.listener != nil {
-		return m.listener.BeforeHandle(fn, session, callInfo)
+		return m.listener.NoFoundFunction(fn)
+	}
+	return nil, errors.Errorf("Remote function(%s) not found", fn)
+}
+
+func (m *BaseModule) BeforeHandle(fn string, callInfo *mqrpc.CallInfo) error {
+	if m.listener != nil {
+		return m.listener.BeforeHandle(fn, callInfo)
 	}
 	return nil
 }

@@ -35,9 +35,6 @@ func LogBeego() *beegolog.BeeLogger {
 }
 
 func BiBeego() *beegolog.BeeLogger {
-	if bi == nil {
-		bi = beegolog.NewLogger()
-	}
 	return bi
 }
 
@@ -57,7 +54,10 @@ func CreateTrace(trace, span string) TraceSpan {
 
 func BiReport(msg string) {
 	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
-	BiBeego().BiReport(msg)
+	l := BiBeego()
+	if l != nil {
+		l.BiReport(msg)
+	}
 }
 
 func Debug(format string, a ...interface{}) {

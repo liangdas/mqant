@@ -248,7 +248,7 @@ func (h *handler) SendBatch(span log.TraceSpan, SessionidStr string, topic strin
 		}
 		e := agent.(gate.Agent).WriteMsg(topic, body)
 		if e != nil {
-			log.Warning("WriteMsg error:", e.Error())
+			log.Warning("WriteMsg error: %v", e.Error())
 		} else {
 			count++
 		}

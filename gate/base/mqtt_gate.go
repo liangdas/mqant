@@ -26,8 +26,8 @@ import (
 	"github.com/liangdas/mqant/network"
 )
 
-var RPC_PARAM_SESSION_TYPE = "SESSION"
-var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
+var RPC_PARAM_SESSION_TYPE = gate.RPC_PARAM_SESSION_TYPE
+var RPC_PARAM_ProtocolMarshal_TYPE = gate.RPC_PARAM_ProtocolMarshal_TYPE
 
 type Gate struct {
 	//module.RPCSerialize
@@ -53,6 +53,8 @@ type Gate struct {
 	sessionLearner gate.SessionLearner
 	storage        gate.StorageHandler
 	tracing        gate.TracingHandler
+	router         gate.RouteHandler
+	judgeGuest     func(session gate.Session) bool
 
 	createAgent func() gate.Agent
 }
@@ -60,6 +62,19 @@ type Gate struct {
 func (this *Gate) defaultCreateAgentd() gate.Agent {
 	a := NewMqttAgent(this.GetModule())
 	return a
+}
+
+func (this *Gate) SetJudgeGuest(judgeGuest func(session gate.Session) bool) error {
+	this.judgeGuest = judgeGuest
+	return nil
+}
+
+/**
+设置Session信息持久化接口
+*/
+func (this *Gate) SetRouteHandler(router gate.RouteHandler) error {
+	this.router = router
+	return nil
 }
 
 /**
@@ -112,7 +127,12 @@ func (this *Gate) GetSessionLearner() gate.SessionLearner {
 func (this *Gate) GetTracingHandler() gate.TracingHandler {
 	return this.tracing
 }
-
+func (this *Gate) GetRouteHandler() gate.RouteHandler {
+	return this.router
+}
+func (this *Gate) GetJudgeGuest() func(session gate.Session) bool {
+	return this.judgeGuest
+}
 func (this *Gate) GetModule() module.RPCModule {
 	return this.GetSubclass()
 }

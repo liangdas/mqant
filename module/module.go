@@ -15,7 +15,6 @@ package module
 
 import (
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/rpc"
 )
 
@@ -65,19 +64,15 @@ type App interface {
 
 	GetModuleInited() func(app App, module Module)
 
-	GetJudgeGuest() func(session gate.Session) bool
-
 	OnConfigurationLoaded(func(app App)) error
 	OnModuleInited(func(app App, module Module)) error
 	OnStartup(func(app App)) error
 
-	SetJudgeGuest(judgeGuest func(session gate.Session) bool) error
-
-	SetProtocolMarshal(protocolMarshal func(Result interface{}, Error string) (ProtocolMarshal, string)) error
+	SetProtocolMarshal(protocolMarshal func(Trace string, Result interface{}, Error string) (ProtocolMarshal, string)) error
 	/**
 	与客户端通信的协议包接口
 	*/
-	ProtocolMarshal(Result interface{}, Error string) (ProtocolMarshal, string)
+	ProtocolMarshal(Trace string, Result interface{}, Error string) (ProtocolMarshal, string)
 	NewProtocolMarshal(data []byte) ProtocolMarshal
 	GetProcessID() string
 }

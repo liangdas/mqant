@@ -117,6 +117,7 @@ func (a *agent) Run() (err error) {
 		log.Error("gate create agent fail", err.Error())
 		return
 	}
+	a.session.JudgeGuest(a.gate.GetJudgeGuest())
 	a.session.CreateTrace()             //代码跟踪
 	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
 
@@ -154,33 +155,15 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		case module.ProtocolMarshal:
 			return a.WriteMsg(Topic, v2.GetData())
 		}
-		b, err := a.module.GetApp().ProtocolMarshal(Result, Error)
+		b, err := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), Result, Error)
 		if err == "" {
 			return a.WriteMsg(Topic, b.GetData())
 		} else {
 			log.Error(err)
-			br, _ := a.module.GetApp().ProtocolMarshal(nil, err)
+			br, _ := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), nil, err)
 			return a.WriteMsg(Topic, br.GetData())
 		}
 		return fmt.Errorf(err)
-		//r := &resultInfo{
-		//	Error:  Error,
-		//	Result: Result,
-		//}
-		//b, err := json.Marshal(r)
-		//if err == nil {
-		//	a.WriteMsg(Topic, b)
-		//} else {
-		//	r = &resultInfo{
-		//		Error:  err.Error(),
-		//		Result: nil,
-		//	}
-		//	log.Error(err.Error())
-		//
-		//	br, _ := json.Marshal(r)
-		//	a.WriteMsg(Topic, br)
-		//}
-		//return
 	}
 	//路由服务
 	switch pack.GetType() {
@@ -188,81 +171,94 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		a.rev_num = a.rev_num + 1
 		pub := pack.GetVariable().(*mqtt.Publish)
 		topics := strings.Split(*pub.GetTopic(), "/")
-		var msgid string
-		if len(topics) < 2 {
-			errorstr := "Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
-			log.Error(errorstr)
-			toResult(a, *pub.GetTopic(), nil, errorstr)
-			return
-		} else if len(topics) == 3 {
-			msgid = topics[2]
-		}
-		var ArgsType []string = make([]string, 2)
-		var args [][]byte = make([][]byte, 2)
-		if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
-			//尝试解析为json为map
-			var obj interface{} // var obj map[string]interface{}
-			err := json.Unmarshal(pub.GetMsg(), &obj)
+		a.session.CreateTrace()
+		if a.gate.GetRouteHandler() != nil {
+			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.session, *pub.GetTopic(), pub.GetMsg())
 			if err != nil {
+				if needreturn {
+					toResult(a, *pub.GetTopic(), nil, err.Error())
+				}
+				return
+			} else {
+				if needreturn {
+					toResult(a, *pub.GetTopic(), result, "")
+				}
+			}
+		} else {
+			var msgid string
+			if len(topics) < 2 {
+				errorstr := "Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
+				log.Error(errorstr)
+				toResult(a, *pub.GetTopic(), nil, errorstr)
+				return
+			} else if len(topics) == 3 {
+				msgid = topics[2]
+			}
+			startsWith := strings.HasPrefix(topics[1], "HD_")
+			if !startsWith {
 				if msgid != "" {
-					toResult(a, *pub.GetTopic(), nil, "The JSON format is incorrect")
+					toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Method(%s) must begin with 'HD_'", topics[1]))
 				}
 				return
 			}
-			ArgsType[1] = argsutil.MAP
-			args[1] = pub.GetMsg()
-		} else {
-			ArgsType[1] = argsutil.BYTES
-			args[1] = pub.GetMsg()
-		}
-		hash := ""
-		if a.session.GetUserId() != "" {
-			hash = a.session.GetUserId()
-		} else {
-			hash = a.module.GetServerId()
-		}
-		//if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
-		//	a.session.CreateRootSpan("gate")
-		//}
-
-		serverSession, err := a.module.GetRouteServer(topics[0], hash)
-		if err != nil {
-			if msgid != "" {
-				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
+			var ArgsType []string = make([]string, 2)
+			var args [][]byte = make([][]byte, 2)
+			hash := ""
+			if a.session.GetUserId() != "" {
+				hash = a.session.GetUserId()
+			} else {
+				hash = a.module.GetServerId()
 			}
-			return
-		}
-		startsWith := strings.HasPrefix(topics[1], "HD_")
-		if !startsWith {
-			if msgid != "" {
-				toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Method(%s) must begin with 'HD_'", topics[1]))
-			}
-			return
-		}
+			//if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
+			//	a.session.CreateRootSpan("gate")
+			//}
 
-		if msgid != "" {
-			ArgsType[0] = RPC_PARAM_SESSION_TYPE
-			b, err := a.GetSession().Serializable()
+			serverSession, err := a.module.GetRouteServer(topics[0], hash)
 			if err != nil {
+				if msgid != "" {
+					toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
+				}
 				return
 			}
-			args[0] = b
-			result, e := serverSession.CallArgs(topics[1], ArgsType, args)
-			toResult(a, *pub.GetTopic(), result, e)
-		} else {
-			ArgsType[0] = RPC_PARAM_SESSION_TYPE
-			b, err := a.GetSession().Serializable()
-			if err != nil {
-				return
+			if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
+				//尝试解析为json为map
+				var obj interface{} // var obj map[string]interface{}
+				err := json.Unmarshal(pub.GetMsg(), &obj)
+				if err != nil {
+					if msgid != "" {
+						toResult(a, *pub.GetTopic(), nil, "The JSON format is incorrect")
+					}
+					return
+				}
+				ArgsType[1] = argsutil.MAP
+				args[1] = pub.GetMsg()
+			} else {
+				ArgsType[1] = argsutil.BYTES
+				args[1] = pub.GetMsg()
 			}
-			args[0] = b
+			if msgid != "" {
+				ArgsType[0] = RPC_PARAM_SESSION_TYPE
+				b, err := a.GetSession().Serializable()
+				if err != nil {
+					return
+				}
+				args[0] = b
+				result, e := serverSession.CallArgs(topics[1], ArgsType, args)
+				toResult(a, *pub.GetTopic(), result, e)
+			} else {
+				ArgsType[0] = RPC_PARAM_SESSION_TYPE
+				b, err := a.GetSession().Serializable()
+				if err != nil {
+					return
+				}
+				args[0] = b
 
-			e := serverSession.CallNRArgs(topics[1], ArgsType, args)
-			if e != nil {
-				log.Warning("Gate RPC", e.Error())
+				e := serverSession.CallNRArgs(topics[1], ArgsType, args)
+				if e != nil {
+					log.Warning("Gate RPC", e.Error())
+				}
 			}
 		}
-
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒

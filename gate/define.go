@@ -18,6 +18,9 @@ import (
 	"github.com/liangdas/mqant/network"
 )
 
+var RPC_PARAM_SESSION_TYPE = "SESSION"
+var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
+
 /**
 net代理服务 处理器
 */
@@ -115,6 +118,13 @@ type TracingHandler interface {
 	OnRequestTracing(session Session, topic string, msg []byte) bool
 }
 
+type RouteHandler interface {
+	/**
+	是否需要对本次客户端请求转发规则进行hook
+	*/
+	OnRoute(session Session, topic string, msg []byte) (bool, interface{}, error)
+}
+
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Agent) //当连接关闭	或者客户端主动发送MQTT DisConnect命令
@@ -145,6 +155,8 @@ type Gate interface {
 	GetSessionLearner() SessionLearner
 	GetStorageHandler() StorageHandler
 	GetTracingHandler() TracingHandler
+	GetRouteHandler() RouteHandler
+	GetJudgeGuest() func(session Session) bool
 	NewSession(data []byte) (Session, error)
 	NewSessionByMap(data map[string]interface{}) (Session, error)
 }

@@ -18,7 +18,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
@@ -37,6 +36,7 @@ import (
 )
 
 type resultInfo struct {
+	Trace  string
 	Error  string      //错误结果 如果为nil表示请求正确
 	Result interface{} //结果
 }
@@ -81,8 +81,7 @@ type DefaultApp struct {
 	configurationLoaded func(app module.App)
 	startup             func(app module.App)
 	moduleInited        func(app module.App, module module.Module)
-	judgeGuest          func(session gate.Session) bool
-	protocolMarshal     func(Result interface{}, Error string) (module.ProtocolMarshal, string)
+	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
 func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
@@ -371,10 +370,6 @@ func (app *DefaultApp) GetModuleInited() func(app module.App, module module.Modu
 	return app.moduleInited
 }
 
-func (app *DefaultApp) GetJudgeGuest() func(session gate.Session) bool {
-	return app.judgeGuest
-}
-
 func (app *DefaultApp) OnConfigurationLoaded(_func func(app module.App)) error {
 	app.configurationLoaded = _func
 	return nil
@@ -390,21 +385,17 @@ func (app *DefaultApp) OnStartup(_func func(app module.App)) error {
 	return nil
 }
 
-func (app *DefaultApp) SetJudgeGuest(_func func(session gate.Session) bool) error {
-	app.judgeGuest = _func
-	return nil
-}
-
-func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Result interface{}, Error string) (module.ProtocolMarshal, string)) error {
+func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)) error {
 	app.protocolMarshal = protocolMarshal
 	return nil
 }
 
-func (app *DefaultApp) ProtocolMarshal(Result interface{}, Error string) (module.ProtocolMarshal, string) {
+func (app *DefaultApp) ProtocolMarshal(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string) {
 	if app.protocolMarshal != nil {
-		return app.protocolMarshal(Result, Error)
+		return app.protocolMarshal(Trace, Result, Error)
 	}
 	r := &resultInfo{
+		Trace:  Trace,
 		Error:  Error,
 		Result: Result,
 	}

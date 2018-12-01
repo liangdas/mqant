@@ -15,7 +15,6 @@ package mqrpc
 
 import (
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/rpc/pb"
 )
 
@@ -40,7 +39,8 @@ type RPCListener interface {
 	@session  可能为nil
 	return error  当error不为nil时将直接返回改错误信息而不会再执行后续调用
 	*/
-	BeforeHandle(fn string, session gate.Session, callInfo *CallInfo) error
+	NoFoundFunction(fn string) (*FunctionInfo, error)
+	BeforeHandle(fn string, callInfo *CallInfo) error
 	OnTimeOut(fn string, Expired int64)
 	OnError(fn string, callInfo *CallInfo, err error)
 	/**
