@@ -35,6 +35,7 @@ package logs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -118,6 +119,7 @@ type BeeLogger struct {
 	loggerFuncCallDepth int
 	asynchronous        bool
 	msgChanLen          int64
+	contentType         string //text/plain application/json
 	msgChan             chan *logMsg
 	signalChan          chan string
 	wg                  sync.WaitGroup
@@ -148,6 +150,7 @@ func NewLogger(channelLens ...int64) *BeeLogger {
 	bl := new(BeeLogger)
 	bl.level = LevelDebug
 	bl.loggerFuncCallDepth = 2
+	bl.contentType = "text/plain"
 	bl.msgChanLen = append(channelLens, 0)[0]
 	if bl.msgChanLen <= 0 {
 		bl.msgChanLen = defaultAsyncMsgLen
@@ -237,7 +240,7 @@ func (bl *BeeLogger) DelLogger(adapterName string) error {
 
 func (bl *BeeLogger) writeToLoggers(original bool, when time.Time, msg string, level int) {
 	for _, l := range bl.outputs {
-		if original {
+		if original == true {
 			err := l.WriteOriginalMsg(when, msg, level)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "unable to WriteMsg to adapter:%v,error:%v\n", l.name, err)
@@ -268,17 +271,10 @@ func (bl *BeeLogger) Write(p []byte) (n int, err error) {
 	return 0, err
 }
 
-func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) error {
-	if !bl.init {
-		bl.lock.Lock()
-		bl.setLogger(AdapterConsole)
-		bl.lock.Unlock()
-	}
-
+func (bl *BeeLogger) formatText(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (string, error) {
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	when := time.Now()
 	if bl.enableFuncCallDepth {
 		//_, file, line, ok := runtime.Caller(bl.loggerFuncCallDepth)
 		//if !ok {
@@ -310,15 +306,95 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 	} else {
 		msg = " [-] " + "[-] " + msg
 	}
+	return msg, nil
+}
 
+func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (string, error) {
+	if len(v) > 0 {
+		msg = fmt.Sprintf(msg, v...)
+	}
+	h, _ := formatTimeHeader(when)
+	msgjson := map[string]interface{}{
+		"message":    msg,
+		"formattime": string(h),
+		"timestamp":  when.UnixNano(),
+	}
+	if bl.enableFuncCallDepth {
+		//_, file, line, ok := runtime.Caller(bl.loggerFuncCallDepth)
+		//if !ok {
+		//	file = "???"
+		//	line = 0
+		//}
+		//_, filename := path.Split(file)
+		//msg = "[" + filename + ":" + strconv.Itoa(line) + "] " + msg
+		if logLevel <= LevelWarn {
+			CallStack, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			msgjson["file"] = ShortFile
+			msgjson["stack"] = CallStack
+		} else {
+			_, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			msgjson["file"] = ShortFile
+			msgjson["stack"] = ""
+		}
+
+	}
+
+	//set level info in front of filename info
+	if logLevel == levelLoggerImpl {
+		// set to emergency to ensure all log will be print out correctly
+		logLevel = LevelEmergency
+	} else {
+		msgjson["processid"] = bl.ProcessID
+		msgjson["level"] = levelPrefix[logLevel]
+	}
+
+	if span != nil {
+		msgjson["trace_id"] = span.Trace
+		msgjson["trace_span"] = span.Span
+	} else {
+		msgjson["trace_id"] = ""
+		msgjson["trace_span"] = ""
+	}
+	msgbys, err := json.Marshal(msgjson)
+	if err != nil {
+		return "", err
+	}
+	return string(msgbys), nil
+}
+
+func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) error {
+	if !bl.init {
+		bl.lock.Lock()
+		bl.setLogger(AdapterConsole)
+		bl.lock.Unlock()
+	}
+
+	when := time.Now()
+	original := false
+	if bl.contentType == "application/json" {
+		message, err := bl.formatJson(when, span, logLevel, msg, v...)
+		if err != nil {
+			return err
+		}
+		msg = message
+		original = true
+	} else {
+		message, err := bl.formatText(when, span, logLevel, msg, v...)
+		if err != nil {
+			return err
+		}
+		msg = message
+		original = false
+	}
 	if bl.asynchronous {
 		lm := logMsgPool.Get().(*logMsg)
 		lm.level = logLevel
 		lm.msg = msg
 		lm.when = when
+		lm.original = original
 		bl.msgChan <- lm
 	} else {
-		bl.writeToLoggers(false, when, msg, logLevel)
+		bl.writeToLoggers(original, when, msg, logLevel)
 	}
 	return nil
 }
@@ -409,6 +485,10 @@ func (bl *BeeLogger) GetLogFuncCallDepth() int {
 // EnableFuncCallDepth enable log funcCallDepth
 func (bl *BeeLogger) EnableFuncCallDepth(b bool) {
 	bl.enableFuncCallDepth = b
+}
+
+func (bl *BeeLogger) SetContentType(b string) {
+	bl.contentType = b
 }
 
 // start logger chan reading.
