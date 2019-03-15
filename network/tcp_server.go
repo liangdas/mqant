@@ -87,11 +87,10 @@ func (server *TCPServer) run() {
 			return
 		}
 		tempDelay = 0
-
-		server.wgConns.Add(1)
 		tcpConn := newTCPConn(conn)
 		agent := server.NewAgent(tcpConn)
 		go func() {
+			server.wgConns.Add(1)
 			agent.Run()
 
 			// cleanup

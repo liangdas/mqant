@@ -29,6 +29,7 @@ import (
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
+	"github.com/Jeffail/tunny"
 )
 
 //type resultInfo struct {
@@ -45,6 +46,7 @@ type agent struct {
 	w                                *bufio.Writer
 	gate                             gate.Gate
 	client                           *mqtt.Client
+	gpool 				 *tunny.Pool
 	isclose                          bool
 	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
 	rev_num                          int64
@@ -58,6 +60,10 @@ func NewMqttAgent(module module.RPCModule) *agent {
 	return a
 }
 func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
+	this.gpool = tunny.NewFunc(1, func(pack interface{})interface {}{
+		this.recoverworker(pack.(*mqtt.Pack))
+		return nil
+	})
 	this.conn = conn
 	this.gate = gate
 	this.r = bufio.NewReaderSize(conn, 2048)
@@ -143,7 +149,18 @@ func (a *agent) RevNum() int64 {
 func (a *agent) SendNum() int64 {
 	return a.send_num
 }
-func (a *agent) OnRecover(pack *mqtt.Pack) {
+func (a *agent) OnRecover(pack *mqtt.Pack)  {
+	if int(a.gpool.QueueLength())>=a.gpool.GetSize(){
+		//协成池用满了
+		if a.gpool.GetSize()>=5{
+			log.TInfo(nil,"QueueLength full >= %v",a.gpool.QueueLength())
+		}else{
+			a.gpool.SetSize(a.gpool.GetSize()+1)
+		}
+	}
+	a.gpool.Process(pack)
+}
+func (a *agent) recoverworker(pack *mqtt.Pack) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("Gate  OnRecover error [%s]", r)
@@ -261,12 +278,12 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		}
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
-			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
+			interval := time.Now().Unix() - a.last_storage_heartbeat_data_time //单位秒
 			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于一秒
 				if a.gate.GetStorageHandler() != nil {
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
-					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
+					a.last_storage_heartbeat_data_time = time.Now().Unix()
 				}
 			}
 		}
@@ -274,12 +291,12 @@ func (a *agent) OnRecover(pack *mqtt.Pack) {
 		//客户端发送的心跳包
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
-			interval := time.Now().UnixNano()/1000000/1000 - a.last_storage_heartbeat_data_time //单位秒
+			interval := time.Now().Unix() - a.last_storage_heartbeat_data_time //单位秒
 			if interval > a.gate.GetMinStorageHeartbeat() {
 				//如果用户信息存储心跳包的时长已经大于60秒
 				if a.gate.GetStorageHandler() != nil {
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
-					a.last_storage_heartbeat_data_time = time.Now().UnixNano() / 1000000 / 1000
+					a.last_storage_heartbeat_data_time = time.Now().Unix()
 				}
 			}
 		}
@@ -297,4 +314,5 @@ func (a *agent) Close() {
 
 func (a *agent) Destroy() {
 	a.conn.Destroy()
+	a.gpool.Close()
 }

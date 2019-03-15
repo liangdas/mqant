@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
 	"math"
 	"sync"
@@ -31,15 +30,11 @@ type PackRecover interface {
 	OnRecover(*Pack)
 }
 
+
 type Client struct {
 	queue *PackQueue
 
 	recover  PackRecover        //消息接收者,从上层接口传过来的 只接收正式消息(心跳包,回复包等都不要)
-	readChan <-chan *packAndErr //读取底层接收到的所有数据包包
-
-	closeChan   chan byte // Other gorountine Call notice exit
-	isSendClose bool      // Wheather has a new login user.
-	isLetClose  bool      // Wheather has relogin.
 
 	isStop bool
 	lock   *sync.Mutex
@@ -49,71 +44,31 @@ type Client struct {
 }
 
 func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
-	readChan := make(chan *packAndErr, conf.ReadPackLoop)
-	return &Client{
-		readChan:  readChan,
-		queue:     NewPackQueue(conf, r, w, conn, readChan, alive),
+	client:=&Client{
 		recover:   recover,
-		closeChan: make(chan byte),
 		lock:      new(sync.Mutex),
 		curr_id:   0,
 	}
+	client.queue=NewPackQueue(conf, r, w, conn, client.waitPack, alive)
+	return client
 }
 
 // Push the msg and response the heart beat
 func (c *Client) Listen_loop() (e error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if c.isSendClose {
-				c.closeChan <- 0
-			}
+
 		}
 	}()
-	var (
-		err error
-		// wg        = new(sync.WaitGroup)
-	)
 
 	// Start the write queue
-	go c.queue.writeLoop()
+	go c.queue.Flusher()
 
 	c.queue.ReadPackInLoop()
 
-	// Start push 读取数据包
-	//pingtime := time.NewTimer(time.Second * time.Duration(int(float64(c.queue.alive)*1.5)))
-loop:
-
-	for {
-		select {
-		case pAndErr, ok := <-c.readChan:
-			if !ok {
-				log.Info("Get a connection error")
-				break loop
-			}
-			//pingtime.Reset(time.Second * time.Duration(int(float64(c.queue.alive)*1.5))) //重置
-			if err = c.waitPack(pAndErr); err != nil {
-				log.Info("Get a connection error , will break(%v)", err)
-				break loop
-			}
-		//case <-pingtime.C:
-		//	pingtime.Reset(time.Second * time.Duration(int(float64(c.queue.alive)*1.5)))
-		//	c.timeout()
-		case <-c.closeChan:
-			c.waitQuit()
-			break loop
-		}
-	}
-
 	c.lock.Lock()
-	//pingtime.Stop()
 	c.isStop = true
 	c.lock.Unlock()
-	// Wrte the onlines msg to the db
-	// Free resources
-	// Close channels
-
-	close(c.closeChan)
-	log.Info("listen_loop Groutine will esc.")
 	return
 }
 
@@ -126,10 +81,6 @@ func (c *Client) getOnlineMsgId() int {
 		c.curr_id = c.curr_id + 1
 		return c.curr_id
 	}
-}
-func (c *Client) timeout() (err error) {
-	log.Info("timeout 主动关闭连接")
-	return c.queue.conn.Close()
 }
 func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	// If connetion has a error, should break
@@ -223,23 +174,13 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	return
 }
 
-func (c *Client) waitQuit() {
-	// Start close
-	log.Info("Will break new relogin")
-	c.isSendClose = true
-}
-
-func (c *Client) pushMsg(pack *Pack) error {
-	// Write this pack
-	err := c.queue.WritePack(pack)
-	return err
-}
 
 func (c *Client) WriteMsg(topic string, body []byte) error {
+	c.lock.Lock()
 	if c.isStop {
 		return fmt.Errorf("connection is closed")
 	}
+	c.lock.Unlock()
 	pack := GetPubPack(0, 0, c.getOnlineMsgId(), &topic, body)
-	return c.pushMsg(pack)
-	//return nil
+	return c.queue.WritePack(pack)
 }
