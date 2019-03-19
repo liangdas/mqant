@@ -33,6 +33,7 @@ type RPCClient struct {
 	local_client  *LocalClient
 	redis_client  *RedisClient
 	udp_client    *UDPClient
+	nats_client    *NatsClient
 }
 
 func NewRPCClient(app module.App, serverId string) (mqrpc.RPCClient, error) {
@@ -88,12 +89,24 @@ func (c *RPCClient) NewUdpClient(info *conf.UDP) (err error) {
 	return
 }
 
+func (c *RPCClient) NewNatsClient(conf *conf.ModuleSettings) (err error) {
+	c.nats_client, err = NewNatsClient(conf)
+	if err != nil {
+		log.Error("Dial: %s", err)
+		return err
+	}
+	return
+}
+
 func (c *RPCClient) Done() (err error) {
 	if c.remote_client != nil {
 		err = c.remote_client.Done()
 	}
 	if c.redis_client != nil {
 		err = c.redis_client.Done()
+	}
+	if c.nats_client != nil {
+		err = c.nats_client.Done()
 	}
 	if c.local_client != nil {
 		err = c.local_client.Done()
@@ -118,8 +131,11 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 	callback := make(chan rpcpb.ResultInfo, 1)
 	var err error
 	//优先使用本地rpc
-	if c.local_client != nil {
-		err = c.local_client.Call(*callInfo, callback)
+	//if c.local_client != nil {
+	//	err = c.local_client.Call(*callInfo, callback)
+	//} else
+	if c.nats_client != nil {
+		err = c.nats_client.Call(*callInfo, callback)
 	} else if c.remote_client != nil {
 		err = c.remote_client.Call(*callInfo, callback)
 	} else if c.redis_client != nil {
@@ -157,9 +173,12 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 		RpcInfo: *rpcInfo,
 	}
 	//优先使用本地rpc
-	if c.local_client != nil {
-		err = c.local_client.CallNR(*callInfo)
-	} else if c.remote_client != nil {
+	//if c.local_client != nil {
+	//	err = c.local_client.CallNR(*callInfo)
+	//} else
+	if c.nats_client != nil {
+		err = c.nats_client.CallNR(*callInfo)
+	}  else if c.remote_client != nil {
 		err = c.remote_client.CallNR(*callInfo)
 	} else if c.redis_client != nil {
 		err = c.redis_client.CallNR(*callInfo)

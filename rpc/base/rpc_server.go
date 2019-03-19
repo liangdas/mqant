@@ -36,6 +36,7 @@ type RPCServer struct {
 	local_server       *LocalServer
 	redis_server       *RedisServer
 	udp_server         *UDPServer
+	nats_server         *NatsServer
 	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
 	callback_chan      chan mqrpc.CallInfo //信息处理完成的队列
 	wg                 sync.WaitGroup      //任务阻塞
@@ -65,6 +66,7 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	}
 	rpc_server.local_server = local_server
 
+
 	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.callback_chan, rpc_server.call_chan_done)
 
 	go rpc_server.on_callback_handle(rpc_server.callback_chan, rpc_server.callback_chan_done) //结果发送队列
@@ -78,6 +80,18 @@ func (this *RPCServer) Wait() error {
 func (this *RPCServer) Finish() {
 	// 完成则从ch推出数据
 	<-this.ch
+}
+
+/**
+创建一个支持远程RPC的服务
+*/
+func (s *RPCServer) NewNatsServer(info *conf.ModuleSettings) (err error) {
+	nats_server, err := NewNatsServer(info, s.mq_chan)
+	if err != nil {
+		log.Error("AMQPServer Dial: %s", err)
+	}
+	s.nats_server = nats_server
+	return
 }
 
 /**
@@ -260,7 +274,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 	start := time.Now()
 	_errorCallback := func(Cid string, Error string, span log.TraceSpan) {
 		//异常日志都应该打印
-		log.TError(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start), Error)
+		//log.TError(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start), Error)
 		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
 		callInfo.Result = *resultInfo
 		callbacks <- callInfo

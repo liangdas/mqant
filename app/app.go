@@ -257,6 +257,7 @@ func (app *DefaultApp) OnInit(settings conf.Config) error {
 				//如果远程的rpc存在则创建一个对应的客户端
 				client.NewUdpClient(moduel.UDP)
 			}
+			client.NewNatsClient(moduel)
 			session := basemodule.NewServerSession(moduel.Id, Type, client)
 			app.serverList[moduel.Id] = session
 			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
