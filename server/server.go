@@ -21,6 +21,7 @@ type Server interface {
 	Stop() error
 	OnDestroy() error
 	String() string
+	Id() string
 }
 
 type Message interface {

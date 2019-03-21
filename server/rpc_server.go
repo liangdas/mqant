@@ -24,6 +24,7 @@ type rpcServer struct {
 	// used for first registration
 	registered bool
 	server   mqrpc.RPCServer
+	id   	string
 	// graceful exit
 	wg sync.WaitGroup
 }
@@ -114,12 +115,12 @@ func (s *rpcServer) ServiceRegister() error {
 
 	// register service
 	node := &registry.Node{
-		Id:       config.Name + "-" + config.Id,
+		Id:       config.Name + "@" + config.Id,
 		Address:  addr,
 		Port:     port,
 		Metadata: config.Metadata,
 	}
-
+	s.id=node.Id
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
 
@@ -194,7 +195,7 @@ func (s *rpcServer) ServiceDeregister() error {
 	}
 
 	node := &registry.Node{
-		Id:      config.Name + "-" + config.Id,
+		Id:      config.Name + "@" + config.Id,
 		Address: addr,
 		Port:    port,
 	}
@@ -256,12 +257,12 @@ func (s *rpcServer) Start() error {
 
 func (s *rpcServer) Stop() error {
 	if s.server != nil {
-		log.Info("RPCServer closeing id(%s)", )
+		log.Info("RPCServer closeing id(%s)",s.id )
 		err := s.server.Done()
 		if err != nil {
-			log.Warning("RPCServer close fail id(%s) error(%s)", err)
+			log.Warning("RPCServer close fail id(%s) error(%s)",s.id , err)
 		} else {
-			log.Info("RPCServer close success id(%s)")
+			log.Info("RPCServer close success id(%s)",s.id )
 		}
 		s.server = nil
 	}
@@ -274,6 +275,10 @@ func (s *rpcServer) OnDestroy() error{
 	}
 
 	return s.Stop()
+}
+
+func (s *rpcServer) Id() string {
+	return s.id
 }
 
 func (s *rpcServer) String() string {

@@ -14,7 +14,6 @@
 package mqrpc
 
 import (
-	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc/pb"
 )
 
@@ -68,10 +67,6 @@ type RPCServer interface {
 }
 
 type RPCClient interface {
-	NewRabbitmqClient(info *conf.Rabbitmq) (err error)
-	NewRedisClient(info *conf.Redis) (err error)
-	NewUdpClient(info *conf.UDP) (err error)
-	NewNatsClient(conf *conf.ModuleSettings) (err error)
 	Done() (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)

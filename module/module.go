@@ -16,6 +16,7 @@ package module
 import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/nats-io/go-nats"
 )
 
 type ProtocolMarshal interface {
@@ -24,7 +25,7 @@ type ProtocolMarshal interface {
 
 type ServerSession interface {
 	GetId() string
-	GetType() string
+	GetName() string
 	GetRpc() mqrpc.RPCClient
 	Call(_func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
@@ -42,6 +43,7 @@ type App interface {
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
+	Transport() *nats.Conn
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID

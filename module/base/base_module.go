@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 	"github.com/liangdas/mqant/server"
+	"github.com/liangdas/mqant/utils"
 )
 
 type StatisticalMethod struct {
@@ -59,7 +60,7 @@ type BaseModule struct {
 
 func (m *BaseModule) GetServerId() string {
 	//很关键,需要与配置文件中的Module配置对应
-	return m.settings.Id
+	return m.server.Id()
 }
 
 func (m *BaseModule) GetApp() module.App {
@@ -90,6 +91,11 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.settings = settings
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
+	m.server = server.NewServer(
+		server.Name(subclass.GetType()),
+		server.Id(utils.GenerateID().String()),
+		server.Version(subclass.Version()),
+	)
 	m.GetServer().OnInit(subclass, app, settings)
 	//m.GetServer().GetRPCServer().SetListener(m)
 }

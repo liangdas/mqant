@@ -22,7 +22,6 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/rpc/base"
 	"hash/crc32"
 	"math"
 	"os"
@@ -32,6 +31,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"github.com/liangdas/mqant/registry"
+	"github.com/nats-io/go-nats"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
 )
 
 type resultInfo struct {
@@ -51,7 +54,6 @@ func (this *protocolMarshalImp) GetData() []byte {
 func NewApp(version string) module.App {
 	app := new(DefaultApp)
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
-	app.serverList = map[string]module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		//默认使用第一个Server
 		servers := app.GetServersByType(Type)
@@ -69,9 +71,10 @@ func NewApp(version string) module.App {
 type DefaultApp struct {
 	//module.App
 	version       string
-	serverList    map[string]module.ServerSession
 	settings      conf.Config
 	processId     string
+	nc 		*nats.Conn
+	selector 	selector.Selector
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	//将一个RPC调用路由到新的路由上
@@ -219,7 +222,9 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 	app.rpcserializes[name] = Interface
 	return nil
 }
-
+func (app *DefaultApp) Transport() *nats.Conn{
+	return app.nc
+}
 func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
 }
@@ -232,70 +237,114 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	app.serverList = make(map[string]module.ServerSession)
-	for Type, ModuleInfos := range settings.Module {
-		for _, moduel := range ModuleInfos {
-			m := app.serverList[moduel.Id]
-			if m != nil {
-				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.GetId(), m.GetType(), moduel.Id, Type))
-			}
-			client, err := defaultrpc.NewRPCClient(app, moduel.Id)
-			if err != nil {
-				continue
-			}
-			if moduel.Rabbitmq != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRabbitmqClient(moduel.Rabbitmq)
-			}
-			if moduel.Redis != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRedisClient(moduel.Redis)
-			}
-			if moduel.UDP != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewUdpClient(moduel.UDP)
-			}
-			client.NewNatsClient(moduel)
-			session := basemodule.NewServerSession(moduel.Id, Type, client)
-			app.serverList[moduel.Id] = session
-			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
-		}
+	registry.DefaultRegistry.Init(
+		registry.RegisterTTL(time.Second*10),
+		registry.Timeout(time.Second*20),
+	)
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		return fmt.Errorf("nats agent: %s", err.Error())
 	}
+	app.nc=nc
+	app.selector=cache.NewSelector(selector.Registry(registry.DefaultRegistry))
+	app.selector.Init()
 	return nil
 }
 
 func (app *DefaultApp) OnDestroy() error {
-	for id, session := range app.serverList {
-		log.Info("RPCClient closeing type(%s) id(%s)", session.GetType(), id)
-		err := session.GetRpc().Done()
-		if err != nil {
-			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)
-		} else {
-			log.Info("RPCClient close success type(%s) id(%s)", session.GetType(), id)
-		}
-	}
+
 	return nil
 }
 
-
 func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
-	if session, ok := app.serverList[serverId]; ok {
-		return session, nil
-	} else {
-		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
+	serviceName:=serverId
+	s:=strings.Split(serverId,"@")
+	if len(s)==2{
+		serviceName=s[0]
 	}
+	next,err:=app.selector.Select(serviceName)
+	if err!=nil{
+		return nil,err
+	}
+	node,err:=next()
+	if err!=nil{
+		return nil,err
+	}
+	session ,err:= basemodule.NewServerSession(app,serviceName, node)
+	if err!=nil{
+		return nil,err
+	}
+	return session,nil
+	//services,err:=registry.DefaultRegistry.GetService(serviceName)
+	//if err!=nil{
+	//	return nil,err
+	//}
+	//for _, service := range services {
+	//	//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
+	//	for _,node:=range service.Nodes{
+	//		if node.Id==serverId{
+	//			session ,err:= basemodule.NewServerSession(app,service, node)
+	//			if err!=nil{
+	//				return nil,err
+	//			}
+	//			return session,nil
+	//		}
+	//	}
+	//
+	//}
+	//return nil,errors.Errorf("nofound node %v",serverId)
 }
 
-func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
-	for _, session := range app.serverList {
-		if session.GetType() == Type {
-			sessions = append(sessions, session)
-		}
+	next,err:=app.selector.Select(serviceName)
+	if err!=nil{
+		return sessions
 	}
+	node,err:=next()
+	if err!=nil{
+		return sessions
+	}
+	log.Info("node %v",node)
+	session ,err:= basemodule.NewServerSession(app,serviceName, node)
+	if err==nil{
+		sessions = append(sessions, session)
+	}
+	//services,err:=registry.DefaultRegistry.GetService(Type)
+	//if err!=nil{
+	//	return sessions
+	//}
+	//for _, service := range services {
+	//	//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
+	//	for _,node:=range service.Nodes{
+	//		session ,err:= basemodule.NewServerSession(app,service, node)
+	//		if err!=nil{
+	//			continue
+	//		}
+	//		sessions = append(sessions, session)
+	//	}
+	//
+	//}
 	return sessions
 }
+
+//func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
+//	if session, ok := app.serverList[serverId]; ok {
+//		return session, nil
+//	} else {
+//		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
+//	}
+//}
+//
+//func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+//	sessions := make([]module.ServerSession, 0)
+//	for _, session := range app.serverList {
+//		if session.GetType() == Type {
+//			sessions = append(sessions, session)
+//		}
+//	}
+//	return sessions
+//}
 
 func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {

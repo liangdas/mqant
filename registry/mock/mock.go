@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/micro/go-micro/registry"
+
 )
+import "github.com/liangdas/mqant/registry"
 
 type mockRegistry struct {
 	Services map[string][]*registry.Service

@@ -1,8 +1,9 @@
 package mock
 
 import (
-	"github.com/micro/go-micro/registry"
+
 )
+import "github.com/liangdas/mqant/registry"
 
 func addNodes(old, neu []*registry.Node) []*registry.Node {
 	for _, n := range neu {

@@ -16,28 +16,34 @@ package basemodule
 import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/rpc/base"
 )
 
-func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
-	session := &serverSession{
-		Id:    Id,
-		Stype: Stype,
-		Rpc:   Rpc,
+func NewServerSession(app module.App, name string,node *registry.Node) (module.ServerSession,error){
+	rpc,err:=defaultrpc.NewRPCClient(app,node)
+	if err!=nil{
+		return nil,err
 	}
-	return session
+	session := &serverSession{
+		Rpc:   rpc,
+		name:name,
+		node:node,
+	}
+	return session,err
 }
 
 type serverSession struct {
-	Id    string
-	Stype string
-	Rpc   mqrpc.RPCClient
+	node 	*registry.Node
+	name 	string
+	Rpc   	mqrpc.RPCClient
 }
 
 func (c *serverSession) GetId() string {
-	return c.Id
+	return c.node.Id
 }
-func (c *serverSession) GetType() string {
-	return c.Stype
+func (c *serverSession) GetName() string {
+	return c.name
 }
 func (c *serverSession) GetRpc() mqrpc.RPCClient {
 	return c.Rpc
