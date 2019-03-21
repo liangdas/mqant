@@ -23,12 +23,13 @@ import (
 	"github.com/liangdas/mqant/log"
 	"strings"
 	"time"
+	"github.com/liangdas/mqant/module"
 )
 
 type NatsServer struct {
 	call_chan   	chan mqrpc.CallInfo
 	addr		string
-	nc 		*nats.Conn
+	app 		module.App
 	server 		*RPCServer
 	done        	chan error
 }
@@ -49,15 +50,11 @@ func setAddrs(addrs []string) []string {
 	return cAddrs
 }
 
-func NewNatsServer(addrs []string,s *RPCServer) (*NatsServer, error) {
-	nc, err := nats.Connect(strings.Join(setAddrs(addrs), ","))
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
+func NewNatsServer(app module.App,s *RPCServer) (*NatsServer, error) {
 	server := new(NatsServer)
 	server.server = s
 	server.done=make(chan error)
-	server.nc = nc
+	server.app = app
 	server.addr=nats.NewInbox()
 	go server.on_request_handle()
 	return server, nil
@@ -69,7 +66,6 @@ func (s *NatsServer) Addr() string {
 注销消息队列
 */
 func (s *NatsServer) Shutdown() (err error) {
-	s.nc.Close()
 	s.done<-nil
 	return
 }
@@ -77,7 +73,7 @@ func (s *NatsServer) Shutdown() (err error) {
 func (s *NatsServer) Callback(callinfo mqrpc.CallInfo) error {
 	body, _ := s.MarshalResult(callinfo.Result)
 	reply_to:=callinfo.Props["reply_to"].(string)
-	return s.nc.Publish(reply_to,body)
+	return s.app.Transport().Publish(reply_to,body)
 }
 
 /**
@@ -100,7 +96,7 @@ func (s *NatsServer) on_request_handle() error{
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-	subs, err := s.nc.SubscribeSync(s.addr)
+	subs, err := s.app.Transport().SubscribeSync(s.addr)
 	if err != nil {
 		return err
 	}

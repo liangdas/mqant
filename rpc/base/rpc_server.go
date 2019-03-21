@@ -51,7 +51,7 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
 	rpc_server.SetGoroutineControl(rpc_server)
 
-	nats_server, err := NewNatsServer([]string{}, rpc_server)
+	nats_server, err := NewNatsServer(app, rpc_server)
 	if err != nil {
 		log.Error("AMQPServer Dial: %s", err)
 	}
