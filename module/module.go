@@ -28,6 +28,9 @@ type ServerSession interface {
 	GetId() string
 	GetName() string
 	GetRpc() mqrpc.RPCClient
+	GetApp() App
+	GetNode() *registry.Node
+	SetNode(node *registry.Node) (err error)
 	Call(_func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)

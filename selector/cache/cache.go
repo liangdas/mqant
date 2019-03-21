@@ -335,6 +335,14 @@ func (c *cacheSelector) Options() selector.Options {
 	return c.so
 }
 
+func (c *cacheSelector)GetService(service string) ([]*registry.Service, error){
+	services, err := c.get(service)
+	if err != nil {
+		return nil, err
+	}
+	return services,nil
+}
+
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {
 	sopts := selector.SelectOptions{
 		Strategy: c.so.Strategy,

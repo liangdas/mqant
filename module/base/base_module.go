@@ -24,6 +24,7 @@ import (
 	"time"
 	"github.com/liangdas/mqant/server"
 	"github.com/liangdas/mqant/utils"
+	"github.com/liangdas/mqant/service"
 )
 
 type StatisticalMethod struct {
@@ -52,7 +53,7 @@ type BaseModule struct {
 	App         module.App
 	subclass    module.RPCModule
 	settings    *conf.ModuleSettings
-	server      server.Server
+	service      service.Service
 	listener    mqrpc.RPCListener
 	statistical map[string]*StatisticalMethod //统计
 	rwmutex     sync.RWMutex
@@ -60,7 +61,7 @@ type BaseModule struct {
 
 func (m *BaseModule) GetServerId() string {
 	//很关键,需要与配置文件中的Module配置对应
-	return m.server.Id()
+	return m.service.Server().Id()
 }
 
 func (m *BaseModule) GetApp() module.App {
@@ -72,10 +73,7 @@ func (m *BaseModule) GetSubclass() module.RPCModule {
 }
 
 func (m *BaseModule) GetServer() server.Server {
-	if m.server == nil {
-		m.server = server.NewServer()
-	}
-	return m.server
+	return m.service.Server()
 }
 func (m *BaseModule) OnConfChanged(settings *conf.ModuleSettings) {
 
@@ -91,14 +89,21 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.settings = settings
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
-	m.server = server.NewServer(
+	server := server.NewServer(
 		server.Registry(app.Registry()),
 		server.Name(subclass.GetType()),
 		server.Id(utils.GenerateID().String()),
 		server.Version(subclass.Version()),
-		//server.RegisterTTL(time.Second*10),
+
 	)
-	m.GetServer().OnInit(subclass, app, settings)
+	server.OnInit(subclass, app, settings)
+	m.service=service.NewService(
+		service.Server(server),
+		service.RegisterTTL(time.Second*20),
+		service.RegisterInterval(time.Second*10),
+	)
+
+	go m.service.Run()
 	//m.GetServer().GetRPCServer().SetListener(m)
 }
 

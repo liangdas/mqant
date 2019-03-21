@@ -16,7 +16,6 @@ type Server interface {
 	RegisterGO(id string, f interface{})
 	ServiceRegister() error
 	ServiceDeregister() error
-	Run() error
 	Start() error
 	Stop() error
 	OnDestroy() error

@@ -23,7 +23,6 @@ import (
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
 	"time"
-	"github.com/liangdas/mqant/registry"
 )
 
 type RPCClient struct {
@@ -31,10 +30,10 @@ type RPCClient struct {
 	nats_client    *NatsClient
 }
 
-func NewRPCClient(app module.App, node *registry.Node) (mqrpc.RPCClient, error) {
+func NewRPCClient(app module.App, session module.ServerSession) (mqrpc.RPCClient, error) {
 	rpc_client := new(RPCClient)
 	rpc_client.app = app
-	nats_client,err:= NewNatsClient(app,node)
+	nats_client,err:= NewNatsClient(app,session)
 	if err != nil {
 		log.Error("Dial: %s", err)
 		return nil,err
@@ -42,7 +41,6 @@ func NewRPCClient(app module.App, node *registry.Node) (mqrpc.RPCClient, error) 
 	rpc_client.nats_client=nats_client
 	return rpc_client, nil
 }
-
 
 func (c *RPCClient) Done() (err error) {
 	if c.nats_client != nil {

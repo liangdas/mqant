@@ -284,85 +284,39 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 		app.serverList.Store(node.Id,s)
 		return s,nil
 	}
+	session.(module.ServerSession).SetNode(node)
 	return session.(module.ServerSession),nil
 
-	//services,err:=registry.DefaultRegistry.GetService(serviceName)
-	//if err!=nil{
-	//	return nil,err
-	//}
-	//for _, service := range services {
-	//	//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
-	//	for _,node:=range service.Nodes{
-	//		if node.Id==serverId{
-	//			session ,err:= basemodule.NewServerSession(app,service, node)
-	//			if err!=nil{
-	//				return nil,err
-	//			}
-	//			return session,nil
-	//		}
-	//	}
-	//
-	//}
-	//return nil,errors.Errorf("nofound node %v",serverId)
 }
 
 func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
-	next,err:=app.selector.Select(serviceName)
+	services,err:=app.selector.GetService(serviceName)
 	if err!=nil{
+		log.Warning("GetServersByType %v",err)
 		return sessions
 	}
-	node,err:=next()
-	if err!=nil{
-		return sessions
-	}
-	session,ok:=app.serverList.Load(node.Id)
-	if !ok{
-		s ,err:= basemodule.NewServerSession(app,serviceName, node)
-		if err!=nil{
-			log.Warning("NewServerSession %v",err)
-		}else{
-			app.serverList.Store(node.Id,s)
-			sessions = append(sessions, s)
+	for _, service := range services {
+		//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
+		for _,node:=range service.Nodes{
+			session,ok:=app.serverList.Load(node.Id)
+			if !ok{
+				s ,err:= basemodule.NewServerSession(app,serviceName, node)
+				if err!=nil{
+					log.Warning("NewServerSession %v",err)
+				}else{
+					app.serverList.Store(node.Id,s)
+					sessions = append(sessions, s)
+				}
+			}else{
+				session.(module.ServerSession).SetNode(node)
+				sessions = append(sessions, session.(module.ServerSession))
+			}
 		}
-	}else{
-		sessions = append(sessions, session.(module.ServerSession))
 	}
-	//services,err:=registry.DefaultRegistry.GetService(Type)
-	//if err!=nil{
-	//	return sessions
-	//}
-	//for _, service := range services {
-	//	//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
-	//	for _,node:=range service.Nodes{
-	//		session ,err:= basemodule.NewServerSession(app,service, node)
-	//		if err!=nil{
-	//			continue
-	//		}
-	//		sessions = append(sessions, session)
-	//	}
-	//
-	//}
 	return sessions
 }
 
-//func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
-//	if session, ok := app.serverList[serverId]; ok {
-//		return session, nil
-//	} else {
-//		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
-//	}
-//}
-//
-//func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
-//	sessions := make([]module.ServerSession, 0)
-//	for _, session := range app.serverList {
-//		if session.GetType() == Type {
-//			sessions = append(sessions, session)
-//		}
-//	}
-//	return sessions
-//}
 
 func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {

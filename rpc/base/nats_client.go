@@ -23,7 +23,6 @@ import (
 	"github.com/nats-io/go-nats"
 	"github.com/liangdas/mqant/log"
 	"runtime"
-	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/module"
 	"time"
 )
@@ -35,12 +34,12 @@ type NatsClient struct {
 	callbackqueueName string
 	app 		module.App
 	done        	chan error
-	node 		*registry.Node
+	session 	module.ServerSession
 }
 
-func NewNatsClient(app module.App,node *registry.Node) (client *NatsClient, err error) {
+func NewNatsClient(app module.App,session module.ServerSession) (client *NatsClient, err error) {
 	client = new(NatsClient)
-	client.node=node
+	client.session=session
 	client.app=app
 	client.callinfos = utils.NewBeeMap()
 	client.callbackqueueName = nats.NewInbox()
@@ -48,6 +47,7 @@ func NewNatsClient(app module.App,node *registry.Node) (client *NatsClient, err 
 	go client.on_request_handle()
 	return client, nil
 }
+
 
 func (c *NatsClient) Delete(key string) (err error) {
 	c.callinfos.Delete(key)
@@ -94,7 +94,7 @@ func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 	if err != nil {
 		return err
 	}
-	return c.app.Transport().Publish(c.node.Address,body)
+	return c.app.Transport().Publish(c.session.GetNode().Address,body)
 }
 
 /**
@@ -105,7 +105,7 @@ func (c *NatsClient) CallNR(callInfo mqrpc.CallInfo) error {
 	if err != nil {
 		return err
 	}
-	return c.app.Transport().Publish(c.node.Id,body)
+	return c.app.Transport().Publish(c.session.GetNode().Address,body)
 }
 
 

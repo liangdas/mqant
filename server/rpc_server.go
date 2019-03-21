@@ -9,9 +9,6 @@ import (
 	"github.com/liangdas/mqant/rpc/base"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/log"
-	"os"
-	"os/signal"
-	"syscall"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/conf"
 )
@@ -224,25 +221,7 @@ func (s *rpcServer) ServiceDeregister() error {
 	return nil
 }
 
-func (s *rpcServer) Run() error {
-	if err := s.Start(); err != nil {
-		return err
-	}
 
-	if err := s.ServiceRegister(); err != nil {
-		return err
-	}
-
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL)
-	log.Warning("Received signal %s", <-ch)
-
-	if err := s.ServiceDeregister(); err != nil {
-		return err
-	}
-
-	return s.Stop()
-}
 
 func (s *rpcServer) Start() error {
 	//config := s.Options()

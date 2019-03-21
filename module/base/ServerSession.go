@@ -21,15 +21,16 @@ import (
 )
 
 func NewServerSession(app module.App, name string,node *registry.Node) (module.ServerSession,error){
-	rpc,err:=defaultrpc.NewRPCClient(app,node)
+	session := &serverSession{
+		name:name,
+		node:node,
+		app:app,
+	}
+	rpc,err:=defaultrpc.NewRPCClient(app,session)
 	if err!=nil{
 		return nil,err
 	}
-	session := &serverSession{
-		Rpc:   rpc,
-		name:name,
-		node:node,
-	}
+	session.Rpc=rpc
 	return session,err
 }
 
@@ -37,6 +38,7 @@ type serverSession struct {
 	node 	*registry.Node
 	name 	string
 	Rpc   	mqrpc.RPCClient
+	app 	module.App
 }
 
 func (c *serverSession) GetId() string {
@@ -47,6 +49,18 @@ func (c *serverSession) GetName() string {
 }
 func (c *serverSession) GetRpc() mqrpc.RPCClient {
 	return c.Rpc
+}
+
+func (c *serverSession) GetApp() module.App{
+	return c.app
+}
+func (c *serverSession) GetNode() *registry.Node{
+	return c.node
+}
+
+func (c *serverSession) SetNode(node *registry.Node) (err error) {
+	c.node=node
+	return
 }
 
 /**
