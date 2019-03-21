@@ -143,7 +143,7 @@ func (s *rpcServer) ServiceRegister() error {
 	s.Unlock()
 
 	if !registered {
-		log.Warning("Registering node: %s", node.Id)
+		log.Info("Registering node: %s", node.Id)
 	}
 
 	// create registry options

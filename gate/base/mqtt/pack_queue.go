@@ -18,7 +18,6 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
 	"runtime"
 	"time"
@@ -109,7 +108,7 @@ func (queue *PackQueue) Flusher () {
 		}
 		queue.writelock.Unlock()
 	}
-	log.Info("flusher_loop Groutine will esc.")
+	//log.Info("flusher_loop Groutine will esc.")
 }
 
 // Write a pack , and get the last error
@@ -173,7 +172,7 @@ func (queue *PackQueue) ReadPackInLoop() {
 			p = new(packAndErr)
 		}
 
-	log.Info("read_loop Groutine will esc.")
+	//log.Info("read_loop Groutine will esc.")
 }
 
 // Close the all of queue's channels

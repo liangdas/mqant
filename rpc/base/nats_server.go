@@ -26,9 +26,10 @@ import (
 )
 
 type NatsServer struct {
-	call_chan   chan mqrpc.CallInfo
+	call_chan   	chan mqrpc.CallInfo
 	addr		string
 	nc 		*nats.Conn
+	server 		*RPCServer
 	done        	chan error
 }
 func setAddrs(addrs []string) []string {
@@ -48,13 +49,13 @@ func setAddrs(addrs []string) []string {
 	return cAddrs
 }
 
-func NewNatsServer(addrs []string,call_chan chan mqrpc.CallInfo) (*NatsServer, error) {
+func NewNatsServer(addrs []string,s *RPCServer) (*NatsServer, error) {
 	nc, err := nats.Connect(strings.Join(setAddrs(addrs), ","))
 	if err != nil {
 		return nil, fmt.Errorf("nats agent: %s", err.Error())
 	}
 	server := new(NatsServer)
-	server.call_chan = call_chan
+	server.server = s
 	server.done=make(chan error)
 	server.nc = nc
 	server.addr=nats.NewInbox()
@@ -128,7 +129,7 @@ func (s *NatsServer) on_request_handle() error{
 
 			callInfo.Agent = s //设置代理为NatsServer
 
-			s.call_chan <- *callInfo
+			s.server.Call(*callInfo)
 		} else {
 			fmt.Println("error ", err)
 		}

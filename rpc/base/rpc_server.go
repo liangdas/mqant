@@ -51,13 +51,13 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
 	rpc_server.SetGoroutineControl(rpc_server)
 
-	nats_server, err := NewNatsServer([]string{}, rpc_server.mq_chan)
+	nats_server, err := NewNatsServer([]string{}, rpc_server)
 	if err != nil {
 		log.Error("AMQPServer Dial: %s", err)
 	}
 	rpc_server.nats_server = nats_server
 
-	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.call_chan_done)
+	//go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.call_chan_done)
 
 	return rpc_server, nil
 }
@@ -99,7 +99,7 @@ func (s *RPCServer) Register(id string, f interface{}) {
 	}
 
 	s.functions[id] = &mqrpc.FunctionInfo{
-		Function:  f,
+		Function:  reflect.ValueOf(f),
 		Goroutine: false,
 	}
 }
@@ -112,7 +112,7 @@ func (s *RPCServer) RegisterGO(id string, f interface{}) {
 	}
 
 	s.functions[id] = &mqrpc.FunctionInfo{
-		Function:  f,
+		Function:  reflect.ValueOf(f),
 		Goroutine: true,
 	}
 }
@@ -122,12 +122,32 @@ func (s *RPCServer) Done() (err error) {
 	//close(s.mq_chan)   //关闭mq_chan通道
 	//<-s.call_chan_done //mq_chan通道的信息都已处理完
 	s.wg.Wait()
-	s.call_chan_done <- nil
+	//s.call_chan_done <- nil
 	//关闭队列链接
 	if s.nats_server != nil {
 		err = s.nats_server.Shutdown()
 	}
 	return
+}
+
+func (s *RPCServer)Call(callInfo mqrpc.CallInfo)error{
+	if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
+		//请求超时了,无需再处理
+		if s.listener != nil {
+			s.listener.OnTimeOut(callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired)
+		} else {
+			log.Warning("timeout: This is Call", s.module.GetType(), callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
+		}
+	} else {
+		s.runFunc(callInfo)
+		//go func() {
+		//	resultInfo := rpcpb.NewResultInfo(callInfo.RpcInfo.Cid, "", argsutil.STRING, []byte("success"))
+		//	callInfo.Result = *resultInfo
+		//	s.doCallback(callInfo)
+		//}()
+
+	}
+	return nil
 }
 
 /**
@@ -222,10 +242,9 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 			functionInfo = fInfo
 		}
 	}
-	_func := functionInfo.Function
+	f := functionInfo.Function
 	params := callInfo.RpcInfo.Args
 	ArgsType := callInfo.RpcInfo.ArgsType
-	f := reflect.ValueOf(_func)
 	if len(params) != f.Type().NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
 		_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("The number of params %v is not adapted.%v", params, f.String()), nil)

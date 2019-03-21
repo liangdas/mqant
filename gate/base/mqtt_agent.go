@@ -29,7 +29,6 @@ import (
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
-	"github.com/Jeffail/tunny"
 )
 
 //type resultInfo struct {
@@ -46,7 +45,7 @@ type agent struct {
 	w                                *bufio.Writer
 	gate                             gate.Gate
 	client                           *mqtt.Client
-	gpool 				 *tunny.Pool
+	ch                 		chan int               //控制模块可同时开启的最大协程数
 	isclose                          bool
 	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
 	rev_num                          int64
@@ -60,10 +59,7 @@ func NewMqttAgent(module module.RPCModule) *agent {
 	return a
 }
 func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
-	this.gpool = tunny.NewFunc(1, func(pack interface{})interface {}{
-		this.recoverworker(pack.(*mqtt.Pack))
-		return nil
-	})
+	this.ch = make(chan int, 1)
 	this.conn = conn
 	this.gate = gate
 	this.r = bufio.NewReaderSize(conn, 2048)
@@ -79,6 +75,16 @@ func (a *agent) IsClosed() bool {
 
 func (a *agent) GetSession() gate.Session {
 	return a.session
+}
+
+func (a *agent) Wait() error {
+	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
+	a.ch <- 1
+	return nil
+}
+func (a *agent) Finish() {
+	// 完成则从ch推出数据
+	<-a.ch
 }
 
 func (a *agent) Run() (err error) {
@@ -150,17 +156,11 @@ func (a *agent) SendNum() int64 {
 	return a.send_num
 }
 func (a *agent) OnRecover(pack *mqtt.Pack)  {
-	if int(a.gpool.QueueLength())>=a.gpool.GetSize(){
-		//协成池用满了
-		if a.gpool.GetSize()>=5{
-			log.TInfo(nil,"QueueLength full >= %v",a.gpool.QueueLength())
-		}else{
-			a.gpool.SetSize(a.gpool.GetSize()+1)
-		}
-	}
-	a.gpool.Process(pack)
+	a.Wait()
+	go a.recoverworker(pack)
 }
 func (a *agent) recoverworker(pack *mqtt.Pack) {
+	defer a.Finish()
 	defer func() {
 		if r := recover(); r != nil {
 			log.Error("Gate  OnRecover error [%s]", r)
@@ -314,5 +314,4 @@ func (a *agent) Close() {
 
 func (a *agent) Destroy() {
 	a.conn.Destroy()
-	a.gpool.Close()
 }

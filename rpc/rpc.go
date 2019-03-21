@@ -15,10 +15,11 @@ package mqrpc
 
 import (
 	"github.com/liangdas/mqant/rpc/pb"
+	"reflect"
 )
 
 type FunctionInfo struct {
-	Function  interface{}
+	Function  reflect.Value
 	Goroutine bool
 }
 

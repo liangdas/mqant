@@ -35,6 +35,7 @@ import (
 	"github.com/nats-io/go-nats"
 	"github.com/liangdas/mqant/selector"
 	"github.com/liangdas/mqant/selector/cache"
+	"sync"
 )
 
 type resultInfo struct {
@@ -72,6 +73,7 @@ type DefaultApp struct {
 	//module.App
 	version       string
 	settings      conf.Config
+	serverList    sync.Map
 	processId     string
 	nc 		*nats.Conn
 	selector 	selector.Selector
@@ -268,11 +270,17 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 	if err!=nil{
 		return nil,err
 	}
-	session ,err:= basemodule.NewServerSession(app,serviceName, node)
-	if err!=nil{
-		return nil,err
+	session,ok:=app.serverList.Load(node.Id)
+	if !ok{
+		s ,err:= basemodule.NewServerSession(app,serviceName, node)
+		if err!=nil{
+			return nil,err
+		}
+		app.serverList.Store(node.Id,s)
+		return s,nil
 	}
-	return session,nil
+	return session.(module.ServerSession),nil
+
 	//services,err:=registry.DefaultRegistry.GetService(serviceName)
 	//if err!=nil{
 	//	return nil,err
@@ -303,9 +311,17 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 	if err!=nil{
 		return sessions
 	}
-	session ,err:= basemodule.NewServerSession(app,serviceName, node)
-	if err==nil{
-		sessions = append(sessions, session)
+	session,ok:=app.serverList.Load(node.Id)
+	if !ok{
+		s ,err:= basemodule.NewServerSession(app,serviceName, node)
+		if err!=nil{
+			log.Warning("NewServerSession %v",err)
+		}else{
+			app.serverList.Store(node.Id,s)
+			sessions = append(sessions, s)
+		}
+	}else{
+		sessions = append(sessions, session.(module.ServerSession))
 	}
 	//services,err:=registry.DefaultRegistry.GetService(Type)
 	//if err!=nil{
