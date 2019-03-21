@@ -95,6 +95,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 		server.Name(subclass.GetType()),
 		server.Id(utils.GenerateID().String()),
 		server.Version(subclass.Version()),
+		//server.RegisterTTL(time.Second*10),
 	)
 	m.GetServer().OnInit(subclass, app, settings)
 	//m.GetServer().GetRPCServer().SetListener(m)

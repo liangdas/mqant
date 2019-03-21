@@ -22,14 +22,14 @@ import (
 	"runtime"
 	"github.com/liangdas/mqant/log"
 	"strings"
+	"time"
 )
 
 type NatsServer struct {
 	call_chan   chan mqrpc.CallInfo
 	addr		string
 	nc 		*nats.Conn
-	subs 		*nats.Subscription
-	done        chan error
+	done        	chan error
 }
 func setAddrs(addrs []string) []string {
 	var cAddrs []string
@@ -55,13 +55,10 @@ func NewNatsServer(addrs []string,call_chan chan mqrpc.CallInfo) (*NatsServer, e
 	}
 	server := new(NatsServer)
 	server.call_chan = call_chan
+	server.done=make(chan error)
 	server.nc = nc
 	server.addr=nats.NewInbox()
-	subs,err:=nc.Subscribe(server.addr, server.on_request_handle)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
-	server.subs=subs
+	go server.on_request_handle()
 	return server, nil
 }
 func (s *NatsServer) Addr() string {
@@ -71,8 +68,8 @@ func (s *NatsServer) Addr() string {
 注销消息队列
 */
 func (s *NatsServer) Shutdown() (err error) {
-	err =s.subs.Unsubscribe()
 	s.nc.Close()
+	s.done<-nil
 	return
 }
 
@@ -85,7 +82,7 @@ func (s *NatsServer) Callback(callinfo mqrpc.CallInfo) error {
 /**
 接收请求信息
 */
-func (s *NatsServer) on_request_handle(m *nats.Msg) {
+func (s *NatsServer) on_request_handle() error{
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -102,22 +99,42 @@ func (s *NatsServer) on_request_handle(m *nats.Msg) {
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-
-	rpcInfo, err := s.Unmarshal(m.Data)
-	if err == nil {
-		callInfo := &mqrpc.CallInfo{
-			RpcInfo: *rpcInfo,
-		}
-		callInfo.Props = map[string]interface{}{
-			"reply_to":rpcInfo.ReplyTo,
-		}
-
-		callInfo.Agent = s //设置代理为NatsServer
-
-		s.call_chan <- *callInfo
-	} else {
-		fmt.Println("error ", err)
+	subs, err := s.nc.SubscribeSync(s.addr)
+	if err != nil {
+		return err
 	}
+
+	go func() {
+		<-s.done
+		subs.Unsubscribe()
+	}()
+
+	for {
+		m, err := subs.NextMsg(time.Minute)
+		if err != nil && err == nats.ErrTimeout {
+			continue
+		} else if err != nil {
+			return err
+		}
+
+		rpcInfo, err := s.Unmarshal(m.Data)
+		if err == nil {
+			callInfo := &mqrpc.CallInfo{
+				RpcInfo: *rpcInfo,
+			}
+			callInfo.Props = map[string]interface{}{
+				"reply_to":rpcInfo.ReplyTo,
+			}
+
+			callInfo.Agent = s //设置代理为NatsServer
+
+			s.call_chan <- *callInfo
+		} else {
+			fmt.Println("error ", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *NatsServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {

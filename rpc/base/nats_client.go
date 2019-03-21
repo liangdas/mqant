@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/module"
+	"time"
 )
 
 type NatsClient struct {
@@ -32,7 +33,6 @@ type NatsClient struct {
 	callinfos   	*utils.BeeMap
 	cmutex      	sync.Mutex //操作callinfos的锁
 	callbackqueueName string
-	subs 		*nats.Subscription
 	app 		module.App
 	done        	chan error
 	node 		*registry.Node
@@ -45,11 +45,7 @@ func NewNatsClient(app module.App,node *registry.Node) (client *NatsClient, err 
 	client.callinfos = utils.NewBeeMap()
 	client.callbackqueueName = nats.NewInbox()
 	client.done = make(chan error)
-	subs,err:=app.Transport().Subscribe(client.callbackqueueName, client.on_response_handle)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
-	client.subs=subs
+	go client.on_request_handle()
 	return client, nil
 }
 
@@ -62,7 +58,7 @@ func (c *NatsClient) Done() (err error) {
 	//关闭amqp链接通道
 	//close(c.send_chan)
 	//c.send_done<-nil
-	//c.done<-nil
+
 	//清理 callinfos 列表
 	for key, clinetCallInfo := range c.callinfos.Items() {
 		if clinetCallInfo != nil {
@@ -73,6 +69,7 @@ func (c *NatsClient) Done() (err error) {
 		}
 	}
 	c.callinfos = nil
+	c.done<-nil
 	return
 }
 
@@ -115,7 +112,7 @@ func (c *NatsClient) CallNR(callInfo mqrpc.CallInfo) error {
 /**
 接收应答信息
 */
-func (c *NatsClient) on_response_handle(m *nats.Msg) {
+func (c *NatsClient) on_request_handle() error{
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -132,23 +129,46 @@ func (c *NatsClient) on_response_handle(m *nats.Msg) {
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-	resultInfo, err := c.UnmarshalResult(m.Data)
+	subs, err := c.app.Transport().SubscribeSync(c.callbackqueueName)
 	if err != nil {
-		log.Error("Unmarshal faild", err)
-	} else {
-		correlation_id := resultInfo.Cid
-		clinetCallInfo := c.callinfos.Get(correlation_id)
-		//删除
-		c.callinfos.Delete(correlation_id)
-		if clinetCallInfo != nil {
-			clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
-			close(clinetCallInfo.(ClinetCallInfo).call)
+		return err
+	}
+
+	go func() {
+		<-c.done
+		subs.Unsubscribe()
+	}()
+
+	for {
+		m, err := subs.NextMsg(time.Minute)
+		if err != nil && err == nats.ErrTimeout {
+			continue
+		} else if err != nil {
+			return err
+		}
+
+		resultInfo, err := c.UnmarshalResult(m.Data)
+		if err != nil {
+			log.Error("Unmarshal faild", err)
 		} else {
-			//可能客户端已超时了，但服务端处理完还给回调了
-			log.Warning("rpc callback no found : [%s]", correlation_id)
+			correlation_id := resultInfo.Cid
+			clinetCallInfo := c.callinfos.Get(correlation_id)
+			//删除
+			c.callinfos.Delete(correlation_id)
+			if clinetCallInfo != nil {
+				clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
+				close(clinetCallInfo.(ClinetCallInfo).call)
+			} else {
+				//可能客户端已超时了，但服务端处理完还给回调了
+				log.Warning("rpc callback no found : [%s]", correlation_id)
+			}
 		}
 	}
+
+	return nil
 }
+
+
 
 func (c *NatsClient) UnmarshalResult(data []byte) (*rpcpb.ResultInfo, error) {
 	//fmt.Println(msg)

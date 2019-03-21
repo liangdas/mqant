@@ -238,8 +238,6 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
 	registry.DefaultRegistry.Init(
-		registry.RegisterTTL(time.Second*10),
-		registry.Timeout(time.Second*20),
 	)
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
@@ -305,7 +303,6 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 	if err!=nil{
 		return sessions
 	}
-	log.Info("node %v",node)
 	session ,err:= basemodule.NewServerSession(app,serviceName, node)
 	if err==nil{
 		sessions = append(sessions, session)

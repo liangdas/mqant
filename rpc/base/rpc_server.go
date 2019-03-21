@@ -33,10 +33,8 @@ type RPCServer struct {
 	functions          map[string]*mqrpc.FunctionInfo
 	nats_server         *NatsServer
 	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
-	callback_chan      chan mqrpc.CallInfo //信息处理完成的队列
 	wg                 sync.WaitGroup      //任务阻塞
 	call_chan_done     chan error
-	callback_chan_done chan error
 	listener           mqrpc.RPCListener
 	control            mqrpc.GoroutineControl //控制模块可同时开启的最大协程数
 	executing          int64                  //正在执行的goroutine数量
@@ -48,10 +46,8 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.app = app
 	rpc_server.module = module
 	rpc_server.call_chan_done = make(chan error)
-	rpc_server.callback_chan_done = make(chan error)
 	rpc_server.functions = make(map[string]*mqrpc.FunctionInfo)
 	rpc_server.mq_chan = make(chan mqrpc.CallInfo)
-	rpc_server.callback_chan = make(chan mqrpc.CallInfo, 1)
 	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
 	rpc_server.SetGoroutineControl(rpc_server)
 
@@ -61,9 +57,8 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	}
 	rpc_server.nats_server = nats_server
 
-	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.callback_chan, rpc_server.call_chan_done)
+	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.call_chan_done)
 
-	go rpc_server.on_callback_handle(rpc_server.callback_chan, rpc_server.callback_chan_done) //结果发送队列
 	return rpc_server, nil
 }
 
@@ -128,8 +123,6 @@ func (s *RPCServer) Done() (err error) {
 	//<-s.call_chan_done //mq_chan通道的信息都已处理完
 	s.wg.Wait()
 	s.call_chan_done <- nil
-	s.callback_chan_done <- nil
-	close(s.callback_chan) //关闭结果发送队列
 	//关闭队列链接
 	if s.nats_server != nil {
 		err = s.nats_server.Shutdown()
@@ -138,52 +131,9 @@ func (s *RPCServer) Done() (err error) {
 }
 
 /**
-处理结果信息
-*/
-func (s *RPCServer) on_callback_handle(callbacks <-chan mqrpc.CallInfo, done chan error) {
-	for {
-		select {
-		case callInfo, ok := <-callbacks:
-			if !ok {
-				callbacks = nil
-			} else {
-				if callInfo.RpcInfo.Reply {
-					//需要回复的才回复
-					err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
-					if err != nil {
-						log.Warning("rpc callback erro :\n%s", err.Error())
-					}
-
-					//if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
-					//	//请求超时了,无需再处理
-					//	err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
-					//	if err != nil {
-					//		log.Warning("rpc callback erro :\n%s", err.Error())
-					//	}
-					//}else {
-					//	log.Warning("timeout: This is Call %s %s", s.module.GetType(), callInfo.RpcInfo.Fn)
-					//}
-				} else {
-					//对于不需要回复的消息,可以判断一下是否出现错误，打印一些警告
-					if callInfo.Result.Error != "" {
-						log.Warning("rpc callback erro :\n%s", callInfo.Result.Error)
-					}
-				}
-			}
-		case <-done:
-			goto EForEnd
-		}
-		if callbacks == nil {
-			break
-		}
-	}
-EForEnd:
-}
-
-/**
 接收请求信息
 */
-func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan mqrpc.CallInfo, done chan error) {
+func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, done chan error) {
 	for {
 		select {
 		case callInfo, ok := <-calls:
@@ -198,7 +148,7 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan m
 						log.Warning("timeout: This is Call", s.module.GetType(), callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
 					}
 				} else {
-					s.runFunc(callInfo, callbacks)
+					s.runFunc(callInfo)
 				}
 			}
 		case <-done:
@@ -208,15 +158,40 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, callbacks chan m
 ForEnd:
 }
 
+func (s *RPCServer)doCallback(callInfo mqrpc.CallInfo)  {
+	if callInfo.RpcInfo.Reply {
+		//需要回复的才回复
+		err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+		if err != nil {
+			log.Warning("rpc callback erro :\n%s", err.Error())
+		}
+
+		//if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
+		//	//请求超时了,无需再处理
+		//	err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
+		//	if err != nil {
+		//		log.Warning("rpc callback erro :\n%s", err.Error())
+		//	}
+		//}else {
+		//	log.Warning("timeout: This is Call %s %s", s.module.GetType(), callInfo.RpcInfo.Fn)
+		//}
+	} else {
+		//对于不需要回复的消息,可以判断一下是否出现错误，打印一些警告
+		if callInfo.Result.Error != "" {
+			log.Warning("rpc callback erro :\n%s", callInfo.Result.Error)
+		}
+	}
+}
+
 //---------------------------------if _func is not a function or para num and type not match,it will cause panic
-func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.CallInfo) {
+func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 	start := time.Now()
 	_errorCallback := func(Cid string, Error string, span log.TraceSpan) {
 		//异常日志都应该打印
 		//log.TError(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start), Error)
 		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
 		callInfo.Result = *resultInfo
-		callbacks <- callInfo
+		s.doCallback(callInfo)
 		if s.listener != nil {
 			s.listener.OnError(callInfo.RpcInfo.Fn, &callInfo, fmt.Errorf(Error))
 		}
@@ -361,7 +336,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo, callbacks chan<- mqrpc.Call
 			args,
 		)
 		callInfo.Result = *resultInfo
-		callbacks <- callInfo
+		s.doCallback(callInfo)
 		if s.app.GetSettings().Rpc.Log {
 			log.TInfo(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start))
 		}
