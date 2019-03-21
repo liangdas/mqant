@@ -17,6 +17,7 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/nats-io/go-nats"
+	"github.com/liangdas/mqant/registry"
 )
 
 type ProtocolMarshal interface {
@@ -44,6 +45,7 @@ type App interface {
 	OnInit(settings conf.Config) error
 	OnDestroy() error
 	Transport() *nats.Conn
+	Registry() registry.Registry
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID

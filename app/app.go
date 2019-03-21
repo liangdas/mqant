@@ -36,6 +36,7 @@ import (
 	"github.com/liangdas/mqant/selector"
 	"github.com/liangdas/mqant/selector/cache"
 	"sync"
+	"github.com/liangdas/mqant/registry/etcdv3"
 )
 
 type resultInfo struct {
@@ -76,6 +77,7 @@ type DefaultApp struct {
 	serverList    sync.Map
 	processId     string
 	nc 		*nats.Conn
+	registry	registry.Registry
 	selector 	selector.Selector
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
@@ -227,6 +229,10 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 func (app *DefaultApp) Transport() *nats.Conn{
 	return app.nc
 }
+func (app *DefaultApp) Registry() registry.Registry{
+	return app.registry
+}
+
 func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
 }
@@ -239,14 +245,13 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	registry.DefaultRegistry.Init(
-	)
+	app.registry=etcdv3.NewRegistry()
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
 		return fmt.Errorf("nats agent: %s", err.Error())
 	}
 	app.nc=nc
-	app.selector=cache.NewSelector(selector.Registry(registry.DefaultRegistry))
+	app.selector=cache.NewSelector(selector.Registry(app.Registry()))
 	app.selector.Init()
 	return nil
 }
