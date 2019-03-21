@@ -15,7 +15,6 @@ package defaultrpc
 
 import (
 	"fmt"
-	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
@@ -32,10 +31,6 @@ type RPCServer struct {
 	module             module.Module
 	app                module.App
 	functions          map[string]*mqrpc.FunctionInfo
-	remote_server      *AMQPServer
-	local_server       *LocalServer
-	redis_server       *RedisServer
-	udp_server         *UDPServer
 	nats_server         *NatsServer
 	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
 	callback_chan      chan mqrpc.CallInfo //信息处理完成的队列
@@ -59,19 +54,23 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.callback_chan = make(chan mqrpc.CallInfo, 1)
 	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
 	rpc_server.SetGoroutineControl(rpc_server)
-	//先创建一个本地的RPC服务
-	local_server, err := NewLocalServer(rpc_server.mq_chan)
-	if err != nil {
-		log.Error("LocalServer Dial: %s", err)
-	}
-	rpc_server.local_server = local_server
 
+	nats_server, err := NewNatsServer([]string{}, rpc_server.mq_chan)
+	if err != nil {
+		log.Error("AMQPServer Dial: %s", err)
+	}
+	rpc_server.nats_server = nats_server
 
 	go rpc_server.on_call_handle(rpc_server.mq_chan, rpc_server.callback_chan, rpc_server.call_chan_done)
 
 	go rpc_server.on_callback_handle(rpc_server.callback_chan, rpc_server.callback_chan_done) //结果发送队列
 	return rpc_server, nil
 }
+
+func (this *RPCServer) Addr() string {
+	return this.nats_server.Addr()
+}
+
 func (this *RPCServer) Wait() error {
 	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
 	this.ch <- 1
@@ -82,62 +81,12 @@ func (this *RPCServer) Finish() {
 	<-this.ch
 }
 
-/**
-创建一个支持远程RPC的服务
-*/
-func (s *RPCServer) NewNatsServer(info *conf.ModuleSettings) (err error) {
-	nats_server, err := NewNatsServer(info, s.mq_chan)
-	if err != nil {
-		log.Error("AMQPServer Dial: %s", err)
-	}
-	s.nats_server = nats_server
-	return
-}
-
-/**
-创建一个支持远程RPC的服务
-*/
-func (s *RPCServer) NewRabbitmqRPCServer(info *conf.Rabbitmq) (err error) {
-	remote_server, err := NewAMQPServer(info, s.mq_chan)
-	if err != nil {
-		log.Error("AMQPServer Dial: %s", err)
-	}
-	s.remote_server = remote_server
-	return
-}
-
-/**
-创建一个支持远程Redis RPC的服务
-*/
-func (s *RPCServer) NewRedisRPCServer(info *conf.Redis) (err error) {
-	redis_server, err := NewRedisServer(info, s.mq_chan)
-	if err != nil {
-		log.Error("RedisServer Dial: %s", err)
-	}
-	s.redis_server = redis_server
-	return
-}
-
-/**
-创建一个支持远程UDP RPC的服务
-*/
-func (s *RPCServer) NewUdpRPCServer(info *conf.UDP) (err error) {
-	udp_server, err := NewUdpServer(info, s.mq_chan)
-	if err != nil {
-		log.Error("RedisServer Dial: %s", err)
-	}
-	s.udp_server = udp_server
-	return
-}
 
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {
 	s.listener = listener
 }
 func (s *RPCServer) SetGoroutineControl(control mqrpc.GoroutineControl) {
 	s.control = control
-}
-func (s *RPCServer) GetLocalServer() mqrpc.LocalServer {
-	return s.local_server
 }
 
 /**
@@ -174,13 +123,6 @@ func (s *RPCServer) RegisterGO(id string, f interface{}) {
 }
 
 func (s *RPCServer) Done() (err error) {
-	//设置队列停止接收请求
-	if s.remote_server != nil {
-		err = s.remote_server.StopConsume()
-	}
-	if s.local_server != nil {
-		err = s.local_server.StopConsume()
-	}
 	//等待正在执行的请求完成
 	//close(s.mq_chan)   //关闭mq_chan通道
 	//<-s.call_chan_done //mq_chan通道的信息都已处理完
@@ -189,11 +131,8 @@ func (s *RPCServer) Done() (err error) {
 	s.callback_chan_done <- nil
 	close(s.callback_chan) //关闭结果发送队列
 	//关闭队列链接
-	if s.remote_server != nil {
-		err = s.remote_server.Shutdown()
-	}
-	if s.local_server != nil {
-		err = s.local_server.Shutdown()
+	if s.nats_server != nil {
+		err = s.nats_server.Shutdown()
 	}
 	return
 }

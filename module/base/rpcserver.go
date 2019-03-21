@@ -36,24 +36,7 @@ func (s *rpcserver) OnInit(module module.Module, app module.App, settings *conf.
 		log.Warning("Dial: %s", err)
 	}
 
-	if settings.Rabbitmq != nil {
-		//存在远程rpc的配置
-		server.NewRabbitmqRPCServer(settings.Rabbitmq)
-	}
-	if settings.Redis != nil {
-		//存在远程rpc的配置
-		server.NewRedisRPCServer(settings.Redis)
-	}
-	if settings.UDP != nil {
-		//存在远程rpc的配置
-		server.NewUdpRPCServer(settings.UDP)
-	}
-	server.NewNatsServer(settings)
 	s.server = server
-	err = app.RegisterLocalClient(settings.Id, server)
-	if err != nil {
-		log.Warning("RegisterLocalClient: id(%s) error(%s)", settings.Id, err)
-	}
 	log.Info("RPCServer init success id(%s) version(%s)", s.settings.Id, module.Version())
 }
 func (s *rpcserver) OnDestroy() {

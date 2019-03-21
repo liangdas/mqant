@@ -42,7 +42,6 @@ type App interface {
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
-	RegisterLocalClient(serverId string, server mqrpc.RPCServer) error
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID

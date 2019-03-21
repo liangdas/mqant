@@ -55,17 +55,6 @@ func (c *RPCClient) NewRabbitmqClient(info *conf.Rabbitmq) (err error) {
 	return
 }
 
-func (c *RPCClient) NewLocalClient(server mqrpc.RPCServer) (err error) {
-	//创建本地连接
-	if server != nil && server.GetLocalServer() != nil && c.local_client == nil {
-		c.local_client, err = NewLocalClient(server.GetLocalServer())
-		if err != nil {
-			log.Error("Dial: %s", err)
-			return err
-		}
-	}
-	return
-}
 
 func (c *RPCClient) NewRedisClient(info *conf.Redis) (err error) {
 	if info != nil && c.redis_client == nil {

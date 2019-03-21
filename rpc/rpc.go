@@ -58,14 +58,10 @@ type GoroutineControl interface {
 }
 
 type RPCServer interface {
-	NewRabbitmqRPCServer(info *conf.Rabbitmq) (err error)
-	NewRedisRPCServer(info *conf.Redis) (err error)
-	NewUdpRPCServer(info *conf.UDP) (err error)
-	NewNatsServer(info *conf.ModuleSettings) (err error)
+	Addr() string
 	SetListener(listener RPCListener)
 	SetGoroutineControl(control GoroutineControl)
 	GetExecuting() int64
-	GetLocalServer() LocalServer
 	Register(id string, f interface{})
 	RegisterGO(id string, f interface{})
 	Done() (err error)
@@ -76,7 +72,6 @@ type RPCClient interface {
 	NewRedisClient(info *conf.Redis) (err error)
 	NewUdpClient(info *conf.UDP) (err error)
 	NewNatsClient(conf *conf.ModuleSettings) (err error)
-	NewLocalClient(server RPCServer) (err error)
 	Done() (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)

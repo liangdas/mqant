@@ -21,32 +21,52 @@ import (
 	"github.com/nats-io/go-nats"
 	"runtime"
 	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/conf"
+	"strings"
 )
 
 type NatsServer struct {
 	call_chan   chan mqrpc.CallInfo
+	addr		string
 	nc 		*nats.Conn
 	subs 		*nats.Subscription
 	done        chan error
 }
+func setAddrs(addrs []string) []string {
+	var cAddrs []string
+	for _, addr := range addrs {
+		if len(addr) == 0 {
+			continue
+		}
+		if !strings.HasPrefix(addr, "nats://") {
+			addr = "nats://" + addr
+		}
+		cAddrs = append(cAddrs, addr)
+	}
+	if len(cAddrs) == 0 {
+		cAddrs = []string{nats.DefaultURL}
+	}
+	return cAddrs
+}
 
-func NewNatsServer(conf *conf.ModuleSettings,call_chan chan mqrpc.CallInfo) (*NatsServer, error) {
-	nc, err := nats.Connect(nats.DefaultURL)
+func NewNatsServer(addrs []string,call_chan chan mqrpc.CallInfo) (*NatsServer, error) {
+	nc, err := nats.Connect(strings.Join(setAddrs(addrs), ","))
 	if err != nil {
 		return nil, fmt.Errorf("nats agent: %s", err.Error())
 	}
 	server := new(NatsServer)
 	server.call_chan = call_chan
 	server.nc = nc
-	subs,err:=nc.Subscribe(conf.Id, server.on_request_handle)
+	server.addr=nats.NewInbox()
+	subs,err:=nc.Subscribe(server.addr, server.on_request_handle)
 	if err != nil {
 		return nil, fmt.Errorf("nats agent: %s", err.Error())
 	}
 	server.subs=subs
 	return server, nil
 }
-
+func (s *NatsServer) Addr() string {
+	return s.addr
+}
 /**
 注销消息队列
 */

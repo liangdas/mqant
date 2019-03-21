@@ -22,7 +22,6 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	"hash/crc32"
 	"math"
@@ -279,14 +278,6 @@ func (app *DefaultApp) OnDestroy() error {
 	return nil
 }
 
-func (app *DefaultApp) RegisterLocalClient(serverId string, server mqrpc.RPCServer) error {
-	if session, ok := app.serverList[serverId]; ok {
-		return session.GetRpc().NewLocalClient(server)
-	} else {
-		return fmt.Errorf("Server(%s) Not Found", serverId)
-	}
-	return nil
-}
 
 func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
 	if session, ok := app.serverList[serverId]; ok {

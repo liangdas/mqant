@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"sync"
 	"time"
+	"github.com/liangdas/mqant/server"
 )
 
 type StatisticalMethod struct {
@@ -50,7 +51,7 @@ type BaseModule struct {
 	App         module.App
 	subclass    module.RPCModule
 	settings    *conf.ModuleSettings
-	server      *rpcserver
+	server      server.Server
 	listener    mqrpc.RPCListener
 	statistical map[string]*StatisticalMethod //统计
 	rwmutex     sync.RWMutex
@@ -69,9 +70,9 @@ func (m *BaseModule) GetSubclass() module.RPCModule {
 	return m.subclass
 }
 
-func (m *BaseModule) GetServer() *rpcserver {
+func (m *BaseModule) GetServer() server.Server {
 	if m.server == nil {
-		m.server = new(rpcserver)
+		m.server = server.NewServer()
 	}
 	return m.server
 }
@@ -90,7 +91,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
 	m.GetServer().OnInit(subclass, app, settings)
-	m.GetServer().GetRPCServer().SetListener(m)
+	//m.GetServer().GetRPCServer().SetListener(m)
 }
 
 func (m *BaseModule) OnDestroy() {
@@ -229,7 +230,8 @@ func (m *BaseModule) OnComplete(fn string, callInfo *mqrpc.CallInfo, result *rpc
 	}
 }
 func (m *BaseModule) GetExecuting() int64 {
-	return m.GetServer().GetRPCServer().GetExecuting()
+	return 0
+	//return m.GetServer().GetRPCServer().GetExecuting()
 }
 func (m *BaseModule) GetStatistical() (statistical string, err error) {
 	m.rwmutex.Lock()
