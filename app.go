@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package defaultApp
+package mqant
 
 import (
 	"encoding/json"
@@ -33,10 +33,9 @@ import (
 	"time"
 	"github.com/liangdas/mqant/registry"
 	"github.com/nats-io/go-nats"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
 	"sync"
-	"github.com/liangdas/mqant/registry/etcdv3"
+	//"github.com/liangdas/mqant/registry/etcdv3"
+	"github.com/liangdas/mqant/selector/cache"
 )
 
 type resultInfo struct {
@@ -53,8 +52,31 @@ func (this *protocolMarshalImp) GetData() []byte {
 	return this.data
 }
 
-func NewApp(version string) module.App {
+func newOptions(opts ...Option) Options {
+	opt := Options{
+		Registry:  registry.DefaultRegistry,
+		Selector:  cache.NewSelector(),
+		RegisterInterval :time.Second*time.Duration(10),
+		RegisterTTL :time.Second*time.Duration(10),
+	}
+
+	for _, o := range opts {
+		o(&opt)
+	}
+	if opt.Registry == nil {
+		nc, err := nats.Connect(nats.DefaultURL)
+		if err != nil {
+			panic(fmt.Sprintf("nats agent: %s", err.Error()))
+		}
+		opt.Nats = nc
+	}
+	return opt
+}
+
+func NewApp(opts ...Option) module.App {
+	options := newOptions(opts...)
 	app := new(DefaultApp)
+	app.opts=options
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		//默认使用第一个Server
@@ -66,7 +88,6 @@ func NewApp(version string) module.App {
 		return servers[index]
 	}
 	app.rpcserializes = map[string]module.RPCSerialize{}
-	app.version = version
 	return app
 }
 
@@ -76,9 +97,7 @@ type DefaultApp struct {
 	settings      conf.Config
 	serverList    sync.Map
 	processId     string
-	nc 		*nats.Conn
-	registry	registry.Registry
-	selector 	selector.Selector
+	opts		Options
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	//将一个RPC调用路由到新的路由上
@@ -227,10 +246,10 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 	return nil
 }
 func (app *DefaultApp) Transport() *nats.Conn{
-	return app.nc
+	return app.opts.Nats
 }
 func (app *DefaultApp) Registry() registry.Registry{
-	return app.registry
+	return app.opts.Registry
 }
 
 func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
@@ -245,14 +264,14 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	app.registry=etcdv3.NewRegistry()
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		return fmt.Errorf("nats agent: %s", err.Error())
-	}
-	app.nc=nc
-	app.selector=cache.NewSelector(selector.Registry(app.Registry()))
-	app.selector.Init()
+	//app.registry=registry.DefaultRegistry //etcdv3.NewRegistry()
+	//nc, err := nats.Connect(nats.DefaultURL)
+	//if err != nil {
+	//	return fmt.Errorf("nats agent: %s", err.Error())
+	//}
+	//app.nc=nc
+	//app.selector=cache.NewSelector(selector.Registry(app.Registry()))
+	//app.selector.Init()
 	return nil
 }
 
@@ -267,7 +286,7 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 	if len(s)==2{
 		serviceName=s[0]
 	}
-	next,err:=app.selector.Select(serviceName)
+	next,err:=app.opts.Selector.Select(serviceName)
 	if err!=nil{
 		return nil,err
 	}
@@ -291,7 +310,7 @@ func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, err
 
 func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
-	services,err:=app.selector.GetService(serviceName)
+	services,err:=app.opts.Selector.GetService(serviceName)
 	if err!=nil{
 		log.Warning("GetServersByType %v",err)
 		return sessions

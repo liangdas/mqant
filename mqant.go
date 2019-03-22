@@ -14,8 +14,8 @@
 package mqant
 
 import "github.com/liangdas/mqant/module"
-import "github.com/liangdas/mqant/app"
 
-func CreateApp() module.App {
-	return defaultApp.NewApp(Version)
+func CreateApp(opts ...Option) module.App {
+	opts=append(opts,Version(version))
+	return NewApp(opts...)
 }
