@@ -131,9 +131,9 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 	callback := make(chan rpcpb.ResultInfo, 1)
 	var err error
 	//优先使用本地rpc
-	//if c.local_client != nil {
-	//	err = c.local_client.Call(*callInfo, callback)
-	//} else
+	if c.local_client != nil {
+		err = c.local_client.Call(*callInfo, callback)
+	} else
 	if c.nats_client != nil {
 		err = c.nats_client.Call(*callInfo, callback)
 	} else if c.remote_client != nil {
@@ -173,9 +173,9 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 		RpcInfo: *rpcInfo,
 	}
 	//优先使用本地rpc
-	//if c.local_client != nil {
-	//	err = c.local_client.CallNR(*callInfo)
-	//} else
+	if c.local_client != nil {
+		err = c.local_client.CallNR(*callInfo)
+	} else
 	if c.nats_client != nil {
 		err = c.nats_client.CallNR(*callInfo)
 	}  else if c.remote_client != nil {
