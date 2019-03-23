@@ -1,4 +1,4 @@
-package mqant
+package module
 
 import (
 	"time"
@@ -12,9 +12,9 @@ type Option func(*Options)
 
 type Options struct {
 	Nats 		*nats.Conn
-	Version      string
-	Registry  registry.Registry
-	Selector  selector.Selector
+	Version      	string
+	Registry  	registry.Registry
+	Selector  	selector.Selector
 	// Register loop interval
 	RegisterInterval time.Duration
 	RegisterTTL time.Duration
@@ -41,6 +41,12 @@ func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 		o.Selector.Init(selector.Registry(r))
+	}
+}
+
+func Selector(r selector.Selector) Option {
+	return func(o *Options) {
+		o.Selector = r
 	}
 }
 

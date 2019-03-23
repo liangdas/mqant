@@ -6,12 +6,14 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/rpc"
 )
 
 type Server interface {
 	Options() Options
 	OnInit(module module.Module, app module.App, settings *conf.ModuleSettings) error
 	Init(...Option) error
+	SetListener(listener mqrpc.RPCListener)
 	Register(id string, f interface{})
 	RegisterGO(id string, f interface{})
 	ServiceRegister() error

@@ -111,13 +111,6 @@ type StorageHandler interface {
 	Heartbeat(Userid string)
 }
 
-type TracingHandler interface {
-	/**
-	是否需要对本次客户端请求进行跟踪
-	*/
-	OnRequestTracing(session Session, topic string, msg []byte) bool
-}
-
 type RouteHandler interface {
 	/**
 	是否需要对本次客户端请求转发规则进行hook
@@ -149,12 +142,11 @@ type Agent interface {
 }
 
 type Gate interface {
-	GetMinStorageHeartbeat() int64
+	Options() Options
 	GetGateHandler() GateHandler
 	GetAgentLearner() AgentLearner
 	GetSessionLearner() SessionLearner
 	GetStorageHandler() StorageHandler
-	GetTracingHandler() TracingHandler
 	GetRouteHandler() RouteHandler
 	GetJudgeGuest() func(session Session) bool
 	NewSession(data []byte) (Session, error)

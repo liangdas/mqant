@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	prefix = "/micro-registry"
+	prefix = "/mqant-registry"
 )
 
 type etcdv3Registry struct {

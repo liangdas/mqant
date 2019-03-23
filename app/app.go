@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqant
+package app
 
 import (
 	"encoding/json"
@@ -36,6 +36,8 @@ import (
 	"sync"
 	//"github.com/liangdas/mqant/registry/etcdv3"
 	"github.com/liangdas/mqant/selector/cache"
+	"github.com/liangdas/mqant/selector"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -52,18 +54,18 @@ func (this *protocolMarshalImp) GetData() []byte {
 	return this.data
 }
 
-func newOptions(opts ...Option) Options {
-	opt := Options{
+func newOptions(opts ...module.Option) module.Options {
+	opt := module.Options{
 		Registry:  registry.DefaultRegistry,
 		Selector:  cache.NewSelector(),
 		RegisterInterval :time.Second*time.Duration(10),
-		RegisterTTL :time.Second*time.Duration(10),
+		RegisterTTL :time.Second*time.Duration(20),
 	}
 
 	for _, o := range opts {
 		o(&opt)
 	}
-	if opt.Registry == nil {
+	if opt.Nats == nil {
 		nc, err := nats.Connect(nats.DefaultURL)
 		if err != nil {
 			panic(fmt.Sprintf("nats agent: %s", err.Error()))
@@ -73,10 +75,11 @@ func newOptions(opts ...Option) Options {
 	return opt
 }
 
-func NewApp(opts ...Option) module.App {
+func NewApp(opts ...module.Option) module.App {
 	options := newOptions(opts...)
 	app := new(DefaultApp)
 	app.opts=options
+	options.Selector.Init(selector.SetWatcher(app.Watcher))
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		//默认使用第一个Server
@@ -97,7 +100,7 @@ type DefaultApp struct {
 	settings      conf.Config
 	serverList    sync.Map
 	processId     string
-	opts		Options
+	opts		module.Options
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	//将一个RPC调用路由到新的路由上
@@ -136,7 +139,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 
 	}
 
-	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
+	defaultConfPath := fmt.Sprintf("file://%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
@@ -154,9 +157,9 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 
 	f, err := os.Open(*confPath)
 	if err != nil {
-		panic(err)
+		//文件不存在
+		panic(fmt.Sprintf("config path error %v",err))
 	}
-
 	_, err = os.Open(*Logdir)
 	if err != nil {
 		//文件不存在
@@ -174,11 +177,13 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 			fmt.Println(err)
 		}
 	}
-	fmt.Println("Server configuration file path :", *confPath)
+	var cof conf.Config
+	fmt.Println("Server configuration path :", *confPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
-	app.Configure(conf.Conf)  //配置信息
-	log.InitLog(debug, *ProcessID, *Logdir, conf.Conf.Log)
-	log.InitBI(debug, *ProcessID, *BIdir, conf.Conf.BI)
+	cof=conf.Conf
+	app.Configure(cof)  //解析配置信息
+	log.InitLog(debug, *ProcessID, *Logdir, cof.Log)
+	log.InitBI(debug, *ProcessID, *BIdir, cof.BI)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -245,6 +250,11 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 	app.rpcserializes[name] = Interface
 	return nil
 }
+
+func (app *DefaultApp) Options() module.Options{
+	return app.opts
+}
+
 func (app *DefaultApp) Transport() *nats.Conn{
 	return app.opts.Nats
 }
@@ -256,6 +266,15 @@ func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
 }
 
+func (app *DefaultApp) Watcher(node *registry.Node){
+	//把注销的服务ServerSession删除掉
+	session,ok:=app.serverList.Load(node.Id)
+	if ok&&session!=nil{
+		session.(module.ServerSession).GetRpc().Done()
+		app.serverList.Delete(node.Id)
+	}
+}
+
 func (app *DefaultApp) Configure(settings conf.Config) error {
 	app.settings = settings
 	return nil
@@ -264,14 +283,7 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	//app.registry=registry.DefaultRegistry //etcdv3.NewRegistry()
-	//nc, err := nats.Connect(nats.DefaultURL)
-	//if err != nil {
-	//	return fmt.Errorf("nats agent: %s", err.Error())
-	//}
-	//app.nc=nc
-	//app.selector=cache.NewSelector(selector.Registry(app.Registry()))
-	//app.selector.Init()
+
 	return nil
 }
 
@@ -281,12 +293,29 @@ func (app *DefaultApp) OnDestroy() error {
 }
 
 func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
-	serviceName:=serverId
-	s:=strings.Split(serverId,"@")
-	if len(s)==2{
-		serviceName=s[0]
+	session,ok:=app.serverList.Load(serverId)
+	if !ok{
+		serviceName:=serverId
+		s:=strings.Split(serverId,"@")
+		if len(s)==2{
+			serviceName=s[0]
+		}else{
+			return nil,errors.Errorf("serverId is error %v",serverId)
+		}
+		sessions:=app.GetServersByType(serviceName)
+		for _,s:=range sessions{
+			if s.GetNode().Id==serverId{
+				return s,nil
+			}
+		}
+	}else{
+		return session.(module.ServerSession),nil
 	}
-	next,err:=app.opts.Selector.Select(serviceName)
+	return nil,errors.Errorf("nofound %v",serverId)
+}
+
+func (app *DefaultApp) GetServerBySelector(serviceName string,opts ...selector.SelectOption) (module.ServerSession, error) {
+	next,err:=app.opts.Selector.Select(serviceName,opts...)
 	if err!=nil{
 		return nil,err
 	}
@@ -337,7 +366,7 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 }
 
 
-func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServer(filter string, hash string,opts ...selector.SelectOption) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {
 		//进行一次路由转换
 		filter = app.mapRoute(app, filter)
@@ -350,12 +379,7 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 		}
 	}
 	moduleType := sl[0]
-	route := app.getRoute(moduleType)
-	s = route(app, moduleType, hash)
-	if s == nil {
-		err = fmt.Errorf("Server(type : %s) Not Found", moduleType)
-	}
-	return
+	return app.GetServerBySelector(moduleType,opts...)
 }
 
 func (app *DefaultApp) GetSettings() conf.Config {

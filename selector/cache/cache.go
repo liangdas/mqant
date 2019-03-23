@@ -4,10 +4,10 @@ package cache
 import (
 	"sync"
 	"time"
-	"github.com/micro/go-log"
 
 	"github.com/liangdas/mqant/selector"
 	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/log"
 )
 
 type cacheSelector struct {
@@ -204,7 +204,6 @@ func (c *cacheSelector) update(res *registry.Result) {
 		if service == nil {
 			return
 		}
-
 		var nodes []*registry.Node
 
 		// filter cur nodes to remove the dead one
@@ -218,6 +217,11 @@ func (c *cacheSelector) update(res *registry.Result) {
 			}
 			if !seen {
 				nodes = append(nodes, cur)
+			}else{
+				//应该删除的
+				if c.Options().Watcher!=nil{
+					c.Options().Watcher(cur)
+				}
 			}
 		}
 
@@ -271,7 +275,7 @@ func (c *cacheSelector) run(name string) {
 			if c.quit() {
 				return
 			}
-			log.Log(err)
+			log.Warning("%v",err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -281,7 +285,7 @@ func (c *cacheSelector) run(name string) {
 			if c.quit() {
 				return
 			}
-			log.Log(err)
+			log.Warning("%v",err)
 			continue
 		}
 	}

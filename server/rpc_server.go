@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"github.com/micro/util/go/lib/addr"
+	"github.com/liangdas/mqant/utils/lib/addr"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/base"
 	"github.com/liangdas/mqant/registry"
@@ -66,7 +66,9 @@ func (s *rpcServer)OnInit(module module.Module, app module.App, settings *conf.M
 	}
 	return nil
 }
-
+func (s *rpcServer) SetListener(listener mqrpc.RPCListener){
+	s.server.SetListener(listener)
+}
 func (s *rpcServer) Register(id string, f interface{}) {
 	if s.server == nil {
 		panic("invalid RPCServer")

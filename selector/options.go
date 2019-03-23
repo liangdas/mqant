@@ -7,6 +7,7 @@ import (
 )
 
 type Options struct {
+	Watcher	  Watcher
 	Registry registry.Registry
 	Strategy Strategy
 
@@ -23,6 +24,8 @@ type SelectOptions struct {
 	// can be stored in a context
 	Context context.Context
 }
+
+type Watcher func(node *registry.Node)
 
 // Option used to initialise the selector
 type Option func(*Options)
@@ -41,6 +44,13 @@ func Registry(r registry.Registry) Option {
 func SetStrategy(fn Strategy) Option {
 	return func(o *Options) {
 		o.Strategy = fn
+	}
+}
+
+// SetStrategy sets the default strategy for the selector
+func SetWatcher(fn Watcher) Option {
+	return func(o *Options) {
+		o.Watcher = fn
 	}
 }
 

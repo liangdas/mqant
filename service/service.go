@@ -75,7 +75,7 @@ func (s *service) Server() server.Server {
 }
 
 func (s *service) String() string {
-	return "go-micro"
+	return "mqant"
 }
 
 func (s *service) Start() error {

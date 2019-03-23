@@ -11,14 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqant
+package defaultrpc
 
-import (
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/app"
-)
+import "github.com/liangdas/mqant/rpc/pb"
 
-func CreateApp(opts ...module.Option) module.App {
-	opts=append(opts,module.Version(version))
-	return app.NewApp(opts...)
+type ClinetCallInfo struct {
+	correlation_id string
+	timeout        int64 //超时
+	call           chan rpcpb.ResultInfo
 }

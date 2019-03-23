@@ -29,6 +29,7 @@ import (
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
+	"sync"
 )
 
 //type resultInfo struct {
@@ -45,9 +46,10 @@ type agent struct {
 	w                                *bufio.Writer
 	gate                             gate.Gate
 	client                           *mqtt.Client
-	ch                 		chan int               //控制模块可同时开启的最大协程数
+	ch                 			chan int               //控制模块可同时开启的最大协程数
 	isclose                          bool
-	last_storage_heartbeat_data_time int64 //上一次发送存储心跳时间
+	lock 				 sync.Mutex
+	last_storage_heartbeat_data_time time.Duration //上一次发送存储心跳时间
 	rev_num                          int64
 	send_num                         int64
 }
@@ -59,11 +61,11 @@ func NewMqttAgent(module module.RPCModule) *agent {
 	return a
 }
 func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
-	this.ch = make(chan int, 1)
+	this.ch = make(chan int, gate.Options().ConcurrentTasks)
 	this.conn = conn
 	this.gate = gate
-	this.r = bufio.NewReaderSize(conn, 2048)
-	this.w = bufio.NewWriterSize(conn, 2048)
+	this.r = bufio.NewReaderSize(conn, gate.Options().BufSize)
+	this.w = bufio.NewWriterSize(conn, gate.Options().BufSize)
 	this.isclose = false
 	this.rev_num = 0
 	this.send_num = 0
@@ -278,12 +280,15 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		}
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
-			interval := time.Now().Unix() - a.last_storage_heartbeat_data_time //单位秒
-			if interval > a.gate.GetMinStorageHeartbeat() {
-				//如果用户信息存储心跳包的时长已经大于一秒
+			a.lock.Lock()
+			interval :=int64(a.last_storage_heartbeat_data_time)+int64(a.gate.Options().Heartbeat) //单位纳秒
+			a.lock.Unlock()
+			if interval < time.Now().UnixNano() {
 				if a.gate.GetStorageHandler() != nil {
+					a.lock.Lock()
+					a.last_storage_heartbeat_data_time = time.Duration(time.Now().UnixNano())
+					a.lock.Unlock()
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
-					a.last_storage_heartbeat_data_time = time.Now().Unix()
 				}
 			}
 		}
@@ -291,12 +296,15 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		//客户端发送的心跳包
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
-			interval := time.Now().Unix() - a.last_storage_heartbeat_data_time //单位秒
-			if interval > a.gate.GetMinStorageHeartbeat() {
-				//如果用户信息存储心跳包的时长已经大于60秒
+			a.lock.Lock()
+			interval :=int64(a.last_storage_heartbeat_data_time)+int64(a.gate.Options().Heartbeat) //单位纳秒
+			a.lock.Unlock()
+			if interval < time.Now().UnixNano() {
 				if a.gate.GetStorageHandler() != nil {
+					a.lock.Lock()
+					a.last_storage_heartbeat_data_time = time.Duration(time.Now().UnixNano())
+					a.lock.Unlock()
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
-					a.last_storage_heartbeat_data_time = time.Now().Unix()
 				}
 			}
 		}

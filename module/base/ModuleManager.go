@@ -51,7 +51,7 @@ func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 	mer.app = app
 	mer.CheckModuleSettings() //配置文件规则检查
 	for i := 0; i < len(mer.mods); i++ {
-		for Type, modSettings := range conf.Conf.Module {
+		for Type, modSettings := range app.GetSettings().Module {
 			if mer.mods[i].mi.GetType() == Type {
 				//匹配
 				for _, setting := range modSettings {

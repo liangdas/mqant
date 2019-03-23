@@ -18,6 +18,8 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"github.com/nats-io/go-nats"
 	"github.com/liangdas/mqant/registry"
+	"context"
+	"github.com/liangdas/mqant/selector"
 )
 
 type ProtocolMarshal interface {
@@ -46,15 +48,16 @@ type App interface {
 	SetMapRoute(fn func(app App, route string) string) error
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
-	OnDestroy() error
-	Transport() *nats.Conn
+	OnDestroy() 	error
+	Options() 	Options
+	Transport() 	*nats.Conn
 	Registry() registry.Registry
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
+	GetRouteServer(filter string, hash string,opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -94,6 +97,7 @@ type Module interface {
 	Run(closeSig chan bool)
 }
 type RPCModule interface {
+	context.Context
 	Module
 	GetServerId() string //模块类型
 	RpcInvoke(moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -105,7 +109,7 @@ type RPCModule interface {
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string) (ServerSession, error)
+	GetRouteServer(filter string, hash string,opts ...selector.SelectOption) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }

@@ -111,6 +111,7 @@ func (s *NatsServer) on_request_handle() error{
 		if err != nil && err == nats.ErrTimeout {
 			continue
 		} else if err != nil {
+			//log.Error("NatsServer error with '%v'",err)
 			return err
 		}
 
