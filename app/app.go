@@ -139,7 +139,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 
 	}
 
-	defaultConfPath := fmt.Sprintf("file://%s/bin/conf/server.json", ApplicationDir)
+	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
