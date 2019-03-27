@@ -131,22 +131,23 @@ func (s *RPCServer) Done() (err error) {
 }
 
 func (s *RPCServer)Call(callInfo mqrpc.CallInfo)error{
-	if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
-		//请求超时了,无需再处理
-		if s.listener != nil {
-			s.listener.OnTimeOut(callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired)
-		} else {
-			log.Warning("timeout: This is Call", s.module.GetType(), callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
-		}
-	} else {
-		s.runFunc(callInfo)
-		//go func() {
-		//	resultInfo := rpcpb.NewResultInfo(callInfo.RpcInfo.Cid, "", argsutil.STRING, []byte("success"))
-		//	callInfo.Result = *resultInfo
-		//	s.doCallback(callInfo)
-		//}()
-
-	}
+	s.runFunc(callInfo)
+	//if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
+	//	//请求超时了,无需再处理
+	//	if s.listener != nil {
+	//		s.listener.OnTimeOut(callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired)
+	//	} else {
+	//		log.Warning("timeout: This is Call", s.module.GetType(), callInfo.RpcInfo.Fn, callInfo.RpcInfo.Expired, time.Now().UnixNano()/1000000)
+	//	}
+	//} else {
+	//	s.runFunc(callInfo)
+	//	//go func() {
+	//	//	resultInfo := rpcpb.NewResultInfo(callInfo.RpcInfo.Cid, "", argsutil.STRING, []byte("success"))
+	//	//	callInfo.Result = *resultInfo
+	//	//	s.doCallback(callInfo)
+	//	//}()
+	//
+	//}
 	return nil
 }
 

@@ -109,14 +109,14 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 							}
 						}
 					}
-					//数据持久化
-					h.gate.GetStorageHandler().Storage(Userid, agent.(gate.Agent).GetSession())
 				}
 			} else {
 				//解析持久化数据失败
 				log.Warning("Sesssion Resolve fail %s", err.Error())
 			}
 		}
+		//数据持久化
+		h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 	}
 
 	result = agent.(gate.Agent).GetSession()
@@ -170,7 +170,7 @@ func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string
 	agent.(gate.Agent).GetSession().SetSettings(Settings)
 	result = agent.(gate.Agent).GetSession()
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
-		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserId(), agent.(gate.Agent).GetSession())
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Warning("gate session storage failure : %s", err.Error())
 		}
@@ -192,7 +192,7 @@ func (h *handler) Set(span log.TraceSpan, Sessionid string, key string, value st
 	result = agent.(gate.Agent).GetSession()
 
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
-		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserId(), agent.(gate.Agent).GetSession())
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Error("gate session storage failure : %s", err.Error())
 		}
@@ -214,7 +214,7 @@ func (h *handler) Remove(span log.TraceSpan, Sessionid string, key string) (resu
 	result = agent.(gate.Agent).GetSession()
 
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
-		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession().GetUserId(), agent.(gate.Agent).GetSession())
+		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Error("gate session storage failure :%s", err.Error())
 		}

@@ -99,6 +99,7 @@ func (a *agent) Run() (err error) {
 		a.Close()
 
 	}()
+
 	//握手协议
 	var pack *mqtt.Pack
 	pack, err = mqtt.ReadPack(a.r)
@@ -288,7 +289,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					a.lock.Lock()
 					a.last_storage_heartbeat_data_time = time.Duration(time.Now().UnixNano())
 					a.lock.Unlock()
-					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession())
 				}
 			}
 		}
@@ -304,7 +305,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					a.lock.Lock()
 					a.last_storage_heartbeat_data_time = time.Duration(time.Now().UnixNano())
 					a.lock.Unlock()
-					a.gate.GetStorageHandler().Heartbeat(a.GetSession().GetUserId())
+					a.gate.GetStorageHandler().Heartbeat(a.GetSession())
 				}
 			}
 		}

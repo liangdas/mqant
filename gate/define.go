@@ -94,11 +94,11 @@ type StorageHandler interface {
 	存储用户的Session信息
 	Session Bind Userid以后每次设置 settings都会调用一次Storage
 	*/
-	Storage(Userid string, session Session) (err error)
+	Storage(session Session) (err error)
 	/**
 	强制删除Session信息
 	*/
-	Delete(Userid string) (err error)
+	Delete(session Session) (err error)
 	/**
 	获取用户Session信息
 	Bind Userid时会调用Query获取最新信息
@@ -108,7 +108,7 @@ type StorageHandler interface {
 	用户心跳,一般用户在线时1s发送一次
 	可以用来延长Session信息过期时间
 	*/
-	Heartbeat(Userid string)
+	Heartbeat(session Session)
 }
 
 type RouteHandler interface {
