@@ -21,6 +21,7 @@ type Options struct {
 	ConcurrentTasks    	int
 	BufSize  		int
 	Heartbeat		time.Duration
+	OverTime		time.Duration
 	RouteHandler		RouteHandler
 	StorageHandler		StorageHandler
 	AgentLearner		AgentLearner
@@ -33,6 +34,7 @@ func NewOptions(opts ...Option) Options {
 		ConcurrentTasks:  20,
 		BufSize:   2048,
 		Heartbeat:time.Minute,
+		OverTime:time.Second*10,
 	}
 
 	for _, o := range opts {
@@ -58,6 +60,13 @@ func Heartbeat(s time.Duration) Option {
 		o.Heartbeat = s
 	}
 }
+
+func OverTime(s time.Duration) Option {
+	return func(o *Options) {
+		o.OverTime = s
+	}
+}
+
 func SetRouteHandler(s RouteHandler) Option {
 	return func(o *Options) {
 		o.RouteHandler = s

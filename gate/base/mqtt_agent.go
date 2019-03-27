@@ -46,12 +46,13 @@ type agent struct {
 	w                                *bufio.Writer
 	gate                             gate.Gate
 	client                           *mqtt.Client
-	ch                 			chan int               //控制模块可同时开启的最大协程数
+	ch                 		chan int               //控制模块可同时开启的最大协程数
 	isclose                          bool
 	lock 				 sync.Mutex
 	last_storage_heartbeat_data_time time.Duration //上一次发送存储心跳时间
 	rev_num                          int64
 	send_num                         int64
+	conn_time 			 time.Time
 }
 
 func NewMqttAgent(module module.RPCModule) *agent {
@@ -99,6 +100,16 @@ func (a *agent) Run() (err error) {
 		a.Close()
 
 	}()
+	go func() {
+		select {
+		case <-time.After(a.gate.Options().OverTime):
+			if a.GetSession()==nil{
+				//超过一段时间还没有建立mqtt连接则直接关闭网络连接
+				a.Close()
+			}
+
+		}
+	}()
 
 	//握手协议
 	var pack *mqtt.Pack
@@ -141,7 +152,7 @@ func (a *agent) Run() (err error) {
 	if err != nil {
 		return
 	}
-
+	a.conn_time=time.Now()
 	c.Listen_loop() //开始监听,直到连接中断
 	return nil
 }
@@ -157,6 +168,9 @@ func (a *agent) RevNum() int64 {
 }
 func (a *agent) SendNum() int64 {
 	return a.send_num
+}
+func (a *agent) ConnTime() time.Time {
+	return a.conn_time
 }
 func (a *agent) OnRecover(pack *mqtt.Pack)  {
 	a.Wait()
@@ -188,7 +202,9 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 	//路由服务
 	switch pack.GetType() {
 	case mqtt.PUBLISH:
+		a.lock.Lock()
 		a.rev_num = a.rev_num + 1
+		a.lock.Unlock()
 		pub := pack.GetVariable().(*mqtt.Publish)
 		topics := strings.Split(*pub.GetTopic(), "/")
 		a.session.CreateTrace()

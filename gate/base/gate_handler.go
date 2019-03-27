@@ -20,6 +20,7 @@ import (
 	"github.com/liangdas/mqant/log"
 	"strings"
 	"sync"
+	"github.com/pkg/errors"
 )
 
 type handler struct {
@@ -62,6 +63,17 @@ func (h *handler) OnDestroy() {
 		h.sessions.Delete(key)
 		return true
 	})
+}
+
+/**
+ *更新整个Session 通常是其他模块拉取最新数据
+ */
+func (h *handler) GetAgent(Sessionid string) (gate.Agent, error) {
+	agent ,ok:= h.sessions.Load(Sessionid)
+	if !ok||agent == nil {
+		return nil,errors.New("No Sesssion found")
+	}
+	return agent.(gate.Agent),nil
 }
 
 /**

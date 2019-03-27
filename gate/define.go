@@ -16,6 +16,7 @@ package gate
 import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/network"
+	"time"
 )
 
 var RPC_PARAM_SESSION_TYPE = "SESSION"
@@ -25,6 +26,7 @@ var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
 net代理服务 处理器
 */
 type GateHandler interface {
+	GetAgent(Sessionid string) (Agent, error)
 	Bind(span log.TraceSpan, Sessionid string, Userid string) (result Session, err string)                 //Bind the session with the the Userid.
 	UnBind(span log.TraceSpan, Sessionid string) (result Session, err string)                              //UnBind the session with the the Userid.
 	Set(span log.TraceSpan, Sessionid string, key string, value string) (result Session, err string)       //Set values (one or many) for the session.
@@ -135,6 +137,7 @@ type Agent interface {
 	Run() (err error)
 	OnClose() error
 	Destroy()
+	ConnTime() time.Time
 	RevNum() int64
 	SendNum() int64
 	IsClosed() bool
