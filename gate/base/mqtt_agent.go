@@ -82,7 +82,13 @@ func (a *agent) GetSession() gate.Session {
 
 func (a *agent) Wait() error {
 	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
-	a.ch <- 1
+	select {
+	case a.ch <- 1:
+	//do nothing
+	default:
+	//warnning!
+		return fmt.Errorf("the work queue is full!")
+	}
 	return nil
 }
 func (a *agent) Finish() {
@@ -173,9 +179,32 @@ func (a *agent) ConnTime() time.Time {
 	return a.conn_time
 }
 func (a *agent) OnRecover(pack *mqtt.Pack)  {
-	a.Wait()
-	go a.recoverworker(pack)
+	err:=a.Wait()
+	if err!=nil{
+		log.Warning("Gate  OnRecover error [%v]", err)
+		pub := pack.GetVariable().(*mqtt.Publish)
+		a.toResult(a,*pub.GetTopic(),nil,err.Error())
+	}else{
+		go a.recoverworker(pack)
+	}
 }
+
+func (this *agent)toResult(a *agent, Topic string, Result interface{}, Error string) error  {
+	switch v2 := Result.(type) {
+	case module.ProtocolMarshal:
+		return a.WriteMsg(Topic, v2.GetData())
+	}
+	b, err := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), Result, Error)
+	if err == "" {
+		return a.WriteMsg(Topic, b.GetData())
+	} else {
+		log.Error(err)
+		br, _ := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), nil, err)
+		return a.WriteMsg(Topic, br.GetData())
+	}
+	return fmt.Errorf(err)
+}
+
 func (a *agent) recoverworker(pack *mqtt.Pack) {
 	defer a.Finish()
 	defer func() {
@@ -184,21 +213,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		}
 	}()
 
-	toResult := func(a *agent, Topic string, Result interface{}, Error string) error {
-		switch v2 := Result.(type) {
-		case module.ProtocolMarshal:
-			return a.WriteMsg(Topic, v2.GetData())
-		}
-		b, err := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), Result, Error)
-		if err == "" {
-			return a.WriteMsg(Topic, b.GetData())
-		} else {
-			log.Error(err)
-			br, _ := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), nil, err)
-			return a.WriteMsg(Topic, br.GetData())
-		}
-		return fmt.Errorf(err)
-	}
+	toResult := a.toResult
 	//路由服务
 	switch pack.GetType() {
 	case mqtt.PUBLISH:
