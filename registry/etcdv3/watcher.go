@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
 	"github.com/liangdas/mqant/registry"
+	"go.etcd.io/etcd/clientv3"
 )
 
 type etcdv3Watcher struct {

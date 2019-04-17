@@ -28,17 +28,17 @@ import (
 )
 
 type RPCServer struct {
-	module             module.Module
-	app                module.App
-	functions          map[string]*mqrpc.FunctionInfo
-	nats_server         *NatsServer
-	mq_chan            chan mqrpc.CallInfo //接收到请求信息的队列
-	wg                 sync.WaitGroup      //任务阻塞
-	call_chan_done     chan error
-	listener           mqrpc.RPCListener
-	control            mqrpc.GoroutineControl //控制模块可同时开启的最大协程数
-	executing          int64                  //正在执行的goroutine数量
-	ch                 chan int               //控制模块可同时开启的最大协程数
+	module         module.Module
+	app            module.App
+	functions      map[string]*mqrpc.FunctionInfo
+	nats_server    *NatsServer
+	mq_chan        chan mqrpc.CallInfo //接收到请求信息的队列
+	wg             sync.WaitGroup      //任务阻塞
+	call_chan_done chan error
+	listener       mqrpc.RPCListener
+	control        mqrpc.GoroutineControl //控制模块可同时开启的最大协程数
+	executing      int64                  //正在执行的goroutine数量
+	ch             chan int               //控制模块可同时开启的最大协程数
 }
 
 func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error) {
@@ -75,7 +75,6 @@ func (this *RPCServer) Finish() {
 	// 完成则从ch推出数据
 	<-this.ch
 }
-
 
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {
 	s.listener = listener
@@ -130,7 +129,7 @@ func (s *RPCServer) Done() (err error) {
 	return
 }
 
-func (s *RPCServer)Call(callInfo mqrpc.CallInfo)error{
+func (s *RPCServer) Call(callInfo mqrpc.CallInfo) error {
 	s.runFunc(callInfo)
 	//if callInfo.RpcInfo.Expired < (time.Now().UnixNano() / 1000000) {
 	//	//请求超时了,无需再处理
@@ -179,7 +178,7 @@ func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, done chan error)
 ForEnd:
 }
 
-func (s *RPCServer)doCallback(callInfo mqrpc.CallInfo)  {
+func (s *RPCServer) doCallback(callInfo mqrpc.CallInfo) {
 	if callInfo.RpcInfo.Reply {
 		//需要回复的才回复
 		err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)

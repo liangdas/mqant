@@ -18,23 +18,23 @@ import "time"
 type Option func(*Options)
 
 type Options struct {
-	ConcurrentTasks    	int
-	BufSize  		int
-	Heartbeat		time.Duration
-	OverTime		time.Duration
-	RouteHandler		RouteHandler
-	StorageHandler		StorageHandler
-	AgentLearner		AgentLearner
-	SessionLearner          SessionLearner
-	GateHandler		GateHandler
+	ConcurrentTasks int
+	BufSize         int
+	Heartbeat       time.Duration
+	OverTime        time.Duration
+	RouteHandler    RouteHandler
+	StorageHandler  StorageHandler
+	AgentLearner    AgentLearner
+	SessionLearner  SessionLearner
+	GateHandler     GateHandler
 }
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		ConcurrentTasks:  20,
-		BufSize:   2048,
-		Heartbeat:time.Minute,
-		OverTime:time.Second*10,
+		ConcurrentTasks: 20,
+		BufSize:         2048,
+		Heartbeat:       time.Minute,
+		OverTime:        time.Second * 10,
 	}
 
 	for _, o := range opts {
@@ -43,7 +43,6 @@ func NewOptions(opts ...Option) Options {
 
 	return opt
 }
-
 
 func ConcurrentTasks(s int) Option {
 	return func(o *Options) {

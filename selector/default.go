@@ -17,12 +17,12 @@ func (r *defaultSelector) Options() Options {
 	return r.so
 }
 
-func (r *defaultSelector)GetService(service string) ([]*registry.Service, error){
+func (r *defaultSelector) GetService(service string) ([]*registry.Service, error) {
 	services, err := r.so.Registry.GetService(service)
 	if err != nil {
 		return nil, err
 	}
-	return services,nil
+	return services, nil
 }
 
 func (r *defaultSelector) Select(service string, opts ...SelectOption) (Next, error) {

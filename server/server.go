@@ -3,10 +3,10 @@ package server
 
 import (
 	"context"
-	"github.com/pborman/uuid"
-	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/pborman/uuid"
 )
 
 type Server interface {
@@ -55,14 +55,12 @@ type Stream interface {
 
 type Option func(*Options)
 
-
 var (
-	DefaultAddress        = ":0"
-	DefaultName           = "go-server"
-	DefaultVersion        = "1.0.0"
-	DefaultId             = uuid.NewUUID().String()
+	DefaultAddress = ":0"
+	DefaultName    = "go-server"
+	DefaultVersion = "1.0.0"
+	DefaultId      = uuid.NewUUID().String()
 )
-
 
 // NewServer returns a new server with options passed in
 func NewServer(opt ...Option) Server {

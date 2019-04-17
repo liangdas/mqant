@@ -7,7 +7,7 @@ import (
 )
 
 type Options struct {
-	Watcher	  Watcher
+	Watcher  Watcher
 	Registry registry.Registry
 	Strategy Strategy
 

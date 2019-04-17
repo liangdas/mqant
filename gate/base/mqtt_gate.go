@@ -32,7 +32,7 @@ var RPC_PARAM_ProtocolMarshal_TYPE = gate.RPC_PARAM_ProtocolMarshal_TYPE
 type Gate struct {
 	//module.RPCSerialize
 	basemodule.BaseModule
-	opts 			gate.Options
+	opts gate.Options
 	// websocket
 	WSAddr      string
 	HTTPTimeout time.Duration
@@ -45,7 +45,7 @@ type Gate struct {
 	CertFile string
 	KeyFile  string
 	//
-	judgeGuest     func(session gate.Session) bool
+	judgeGuest func(session gate.Session) bool
 
 	createAgent func() gate.Agent
 }
@@ -83,7 +83,6 @@ func (this *Gate) SetSessionLearner(sessionLearner gate.SessionLearner) error {
 	this.opts.SessionLearner = sessionLearner
 	return nil
 }
-
 
 /**
 设置创建客户端Agent的函数
@@ -173,9 +172,9 @@ func (this *Gate) OnAppConfigurationLoaded(app module.App) {
 		log.Warning("Adding session structures failed to serialize interfaces %s", err.Error())
 	}
 }
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings,opts ...gate.Option) {
+func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
 	this.BaseModule.OnInit(subclass, app, settings) //这是必须的
-	this.opts=gate.NewOptions(opts...)
+	this.opts = gate.NewOptions(opts...)
 	if WSAddr, ok := settings.Settings["WSAddr"]; ok {
 		this.WSAddr = WSAddr.(string)
 	}

@@ -13,9 +13,9 @@ import (
 
 	"go.etcd.io/etcd/clientv3"
 
+	"github.com/liangdas/mqant/registry"
 	hash "github.com/mitchellh/hashstructure"
 	"go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes"
-	"github.com/liangdas/mqant/registry"
 )
 
 var (
@@ -29,7 +29,6 @@ type etcdv3Registry struct {
 	register map[string]uint64
 	leases   map[string]clientv3.LeaseID
 }
-
 
 func configure(e *etcdv3Registry, opts ...registry.Option) error {
 	config := clientv3.Config{

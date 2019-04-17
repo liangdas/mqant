@@ -25,22 +25,20 @@ import (
 	"time"
 )
 
-
-
 type RPCClient struct {
-	app           module.App
-	nats_client    *NatsClient
+	app         module.App
+	nats_client *NatsClient
 }
 
 func NewRPCClient(app module.App, session module.ServerSession) (mqrpc.RPCClient, error) {
 	rpc_client := new(RPCClient)
 	rpc_client.app = app
-	nats_client,err:= NewNatsClient(app,session)
+	nats_client, err := NewNatsClient(app, session)
 	if err != nil {
 		log.Error("Dial: %s", err)
-		return nil,err
+		return nil, err
 	}
-	rpc_client.nats_client=nats_client
+	rpc_client.nats_client = nats_client
 	return rpc_client, nil
 }
 
@@ -85,10 +83,10 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 			return nil, err.Error()
 		}
 		return result, resultInfo.Error
-	case <-time.After(time.Second*time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
+	case <-time.After(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
 		close(callback)
 		c.nats_client.Delete(rpcInfo.Cid)
-		return nil,"deadline exceeded"
+		return nil, "deadline exceeded"
 	}
 }
 

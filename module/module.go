@@ -14,12 +14,12 @@
 package module
 
 import (
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/nats-io/go-nats"
-	"github.com/liangdas/mqant/registry"
 	"context"
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/selector"
+	"github.com/nats-io/go-nats"
 )
 
 type ProtocolMarshal interface {
@@ -48,16 +48,16 @@ type App interface {
 	SetMapRoute(fn func(app App, route string) string) error
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
-	OnDestroy() 	error
-	Options() 	Options
-	Transport() 	*nats.Conn
+	OnDestroy() error
+	Options() Options
+	Transport() *nats.Conn
 	Registry() registry.Registry
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string,opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
+	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -109,7 +109,7 @@ type RPCModule interface {
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string,opts ...selector.SelectOption) (ServerSession, error)
+	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }

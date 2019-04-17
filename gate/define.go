@@ -27,6 +27,7 @@ net代理服务 处理器
 */
 type GateHandler interface {
 	GetAgent(Sessionid string) (Agent, error)
+	GetAgentNum() int
 	Bind(span log.TraceSpan, Sessionid string, Userid string) (result Session, err string)                 //Bind the session with the the Userid.
 	UnBind(span log.TraceSpan, Sessionid string) (result Session, err string)                              //UnBind the session with the the Userid.
 	Set(span log.TraceSpan, Sessionid string, key string, value string) (result Session, err string)       //Set values (one or many) for the session.

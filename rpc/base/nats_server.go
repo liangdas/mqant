@@ -14,25 +14,26 @@
 package defaultrpc
 
 import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/golang/protobuf/proto"
-	"fmt"
 	"github.com/nats-io/go-nats"
 	"runtime"
-	"github.com/liangdas/mqant/log"
 	"strings"
 	"time"
-	"github.com/liangdas/mqant/module"
 )
 
 type NatsServer struct {
-	call_chan   	chan mqrpc.CallInfo
-	addr		string
-	app 		module.App
-	server 		*RPCServer
-	done        	chan error
+	call_chan chan mqrpc.CallInfo
+	addr      string
+	app       module.App
+	server    *RPCServer
+	done      chan error
 }
+
 func setAddrs(addrs []string) []string {
 	var cAddrs []string
 	for _, addr := range addrs {
@@ -50,36 +51,37 @@ func setAddrs(addrs []string) []string {
 	return cAddrs
 }
 
-func NewNatsServer(app module.App,s *RPCServer) (*NatsServer, error) {
+func NewNatsServer(app module.App, s *RPCServer) (*NatsServer, error) {
 	server := new(NatsServer)
 	server.server = s
-	server.done=make(chan error)
+	server.done = make(chan error)
 	server.app = app
-	server.addr=nats.NewInbox()
+	server.addr = nats.NewInbox()
 	go server.on_request_handle()
 	return server, nil
 }
 func (s *NatsServer) Addr() string {
 	return s.addr
 }
+
 /**
 注销消息队列
 */
 func (s *NatsServer) Shutdown() (err error) {
-	s.done<-nil
+	s.done <- nil
 	return
 }
 
 func (s *NatsServer) Callback(callinfo mqrpc.CallInfo) error {
 	body, _ := s.MarshalResult(callinfo.Result)
-	reply_to:=callinfo.Props["reply_to"].(string)
-	return s.app.Transport().Publish(reply_to,body)
+	reply_to := callinfo.Props["reply_to"].(string)
+	return s.app.Transport().Publish(reply_to, body)
 }
 
 /**
 接收请求信息
 */
-func (s *NatsServer) on_request_handle() error{
+func (s *NatsServer) on_request_handle() error {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -121,7 +123,7 @@ func (s *NatsServer) on_request_handle() error{
 				RpcInfo: *rpcInfo,
 			}
 			callInfo.Props = map[string]interface{}{
-				"reply_to":rpcInfo.ReplyTo,
+				"reply_to": rpcInfo.ReplyTo,
 			}
 
 			callInfo.Agent = s //设置代理为NatsServer
@@ -155,4 +157,3 @@ func (s *NatsServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) 
 	b, err := proto.Marshal(&resultInfo)
 	return b, err
 }
-

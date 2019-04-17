@@ -24,7 +24,6 @@ type service struct {
 func newService(opts ...Option) Service {
 	options := newOptions(opts...)
 
-
 	return &service{
 		opts: options,
 	}

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/selector"
 )
 
 type cacheSelector struct {
@@ -217,9 +217,9 @@ func (c *cacheSelector) update(res *registry.Result) {
 			}
 			if !seen {
 				nodes = append(nodes, cur)
-			}else{
+			} else {
 				//应该删除的
-				if c.Options().Watcher!=nil{
+				if c.Options().Watcher != nil {
 					c.Options().Watcher(cur)
 				}
 			}
@@ -275,7 +275,7 @@ func (c *cacheSelector) run(name string) {
 			if c.quit() {
 				return
 			}
-			log.Warning("%v",err)
+			log.Warning("%v", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -285,7 +285,7 @@ func (c *cacheSelector) run(name string) {
 			if c.quit() {
 				return
 			}
-			log.Warning("%v",err)
+			log.Warning("%v", err)
 			continue
 		}
 	}
@@ -339,12 +339,12 @@ func (c *cacheSelector) Options() selector.Options {
 	return c.so
 }
 
-func (c *cacheSelector)GetService(service string) ([]*registry.Service, error){
+func (c *cacheSelector) GetService(service string) ([]*registry.Service, error) {
 	services, err := c.get(service)
 	if err != nil {
 		return nil, err
 	}
-	return services,nil
+	return services, nil
 }
 
 func (c *cacheSelector) Select(service string, opts ...selector.SelectOption) (selector.Next, error) {

@@ -1,27 +1,23 @@
 package module
 
 import (
-	"time"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/selector"
 	"github.com/nats-io/go-nats"
+	"time"
 )
-
 
 type Option func(*Options)
 
 type Options struct {
-	Nats 		*nats.Conn
-	Version      	string
-	Registry  	registry.Registry
-	Selector  	selector.Selector
+	Nats     *nats.Conn
+	Version  string
+	Registry registry.Registry
+	Selector selector.Selector
 	// Register loop interval
 	RegisterInterval time.Duration
-	RegisterTTL time.Duration
-
+	RegisterTTL      time.Duration
 }
-
-
 
 func Version(v string) Option {
 	return func(o *Options) {

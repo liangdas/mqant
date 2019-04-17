@@ -14,19 +14,19 @@
 package basemodule
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/server"
+	"github.com/liangdas/mqant/service"
+	"github.com/liangdas/mqant/utils"
 	"github.com/pkg/errors"
 	"sync"
 	"time"
-	"github.com/liangdas/mqant/server"
-	"github.com/liangdas/mqant/utils"
-	"github.com/liangdas/mqant/service"
-	"context"
-	"github.com/liangdas/mqant/selector"
 )
 
 type StatisticalMethod struct {
@@ -56,7 +56,7 @@ type BaseModule struct {
 	App         module.App
 	subclass    module.RPCModule
 	settings    *conf.ModuleSettings
-	service      service.Service
+	service     service.Service
 	listener    mqrpc.RPCListener
 	statistical map[string]*StatisticalMethod //统计
 	rwmutex     sync.RWMutex
@@ -85,7 +85,7 @@ func (m *BaseModule) OnAppConfigurationLoaded(app module.App) {
 	m.App = app
 	//当App初始化时调用，这个接口不管这个模块是否在这个进程运行都会调用
 }
-func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings,opt ...server.Option) {
+func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opt ...server.Option) {
 	//初始化模块
 	m.App = app
 	m.subclass = subclass
@@ -100,36 +100,33 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 		o(&opts)
 	}
 
-
 	if opts.Registry == nil {
-		opt=append(opt,server.Registry(app.Registry()))
+		opt = append(opt, server.Registry(app.Registry()))
 	}
 
-
 	if opts.RegisterInterval == 0 {
-		opt=append(opt,server.RegisterInterval(app.Options().RegisterInterval))
+		opt = append(opt, server.RegisterInterval(app.Options().RegisterInterval))
 	}
 
 	if opts.RegisterTTL == 0 {
-		opt=append(opt,server.RegisterTTL(app.Options().RegisterTTL))
+		opt = append(opt, server.RegisterTTL(app.Options().RegisterTTL))
 	}
 
 	if len(opts.Name) == 0 {
-		opt=append(opt,server.Name(subclass.GetType()))
+		opt = append(opt, server.Name(subclass.GetType()))
 	}
 
 	if len(opts.Id) == 0 {
-		opt=append(opt,server.Id(utils.GenerateID().String()))
+		opt = append(opt, server.Id(utils.GenerateID().String()))
 	}
 
 	if len(opts.Version) == 0 {
-		opt=append(opt,server.Version(subclass.Version()))
+		opt = append(opt, server.Version(subclass.Version()))
 	}
-
 
 	server := server.NewServer(opt...)
 	server.OnInit(subclass, app, settings)
-	m.service=service.NewService(
+	m.service = service.NewService(
 		service.Server(server),
 		service.RegisterTTL(app.Options().RegisterTTL),
 		service.RegisterInterval(app.Options().RegisterInterval),
@@ -150,8 +147,8 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
-func (m *BaseModule) GetRouteServer(moduleType string, hash string,opts ...selector.SelectOption) (s module.ServerSession, err error) {
-	return m.App.GetRouteServer(moduleType, hash,opts...)
+func (m *BaseModule) GetRouteServer(moduleType string, hash string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
+	return m.App.GetRouteServer(moduleType, hash, opts...)
 }
 
 func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interface{}) (result interface{}, err string) {

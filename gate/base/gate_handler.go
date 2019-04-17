@@ -18,9 +18,9 @@ import (
 
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
+	"github.com/pkg/errors"
 	"strings"
 	"sync"
-	"github.com/pkg/errors"
 )
 
 type handler struct {
@@ -28,11 +28,12 @@ type handler struct {
 	//gate.GateHandler
 	gate     gate.Gate
 	sessions sync.Map //连接列表
+	agentNum int
 }
 
 func NewGateHandler(gate gate.Gate) *handler {
 	handler := &handler{
-		gate:     gate,
+		gate: gate,
 	}
 	return handler
 }
@@ -41,6 +42,7 @@ func NewGateHandler(gate gate.Gate) *handler {
 func (h *handler) Connect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Store(a.GetSession().GetSessionId(), a)
+		h.agentNum++
 	}
 	if h.gate.GetSessionLearner() != nil {
 		h.gate.GetSessionLearner().Connect(a.GetSession())
@@ -51,6 +53,7 @@ func (h *handler) Connect(a gate.Agent) {
 func (h *handler) DisConnect(a gate.Agent) {
 	if a.GetSession() != nil {
 		h.sessions.Delete(a.GetSession().GetSessionId())
+		h.agentNum--
 	}
 	if h.gate.GetSessionLearner() != nil {
 		h.gate.GetSessionLearner().DisConnect(a.GetSession())
@@ -58,30 +61,34 @@ func (h *handler) DisConnect(a gate.Agent) {
 }
 
 func (h *handler) OnDestroy() {
-	h.sessions.Range(func(key, value interface{})bool {
+	h.sessions.Range(func(key, value interface{}) bool {
 		value.(gate.Agent).Close()
 		h.sessions.Delete(key)
 		return true
 	})
 }
 
+func (h *handler) GetAgentNum() int {
+	return h.agentNum
+}
+
 /**
  *更新整个Session 通常是其他模块拉取最新数据
  */
 func (h *handler) GetAgent(Sessionid string) (gate.Agent, error) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
-		return nil,errors.New("No Sesssion found")
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
+		return nil, errors.New("No Sesssion found")
 	}
-	return agent.(gate.Agent),nil
+	return agent.(gate.Agent), nil
 }
 
 /**
  *更新整个Session 通常是其他模块拉取最新数据
  */
 func (h *handler) Update(span log.TraceSpan, Sessionid string) (result gate.Session, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -93,8 +100,8 @@ func (h *handler) Update(span log.TraceSpan, Sessionid string) (result gate.Sess
  *Bind the session with the the Userid.
  */
 func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (result gate.Session, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -139,20 +146,20 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
  *查询某一个userId是否连接中，这里只是查询这一个网关里面是否有userId客户端连接，如果有多个网关就需要遍历了
  */
 func (h *handler) IsConnect(span log.TraceSpan, Sessionid string, Userid string) (bool, string) {
-	isconnect:=false
-	found:=false
-	h.sessions.Range(func(key, agent interface{})bool {
+	isconnect := false
+	found := false
+	h.sessions.Range(func(key, agent interface{}) bool {
 		if agent.(gate.Agent).GetSession().GetUserId() == Userid {
-			isconnect= !agent.(gate.Agent).IsClosed()
-			found=true
+			isconnect = !agent.(gate.Agent).IsClosed()
+			found = true
 			return false
 		}
 		return true
 	})
-	if !found{
+	if !found {
 		return false, fmt.Sprintf("The gateway did not find the corresponding userId 【%s】", Userid)
-	}else{
-		return isconnect,""
+	} else {
+		return isconnect, ""
 	}
 }
 
@@ -160,8 +167,8 @@ func (h *handler) IsConnect(span log.TraceSpan, Sessionid string, Userid string)
  *UnBind the session with the the Userid.
  */
 func (h *handler) UnBind(span log.TraceSpan, Sessionid string) (result gate.Session, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -174,8 +181,8 @@ func (h *handler) UnBind(span log.TraceSpan, Sessionid string) (result gate.Sess
  *Push the session with the the Userid.
  */
 func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string]string) (result gate.Session, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -195,8 +202,8 @@ func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string
  *Set values (one or many) for the session.
  */
 func (h *handler) Set(span log.TraceSpan, Sessionid string, key string, value string) (result gate.Session, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -217,8 +224,8 @@ func (h *handler) Set(span log.TraceSpan, Sessionid string, key string, value st
  *Remove value from the session.
  */
 func (h *handler) Remove(span log.TraceSpan, Sessionid string, key string) (result interface{}, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -239,8 +246,8 @@ func (h *handler) Remove(span log.TraceSpan, Sessionid string, key string) (resu
  *Send message to the session.
  */
 func (h *handler) Send(span log.TraceSpan, Sessionid string, topic string, body []byte) (result interface{}, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}
@@ -260,8 +267,8 @@ func (h *handler) SendBatch(span log.TraceSpan, SessionidStr string, topic strin
 	sessionids := strings.Split(SessionidStr, ",")
 	var count int64 = 0
 	for _, sessionid := range sessionids {
-		agent ,ok:= h.sessions.Load(sessionid)
-		if !ok||agent == nil {
+		agent, ok := h.sessions.Load(sessionid)
+		if !ok || agent == nil {
 			continue
 		}
 		e := agent.(gate.Agent).WriteMsg(topic, body)
@@ -275,7 +282,7 @@ func (h *handler) SendBatch(span log.TraceSpan, SessionidStr string, topic strin
 }
 func (h *handler) BroadCast(span log.TraceSpan, topic string, body []byte) (int64, string) {
 	var count int64 = 0
-	h.sessions.Range(func(key, agent interface{})bool {
+	h.sessions.Range(func(key, agent interface{}) bool {
 		e := agent.(gate.Agent).WriteMsg(topic, body)
 		if e != nil {
 			log.Warning("WriteMsg error:", e.Error())
@@ -291,8 +298,8 @@ func (h *handler) BroadCast(span log.TraceSpan, topic string, body []byte) (int6
  *主动关闭连接
  */
 func (h *handler) Close(span log.TraceSpan, Sessionid string) (result interface{}, err string) {
-	agent ,ok:= h.sessions.Load(Sessionid)
-	if !ok||agent == nil {
+	agent, ok := h.sessions.Load(Sessionid)
+	if !ok || agent == nil {
 		err = "No Sesssion found"
 		return
 	}

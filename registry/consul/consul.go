@@ -1,8 +1,6 @@
 package consul
 
-import (
-
-)
+import ()
 import "github.com/liangdas/mqant/registry"
 
 func NewRegistry(opts ...registry.Option) registry.Registry {

@@ -2,22 +2,21 @@ package server
 
 import (
 	"context"
-	"time"
 	"github.com/liangdas/mqant/registry"
+	"time"
 )
 
 type Options struct {
-	Registry     registry.Registry
-	Metadata     map[string]string
-	Name         string
-	Address      string
-	Advertise    string
-	Id           string
-	Version      string
+	Registry  registry.Registry
+	Metadata  map[string]string
+	Name      string
+	Address   string
+	Advertise string
+	Id        string
+	Version   string
 
 	RegisterInterval time.Duration
-	RegisterTTL time.Duration
-
+	RegisterTTL      time.Duration
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -33,11 +32,9 @@ func newOptions(opt ...Option) Options {
 		o(&opts)
 	}
 
-
 	if opts.Registry == nil {
 		opts.Registry = registry.DefaultRegistry
 	}
-
 
 	if len(opts.Address) == 0 {
 		opts.Address = DefaultAddress
@@ -92,7 +89,6 @@ func Advertise(a string) Option {
 		o.Advertise = a
 	}
 }
-
 
 // Registry used for discovery
 func Registry(r registry.Registry) Option {

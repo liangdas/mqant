@@ -14,40 +14,39 @@
 package defaultrpc
 
 import (
-	"sync"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/utils"
-	"github.com/liangdas/mqant/rpc/pb"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/nats-io/go-nats"
 	"github.com/liangdas/mqant/log"
-	"runtime"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/utils"
+	"github.com/nats-io/go-nats"
+	"runtime"
+	"sync"
 	"time"
 )
 
 type NatsClient struct {
-			       //callinfos map[string]*ClinetCallInfo
-	callinfos   	*utils.BeeMap
-	cmutex      	sync.Mutex //操作callinfos的锁
+	//callinfos map[string]*ClinetCallInfo
+	callinfos         *utils.BeeMap
+	cmutex            sync.Mutex //操作callinfos的锁
 	callbackqueueName string
-	app 		module.App
-	done        	chan error
-	session 	module.ServerSession
+	app               module.App
+	done              chan error
+	session           module.ServerSession
 }
 
-func NewNatsClient(app module.App,session module.ServerSession) (client *NatsClient, err error) {
+func NewNatsClient(app module.App, session module.ServerSession) (client *NatsClient, err error) {
 	client = new(NatsClient)
-	client.session=session
-	client.app=app
+	client.session = session
+	client.app = app
 	client.callinfos = utils.NewBeeMap()
 	client.callbackqueueName = nats.NewInbox()
 	client.done = make(chan error)
 	go client.on_request_handle()
 	return client, nil
 }
-
 
 func (c *NatsClient) Delete(key string) (err error) {
 	c.callinfos.Delete(key)
@@ -69,7 +68,7 @@ func (c *NatsClient) Done() (err error) {
 		}
 	}
 	c.callinfos = nil
-	c.done<-nil
+	c.done <- nil
 	return
 }
 
@@ -94,7 +93,7 @@ func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 	if err != nil {
 		return err
 	}
-	return c.app.Transport().Publish(c.session.GetNode().Address,body)
+	return c.app.Transport().Publish(c.session.GetNode().Address, body)
 }
 
 /**
@@ -105,14 +104,13 @@ func (c *NatsClient) CallNR(callInfo mqrpc.CallInfo) error {
 	if err != nil {
 		return err
 	}
-	return c.app.Transport().Publish(c.session.GetNode().Address,body)
+	return c.app.Transport().Publish(c.session.GetNode().Address, body)
 }
-
 
 /**
 接收应答信息
 */
-func (c *NatsClient) on_request_handle() error{
+func (c *NatsClient) on_request_handle() error {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -168,8 +166,6 @@ func (c *NatsClient) on_request_handle() error{
 	return nil
 }
 
-
-
 func (c *NatsClient) UnmarshalResult(data []byte) (*rpcpb.ResultInfo, error) {
 	//fmt.Println(msg)
 	//保存解码后的数据，Value可以为任意数据类型
@@ -202,4 +198,3 @@ func (c *NatsClient) Marshal(rpcInfo *rpcpb.RPCInfo) ([]byte, error) {
 	b, err := proto.Marshal(rpcInfo)
 	return b, err
 }
-

@@ -1,8 +1,6 @@
 package mock
 
-import (
-
-)
+import ()
 import "github.com/liangdas/mqant/registry"
 
 type mockRegistry struct {

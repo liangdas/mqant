@@ -1,8 +1,6 @@
 package selector
 
-import (
-
-)
+import ()
 import "github.com/liangdas/mqant/registry"
 
 // FilterEndpoint is an endpoint based Select Filter which will

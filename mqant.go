@@ -14,11 +14,11 @@
 package mqant
 
 import (
-	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/app"
+	"github.com/liangdas/mqant/module"
 )
 
 func CreateApp(opts ...module.Option) module.App {
-	opts=append(opts,module.Version(version))
+	opts = append(opts, module.Version(version))
 	return app.NewApp(opts...)
 }

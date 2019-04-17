@@ -20,8 +20,8 @@ import (
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/network"
 	"runtime"
-	"time"
 	"sync"
+	"time"
 )
 
 // Tcp write queue
@@ -30,9 +30,9 @@ type PackQueue struct {
 	// The last error in the tcp connection
 	writeError error
 	// Notice read the error
-	fch		chan struct{}
-	writelock   	sync.Mutex
-	recover 	func (pAndErr *packAndErr) (err error)
+	fch       chan struct{}
+	writelock sync.Mutex
+	recover   func(pAndErr *packAndErr) (err error)
 	// Pack connection
 	r *bufio.Reader
 	w *bufio.Writer
@@ -41,7 +41,7 @@ type PackQueue struct {
 
 	alive int
 
-	status	int
+	status int
 }
 
 type packAndErr struct {
@@ -68,35 +68,36 @@ type packAndType struct {
 }
 
 // Init a pack queue
-func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover 	func (pAndErr *packAndErr) (err error), alive int) *PackQueue {
+func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover func(pAndErr *packAndErr) (err error), alive int) *PackQueue {
 	if alive < 1 {
 		alive = conf.ReadTimeout
 	}
 	alive = int(float32(alive)*1.5 + 1)
 	return &PackQueue{
-		conf:      conf,
-		alive:     alive,
-		r:         r,
-		w:         w,
-		conn:      conn,
-		recover:  recover,
-		fch:		make(chan struct{},1024),
-		status:		CONNECTED,
+		conf:    conf,
+		alive:   alive,
+		r:       r,
+		w:       w,
+		conn:    conn,
+		recover: recover,
+		fch:     make(chan struct{}, 1024),
+		status:  CONNECTED,
 	}
 }
 
-func (queue *PackQueue) isConnected() bool{
+func (queue *PackQueue) isConnected() bool {
 	return queue.status == CONNECTED
 }
+
 // Get a read pack queue
 // Only call once
-func (queue *PackQueue) Flusher () {
-	for queue.isConnected(){
+func (queue *PackQueue) Flusher() {
+	for queue.isConnected() {
 		if _, ok := <-queue.fch; !ok {
 			break
 		}
 		queue.writelock.Lock()
-		if !queue.isConnected(){
+		if !queue.isConnected() {
 			queue.writelock.Unlock()
 			break
 		}
@@ -118,7 +119,7 @@ func (queue *PackQueue) WritePack(pack *Pack) (err error) {
 			buf := make([]byte, 1024)
 			l := runtime.Stack(buf, false)
 			errstr := string(buf[:l])
-			err=fmt.Errorf("WritePack error %v",errstr)
+			err = fmt.Errorf("WritePack error %v", errstr)
 			queue.Close(err)
 		}
 	}()
@@ -126,8 +127,8 @@ func (queue *PackQueue) WritePack(pack *Pack) (err error) {
 		return queue.writeError
 	}
 	queue.writelock.Lock()
-	err=DelayWritePack(pack,queue.w)
-	queue.fch<- struct{}{}
+	err = DelayWritePack(pack, queue.w)
+	queue.fch <- struct{}{}
 	queue.writelock.Unlock()
 	if err != nil {
 		// Tell listener the error
@@ -146,31 +147,30 @@ func (queue *PackQueue) SetAlive(alive int) error {
 	return nil
 }
 
-
 // Get a read pack queue
 // Only call once
 func (queue *PackQueue) ReadPackInLoop() {
 	// defer recover()
 	p := new(packAndErr)
-	loop:
-		for queue.isConnected(){
-			if queue.alive > 0 {
-				queue.conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(int(float64(queue.alive)*1.5))))
-			} else {
-				queue.conn.SetReadDeadline(time.Now().Add(time.Second * 90))
-			}
-			p.pack, p.err = ReadPack(queue.r)
-			if p.err != nil {
-				queue.Close(p.err)
-				break loop
-			}
-			err:=queue.recover(p)
-			if err != nil {
-				queue.Close(err)
-				break loop
-			}
-			p = new(packAndErr)
+loop:
+	for queue.isConnected() {
+		if queue.alive > 0 {
+			queue.conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(int(float64(queue.alive)*1.5))))
+		} else {
+			queue.conn.SetReadDeadline(time.Now().Add(time.Second * 90))
 		}
+		p.pack, p.err = ReadPack(queue.r)
+		if p.err != nil {
+			queue.Close(p.err)
+			break loop
+		}
+		err := queue.recover(p)
+		if err != nil {
+			queue.Close(err)
+			break loop
+		}
+		p = new(packAndErr)
+	}
 
 	//log.Info("read_loop Groutine will esc.")
 }
@@ -179,7 +179,7 @@ func (queue *PackQueue) ReadPackInLoop() {
 func (queue *PackQueue) Close(err error) error {
 	queue.writeError = err
 	close(queue.fch)
-	queue.status=CLOSED
+	queue.status = CLOSED
 	return nil
 }
 
@@ -213,4 +213,3 @@ func (b *buffer) readByte() (c byte, err error) {
 	b.index++
 	return
 }
-

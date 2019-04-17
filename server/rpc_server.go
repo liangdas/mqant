@@ -1,27 +1,27 @@
 package server
 
 import (
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/base"
+	"github.com/liangdas/mqant/utils/lib/addr"
 	"strconv"
 	"strings"
 	"sync"
-	"github.com/liangdas/mqant/utils/lib/addr"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/base"
-	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/conf"
 )
 
 type rpcServer struct {
 	exit chan chan error
 
 	sync.RWMutex
-	opts        Options
+	opts Options
 	// used for first registration
 	registered bool
-	server   mqrpc.RPCServer
-	id   	string
+	server     mqrpc.RPCServer
+	id         string
 	// graceful exit
 	wg sync.WaitGroup
 }
@@ -30,11 +30,9 @@ func newRpcServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
 		opts: options,
-		exit:        make(chan chan error),
+		exit: make(chan chan error),
 	}
 }
-
-
 
 func (s *rpcServer) Options() Options {
 	s.RLock()
@@ -54,19 +52,19 @@ func (s *rpcServer) Init(opts ...Option) error {
 	return nil
 }
 
-func (s *rpcServer)OnInit(module module.Module, app module.App, settings *conf.ModuleSettings) error{
+func (s *rpcServer) OnInit(module module.Module, app module.App, settings *conf.ModuleSettings) error {
 	server, err := defaultrpc.NewRPCServer(app, module) //默认会创建一个本地的RPC
 	if err != nil {
 		log.Warning("Dial: %s", err)
 	}
-	s.server=server
-	s.opts.Address=server.Addr()
+	s.server = server
+	s.opts.Address = server.Addr()
 	if err := s.ServiceRegister(); err != nil {
 		return err
 	}
 	return nil
 }
-func (s *rpcServer) SetListener(listener mqrpc.RPCListener){
+func (s *rpcServer) SetListener(listener mqrpc.RPCListener) {
 	s.server.SetListener(listener)
 }
 func (s *rpcServer) Register(id string, f interface{}) {
@@ -82,7 +80,6 @@ func (s *rpcServer) RegisterGO(id string, f interface{}) {
 	}
 	s.server.RegisterGO(id, f)
 }
-
 
 func (s *rpcServer) ServiceRegister() error {
 	// parse address for host, port
@@ -119,7 +116,7 @@ func (s *rpcServer) ServiceRegister() error {
 		Port:     port,
 		Metadata: config.Metadata,
 	}
-	s.id=node.Id
+	s.id = node.Id
 	node.Metadata["server"] = s.String()
 	node.Metadata["registry"] = config.Registry.String()
 
@@ -161,7 +158,6 @@ func (s *rpcServer) ServiceRegister() error {
 	defer s.Unlock()
 
 	s.registered = true
-
 
 	return nil
 }
@@ -223,8 +219,6 @@ func (s *rpcServer) ServiceDeregister() error {
 	return nil
 }
 
-
-
 func (s *rpcServer) Start() error {
 	//config := s.Options()
 
@@ -238,19 +232,19 @@ func (s *rpcServer) Start() error {
 
 func (s *rpcServer) Stop() error {
 	if s.server != nil {
-		log.Info("RPCServer closeing id(%s)",s.id )
+		log.Info("RPCServer closeing id(%s)", s.id)
 		err := s.server.Done()
 		if err != nil {
-			log.Warning("RPCServer close fail id(%s) error(%s)",s.id , err)
+			log.Warning("RPCServer close fail id(%s) error(%s)", s.id, err)
 		} else {
-			log.Info("RPCServer close success id(%s)",s.id )
+			log.Info("RPCServer close success id(%s)", s.id)
 		}
 		s.server = nil
 	}
-	return	nil
+	return nil
 }
 
-func (s *rpcServer) OnDestroy() error{
+func (s *rpcServer) OnDestroy() error {
 	if err := s.ServiceDeregister(); err != nil {
 		return err
 	}

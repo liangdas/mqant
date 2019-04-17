@@ -3,8 +3,8 @@ package cache
 import (
 	"testing"
 
-	"github.com/liangdas/mqant/selector"
 	"github.com/liangdas/mqant/registry/mock"
+	"github.com/liangdas/mqant/selector"
 )
 
 func TestCacheSelector(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/liangdas/mqant/server"
 	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/server"
 )
 
 type Service interface {
@@ -16,12 +16,11 @@ type Service interface {
 	String() string
 }
 
-
 type Option func(*Options)
 
 type Options struct {
-	Server    server.Server
-	Registry  registry.Registry
+	Server   server.Server
+	Registry registry.Registry
 
 	// Register loop interval
 	RegisterInterval time.Duration
@@ -39,8 +38,8 @@ type Options struct {
 
 func newOptions(opts ...Option) Options {
 	opt := Options{
-		Registry:  registry.DefaultRegistry,
-		Context:   context.Background(),
+		Registry: registry.DefaultRegistry,
+		Context:  context.Background(),
 	}
 
 	for _, o := range opts {
@@ -49,7 +48,6 @@ func newOptions(opts ...Option) Options {
 
 	return opt
 }
-
 
 // Context specifies a context for the service.
 // Can be used to signal shutdown of the service.
@@ -81,7 +79,6 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
-
 // Convenience options
 
 // Name of the service
@@ -105,7 +102,6 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
-
 // RegisterTTL specifies the TTL to use when registering the service
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
@@ -119,7 +115,6 @@ func RegisterInterval(t time.Duration) Option {
 		o.RegisterInterval = t
 	}
 }
-
 
 // Before and Afters
 

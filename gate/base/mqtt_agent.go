@@ -46,13 +46,13 @@ type agent struct {
 	w                                *bufio.Writer
 	gate                             gate.Gate
 	client                           *mqtt.Client
-	ch                 		chan int               //控制模块可同时开启的最大协程数
+	ch                               chan int //控制模块可同时开启的最大协程数
 	isclose                          bool
-	lock 				 sync.Mutex
+	lock                             sync.Mutex
 	last_storage_heartbeat_data_time time.Duration //上一次发送存储心跳时间
 	rev_num                          int64
 	send_num                         int64
-	conn_time 			 time.Time
+	conn_time                        time.Time
 }
 
 func NewMqttAgent(module module.RPCModule) *agent {
@@ -86,7 +86,7 @@ func (a *agent) Wait() error {
 	case a.ch <- 1:
 	//do nothing
 	default:
-	//warnning!
+		//warnning!
 		return fmt.Errorf("the work queue is full!")
 	}
 	return nil
@@ -109,7 +109,7 @@ func (a *agent) Run() (err error) {
 	go func() {
 		select {
 		case <-time.After(a.gate.Options().OverTime):
-			if a.GetSession()==nil{
+			if a.GetSession() == nil {
 				//超过一段时间还没有建立mqtt连接则直接关闭网络连接
 				a.Close()
 			}
@@ -158,7 +158,7 @@ func (a *agent) Run() (err error) {
 	if err != nil {
 		return
 	}
-	a.conn_time=time.Now()
+	a.conn_time = time.Now()
 	c.Listen_loop() //开始监听,直到连接中断
 	return nil
 }
@@ -178,18 +178,18 @@ func (a *agent) SendNum() int64 {
 func (a *agent) ConnTime() time.Time {
 	return a.conn_time
 }
-func (a *agent) OnRecover(pack *mqtt.Pack)  {
-	err:=a.Wait()
-	if err!=nil{
+func (a *agent) OnRecover(pack *mqtt.Pack) {
+	err := a.Wait()
+	if err != nil {
 		log.Warning("Gate  OnRecover error [%v]", err)
 		pub := pack.GetVariable().(*mqtt.Publish)
-		a.toResult(a,*pub.GetTopic(),nil,err.Error())
-	}else{
+		a.toResult(a, *pub.GetTopic(), nil, err.Error())
+	} else {
 		go a.recoverworker(pack)
 	}
 }
 
-func (this *agent)toResult(a *agent, Topic string, Result interface{}, Error string) error  {
+func (this *agent) toResult(a *agent, Topic string, Result interface{}, Error string) error {
 	switch v2 := Result.(type) {
 	case module.ProtocolMarshal:
 		return a.WriteMsg(Topic, v2.GetData())
@@ -313,7 +313,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			a.lock.Lock()
-			interval :=int64(a.last_storage_heartbeat_data_time)+int64(a.gate.Options().Heartbeat) //单位纳秒
+			interval := int64(a.last_storage_heartbeat_data_time) + int64(a.gate.Options().Heartbeat) //单位纳秒
 			a.lock.Unlock()
 			if interval < time.Now().UnixNano() {
 				if a.gate.GetStorageHandler() != nil {
@@ -329,7 +329,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			a.lock.Lock()
-			interval :=int64(a.last_storage_heartbeat_data_time)+int64(a.gate.Options().Heartbeat) //单位纳秒
+			interval := int64(a.last_storage_heartbeat_data_time) + int64(a.gate.Options().Heartbeat) //单位纳秒
 			a.lock.Unlock()
 			if interval < time.Now().UnixNano() {
 				if a.gate.GetStorageHandler() != nil {
