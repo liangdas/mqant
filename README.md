@@ -8,12 +8,11 @@ mqant是一款基于Golang语言的简洁,高效,高性能的分布式游戏服�
 
 #	特性
 1. 高性能分布式
-2. 支持分布式跟踪系统接口[传送门](http://bigbully.github.io/Dapper-translation/)
+2. 支持分布式服务发现
 3. 基于golang协程,开发过程全程做到无callback回调,代码可读性更高
-4. RPC支持本地和远程自动切换
-5. 远程RPC使用redis,rabbitmq,udp作为通道,未来可以添加更多种类的通信协议
-6. 网关采用MQTT协议,无需再开发客户端底层库,直接套用已有的MQTT客户端代码库,可以支持IOS,Android,websocket,PC等多平台通信
-7. 默认支持mqtt协议,同时网关也支持开发者自定义的粘包协议
+4. 远程RPC使用nats作为通道
+5. 网关采用MQTT协议,无需再开发客户端底层库,直接套用已有的MQTT客户端代码库,可以支持IOS,Android,websocket,PC等多平台通信
+6. 默认支持mqtt协议,同时网关也支持开发者自定义的粘包协议
 
 # 社区
 QQ交流群 :463735103
@@ -39,11 +38,14 @@ QQ交流群 :463735103
 
 	go get github.com/gorilla/mux
 	go get github.com/gorilla/websocket
-	go get github.com/streadway/amqp
+	go get go.etcd.io/etcd/clientv3
+	go get go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes
+	go get github.com/hashicorp/consul
 	go get github.com/golang/protobuf
 	go get github.com/golang/net/context
 	go get github.com/gomodule/redigo
-	go get github.com/Jeffail/tunny
+	go get github.com/nats-io/go-nats
+
 
 #	文档
 

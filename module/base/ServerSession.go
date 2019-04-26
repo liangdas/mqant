@@ -15,32 +15,52 @@ package basemodule
 
 import (
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/base"
 )
 
-func NewServerSession(Id string, Stype string, Rpc mqrpc.RPCClient) module.ServerSession {
+func NewServerSession(app module.App, name string, node *registry.Node) (module.ServerSession, error) {
 	session := &serverSession{
-		Id:    Id,
-		Stype: Stype,
-		Rpc:   Rpc,
+		name: name,
+		node: node,
+		app:  app,
 	}
-	return session
+	rpc, err := defaultrpc.NewRPCClient(app, session)
+	if err != nil {
+		return nil, err
+	}
+	session.Rpc = rpc
+	return session, err
 }
 
 type serverSession struct {
-	Id    string
-	Stype string
-	Rpc   mqrpc.RPCClient
+	node *registry.Node
+	name string
+	Rpc  mqrpc.RPCClient
+	app  module.App
 }
 
 func (c *serverSession) GetId() string {
-	return c.Id
+	return c.node.Id
 }
-func (c *serverSession) GetType() string {
-	return c.Stype
+func (c *serverSession) GetName() string {
+	return c.name
 }
 func (c *serverSession) GetRpc() mqrpc.RPCClient {
 	return c.Rpc
+}
+
+func (c *serverSession) GetApp() module.App {
+	return c.app
+}
+func (c *serverSession) GetNode() *registry.Node {
+	return c.node
+}
+
+func (c *serverSession) SetNode(node *registry.Node) (err error) {
+	c.node = node
+	return
 }
 
 /**

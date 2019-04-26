@@ -13,10 +13,13 @@
 // limitations under the License.
 package mqant
 
-import "github.com/liangdas/mqant/module"
-import "github.com/liangdas/mqant/app"
+import (
+	"github.com/liangdas/mqant/app"
+	"github.com/liangdas/mqant/module"
+)
 
 // CreateApp 构建mqant应用实例
-func CreateApp(debug bool, options ...interface{}) module.App {
-	return defaultApp.NewApp(Version, debug, options...)
+func CreateApp(debug bool, opts ...interface{}) module.App {
+	opts = append(opts, module.Version(version))
+	return app.NewApp(debug, opts...)
 }

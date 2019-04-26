@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package defaultApp
+package app
 
 import (
 	"encoding/json"
@@ -22,8 +22,8 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/base"
+	"github.com/liangdas/mqant/registry"
+	"github.com/nats-io/go-nats"
 	"hash/crc32"
 	"math"
 	"os"
@@ -31,8 +31,13 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
+	//"github.com/liangdas/mqant/registry/etcdv3"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -50,11 +55,51 @@ func (this *protocolMarshalImp) GetData() []byte {
 	return this.data
 }
 
+func newOptions(opts ...module.Option) module.Options {
+	opt := module.Options{
+		Registry:         registry.DefaultRegistry,
+		Selector:         cache.NewSelector(),
+		RegisterInterval: time.Second * time.Duration(10),
+		RegisterTTL:      time.Second * time.Duration(20),
+	}
+
+	for _, o := range opts {
+		o(&opt)
+	}
+	if opt.Nats == nil {
+		nc, err := nats.Connect(nats.DefaultURL)
+		if err != nil {
+			log.Error("nats agent: %s", err.Error())
+			//panic(fmt.Sprintf("nats agent: %s", err.Error()))
+		}
+		opt.Nats = nc
+	}
+	return opt
+}
+
 // NewApp 创建app
-func NewApp(version string, debug bool, options ...interface{}) module.App {
+func NewApp(debug bool, opts ...interface{}) module.App {
+	// 从opts中解析初始化选项
+	var (
+		optConf    *conf.Config
+		moduleOpts []module.Option
+	)
+	for _, option := range opts {
+		switch o := option.(type) {
+		case conf.Config:
+			optConf = &o
+		case module.Option:
+			moduleOpts = append(moduleOpts, o)
+		default:
+			panic(option)
+		}
+	}
+	// 解析完毕
+	options := newOptions(moduleOpts...)
 	app := new(DefaultApp)
+	app.opts = options
+	options.Selector.Init(selector.SetWatcher(app.Watcher))
 	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
-	app.serverList = map[string]module.ServerSession{}
 	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
 		//默认使用第一个Server
 		servers := app.GetServersByType(Type)
@@ -65,21 +110,9 @@ func NewApp(version string, debug bool, options ...interface{}) module.App {
 		return servers[index]
 	}
 	app.rpcserializes = map[string]module.RPCSerialize{}
-	app.version = version
+
 	// --------------------------- 执行app初始化配置 ---------------------------
-	// 从options中解析初始化选项
-	var (
-		optConf *conf.Config
-	)
-	for _, option := range options {
-		switch o := option.(type) {
-		case conf.Config:
-			optConf = &o
-		default:
-			panic(option)
-		}
-	}
-	// 从flag中准备参数
+
 	wdPath := flag.String("wd", "", "Server work directory")
 	confPath := flag.String("conf", "", "Server configuration file path")
 	ProcessID := flag.String("pid", "development", "Server ProcessID?")
@@ -107,7 +140,7 @@ func NewApp(version string, debug bool, options ...interface{}) module.App {
 
 	}
 
-	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
+	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
@@ -116,11 +149,13 @@ func NewApp(version string, debug bool, options ...interface{}) module.App {
 		// 如果未给出conf配置，则使用传入的conf（终端conf参数优先级高于传入conf，最低优先级才是默认confPath
 		if optConf == nil {
 			// 也未传入conf，则尝试使用默认的confPath来loadConf
+			fmt.Println("Server configuration path :", defaultConfPath)
 			conf.LoadConfig(defaultConfPath)
 			optConf = &conf.Conf
 		}
 	} else {
 		// flag参数有conf，则最优先使用此conf
+		fmt.Println("Server configuration path :", *confPath)
 		conf.LoadConfig(*confPath)
 		optConf = &conf.Conf
 	}
@@ -135,14 +170,6 @@ func NewApp(version string, debug bool, options ...interface{}) module.App {
 		*BIdir = defaultBIPath
 	}
 
-	// 在conf.LoadConfig时，如果读取错误，会直接panic，所以无需再此多检查一次是否可以打开
-	// 验证conf文件是否可以打开
-	// f, err := os.Open(*confPath)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// 检查日志目录是否存在
 	_, err := os.Open(*Logdir)
 	if err != nil {
 		//文件不存在
@@ -161,24 +188,22 @@ func NewApp(version string, debug bool, options ...interface{}) module.App {
 			fmt.Println(err)
 		}
 	}
+	var cof conf.Config
+	cof = conf.Conf
+	app.Configure(cof) //解析配置信息
+	log.InitLog(debug, *ProcessID, *Logdir, cof.Log)
+	log.InitBI(debug, *ProcessID, *BIdir, cof.BI)
 
-	// 加载配置
-	fmt.Println("Server configuration file path :", *confPath)
-	app.Configure(*optConf) //配置信息
-	// 配置文件加载完毕
-	log.InitLog(debug, *ProcessID, *Logdir, optConf.Log)
-	log.InitBI(debug, *ProcessID, *BIdir, optConf.BI)
-	// app初始化完成
 	return app
 }
 
-// DefaultApp 默认app
 type DefaultApp struct {
 	//module.App
 	version       string
-	serverList    map[string]module.ServerSession
 	settings      conf.Config
+	serverList    sync.Map
 	processId     string
+	opts          module.Options
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
 	//将一个RPC调用路由到新的路由上
@@ -190,7 +215,7 @@ type DefaultApp struct {
 	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
-// Run 运行app
+// Run 运行mqant
 func (app *DefaultApp) Run(mods ...module.Module) error {
 
 	log.Info("mqant %v starting up", app.version)
@@ -264,9 +289,29 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 	return nil
 }
 
+func (app *DefaultApp) Options() module.Options {
+	return app.opts
+}
+
+func (app *DefaultApp) Transport() *nats.Conn {
+	return app.opts.Nats
+}
+func (app *DefaultApp) Registry() registry.Registry {
+	return app.opts.Registry
+}
+
 // GetRPCSerialize 获取rpc序列化器
 func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
+}
+
+func (app *DefaultApp) Watcher(node *registry.Node) {
+	//把注销的服务ServerSession删除掉
+	session, ok := app.serverList.Load(node.Id)
+	if ok && session != nil {
+		session.(module.ServerSession).GetRpc().Done()
+		app.serverList.Delete(node.Id)
+	}
 }
 
 // Configure 设置配置
@@ -277,84 +322,92 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 
 // OnInit app初始化方法
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-	app.serverList = make(map[string]module.ServerSession)
-	for Type, ModuleInfos := range settings.Module {
-		for _, moduel := range ModuleInfos {
-			m := app.serverList[moduel.Id]
-			if m != nil {
-				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.GetId(), m.GetType(), moduel.Id, Type))
-			}
-			client, err := defaultrpc.NewRPCClient(app, moduel.Id)
-			if err != nil {
-				continue
-			}
-			if moduel.Rabbitmq != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRabbitmqClient(moduel.Rabbitmq)
-			}
-			if moduel.Redis != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRedisClient(moduel.Redis)
-			}
-			if moduel.UDP != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewUdpClient(moduel.UDP)
-			}
-			session := basemodule.NewServerSession(moduel.Id, Type, client)
-			app.serverList[moduel.Id] = session
-			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
-		}
-	}
+
 	return nil
 }
 
 // OnDestroy app析构函数
 func (app *DefaultApp) OnDestroy() error {
-	for id, session := range app.serverList {
-		log.Info("RPCClient closeing type(%s) id(%s)", session.GetType(), id)
-		err := session.GetRpc().Done()
-		if err != nil {
-			log.Warning("RPCClient close fail type(%s) id(%s)", session.GetType(), id)
-		} else {
-			log.Info("RPCClient close success type(%s) id(%s)", session.GetType(), id)
-		}
-	}
+
 	return nil
 }
 
-// RegisterLocalClient 注册本地rpc client
-func (app *DefaultApp) RegisterLocalClient(serverId string, server mqrpc.RPCServer) error {
-	if session, ok := app.serverList[serverId]; ok {
-		return session.GetRpc().NewLocalClient(server)
-	} else {
-		return fmt.Errorf("Server(%s) Not Found", serverId)
-	}
-	return nil
-}
-
-// GetServerById 根据id获取服务
 func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
-	if session, ok := app.serverList[serverId]; ok {
-		return session, nil
+	session, ok := app.serverList.Load(serverId)
+	if !ok {
+		serviceName := serverId
+		s := strings.Split(serverId, "@")
+		if len(s) == 2 {
+			serviceName = s[0]
+		} else {
+			return nil, errors.Errorf("serverId is error %v", serverId)
+		}
+		sessions := app.GetServersByType(serviceName)
+		for _, s := range sessions {
+			if s.GetNode().Id == serverId {
+				return s, nil
+			}
+		}
 	} else {
-		return nil, fmt.Errorf("Server(%s) Not Found", serverId)
+		return session.(module.ServerSession), nil
 	}
+	return nil, errors.Errorf("nofound %v", serverId)
+}
+
+func (app *DefaultApp) GetServerBySelector(serviceName string, opts ...selector.SelectOption) (module.ServerSession, error) {
+	next, err := app.opts.Selector.Select(serviceName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	node, err := next()
+	if err != nil {
+		return nil, err
+	}
+	session, ok := app.serverList.Load(node.Id)
+	if !ok {
+		s, err := basemodule.NewServerSession(app, serviceName, node)
+		if err != nil {
+			return nil, err
+		}
+		app.serverList.Store(node.Id, s)
+		return s, nil
+	}
+	session.(module.ServerSession).SetNode(node)
+	return session.(module.ServerSession), nil
+
 }
 
 // GetServersByType 根据类型获取服务列表
-func (app *DefaultApp) GetServersByType(Type string) []module.ServerSession {
+func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
-	for _, session := range app.serverList {
-		if session.GetType() == Type {
-			sessions = append(sessions, session)
+	services, err := app.opts.Selector.GetService(serviceName)
+	if err != nil {
+		log.Warning("GetServersByType %v", err)
+		return sessions
+	}
+	for _, service := range services {
+		//log.TInfo(nil,"GetServersByType3 %v %v",Type,service.Nodes)
+		for _, node := range service.Nodes {
+			session, ok := app.serverList.Load(node.Id)
+			if !ok {
+				s, err := basemodule.NewServerSession(app, serviceName, node)
+				if err != nil {
+					log.Warning("NewServerSession %v", err)
+				} else {
+					app.serverList.Store(node.Id, s)
+					sessions = append(sessions, s)
+				}
+			} else {
+				session.(module.ServerSession).SetNode(node)
+				sessions = append(sessions, session.(module.ServerSession))
+			}
 		}
 	}
 	return sessions
 }
 
 // GetRouteServer
-func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {
 		//进行一次路由转换
 		filter = app.mapRoute(app, filter)
@@ -363,16 +416,11 @@ func (app *DefaultApp) GetRouteServer(filter string, hash string) (s module.Serv
 	if len(sl) == 2 {
 		moduleID := sl[1]
 		if moduleID != "" {
-			return app.GetServerById(moduleID)
+			return app.GetServerById(filter)
 		}
 	}
 	moduleType := sl[0]
-	route := app.getRoute(moduleType)
-	s = route(app, moduleType, hash)
-	if s == nil {
-		err = fmt.Errorf("Server(type : %s) Not Found", moduleType)
-	}
-	return
+	return app.GetServerBySelector(moduleType, opts...)
 }
 
 // GetSettings 获取设置

@@ -14,8 +14,12 @@
 package module
 
 import (
+	"context"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/nats-io/go-nats"
 )
 
 type ProtocolMarshal interface {
@@ -24,8 +28,11 @@ type ProtocolMarshal interface {
 
 type ServerSession interface {
 	GetId() string
-	GetType() string
+	GetName() string
 	GetRpc() mqrpc.RPCClient
+	GetApp() App
+	GetNode() *registry.Node
+	SetNode(node *registry.Node) (err error)
 	Call(_func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
 	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
@@ -42,13 +49,15 @@ type App interface {
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
 	OnDestroy() error
-	RegisterLocalClient(serverId string, server mqrpc.RPCServer) error
+	Options() Options
+	Transport() *nats.Conn
+	Registry() registry.Registry
 	GetServerById(id string) (ServerSession, error)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string) (ServerSession, error) //获取经过筛选过的服务
+	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -88,6 +97,7 @@ type Module interface {
 	Run(closeSig chan bool)
 }
 type RPCModule interface {
+	context.Context
 	Module
 	GetServerId() string //模块类型
 	RpcInvoke(moduleType string, _func string, params ...interface{}) (interface{}, string)
@@ -99,7 +109,7 @@ type RPCModule interface {
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string) (ServerSession, error)
+	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }
