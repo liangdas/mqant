@@ -10,4 +10,5 @@ message sessionImp {
     string SpanId = 7;
     map<string, string> Settings = 8;
     map<string, string> Carrier=9;
+    string Topic = 10;
 }

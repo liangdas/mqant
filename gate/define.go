@@ -45,6 +45,7 @@ type GateHandler interface {
 
 type Session interface {
 	GetIP() string
+	GetTopic() string
 	GetNetwork() string
 	GetUserId() string
 	GetUserIdInt64() int64
@@ -52,6 +53,7 @@ type Session interface {
 	GetServerId() string
 	GetSettings() map[string]string
 	SetIP(ip string)
+	SetTopic(topic string)
 	SetNetwork(network string)
 	SetUserId(userid string)
 	SetSessionId(sessionid string)

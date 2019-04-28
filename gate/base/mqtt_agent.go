@@ -287,6 +287,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				ArgsType[1] = argsutil.BYTES
 				args[1] = pub.GetMsg()
 			}
+			a.session.SetTopic(*pub.GetTopic())
 			if msgid != "" {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE
 				b, err := a.GetSession().Serializable()
