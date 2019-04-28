@@ -32,7 +32,7 @@ type ServerSession interface {
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
 }
 type App interface {
-	Run(debug bool, mods ...Module) error
+	Run(mods ...Module) error
 	/**
 	当同一个类型的Module存在多个服务时,需要根据情况选择最终路由到哪一个服务去
 	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)

@@ -16,6 +16,7 @@ package mqant
 import "github.com/liangdas/mqant/module"
 import "github.com/liangdas/mqant/app"
 
-func CreateApp() module.App {
-	return defaultApp.NewApp(Version)
+// CreateApp 构建mqant应用实例
+func CreateApp(debug bool, options ...interface{}) module.App {
+	return defaultApp.NewApp(Version, debug, options...)
 }
