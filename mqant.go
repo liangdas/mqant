@@ -18,7 +18,8 @@ import (
 	"github.com/liangdas/mqant/module"
 )
 
-func CreateApp(opts ...module.Option) module.App {
+// CreateApp 构建mqant应用实例
+func CreateApp(debug bool, opts ...interface{}) module.App {
 	opts = append(opts, module.Version(version))
-	return app.NewApp(opts...)
+	return app.NewApp(debug, opts...)
 }
