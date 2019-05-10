@@ -36,22 +36,6 @@ func (s *rpcserver) OnInit(module module.Module, app module.App, settings *conf.
 		log.Warning("Dial: %s", err)
 	}
 
-<<<<<<< HEAD
-	if settings.Rabbitmq != nil {
-		//存在远程rpc的配置
-		server.NewRabbitmqRPCServer(settings.Rabbitmq)
-	}
-	if settings.Redis != nil {
-		//存在远程rpc的配置
-		server.NewRedisRPCServer(settings.Redis)
-	}
-	if settings.UDP != nil {
-		//存在远程rpc的配置
-		server.NewUdpRPCServer(settings.UDP)
-	}
-	//server.NewNatsServer(settings)
-=======
->>>>>>> real
 	s.server = server
 	log.Info("RPCServer init success id(%s) version(%s)", s.settings.Id, module.Version())
 }

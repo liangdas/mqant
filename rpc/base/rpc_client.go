@@ -66,27 +66,10 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 	callback := make(chan rpcpb.ResultInfo, 1)
 	var err error
 	//优先使用本地rpc
-<<<<<<< HEAD
-	if c.local_client != nil {
-		err = c.local_client.Call(*callInfo, callback)
-	} else
-	if c.nats_client != nil {
-		err = c.nats_client.Call(*callInfo, callback)
-	} else if c.remote_client != nil {
-		err = c.remote_client.Call(*callInfo, callback)
-	} else if c.redis_client != nil {
-		err = c.redis_client.Call(*callInfo, callback)
-	} else if c.udp_client != nil {
-		err = c.udp_client.Call(*callInfo, callback)
-	} else {
-		return nil, fmt.Sprintf("rpc service (%s) connection failed", c.serverId)
-	}
-=======
 	//if c.local_client != nil {
 	//	err = c.local_client.Call(*callInfo, callback)
 	//} else
 	err = c.nats_client.Call(*callInfo, callback)
->>>>>>> real
 	if err != nil {
 		return nil, err.Error()
 	}
@@ -121,28 +104,10 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 		RpcInfo: *rpcInfo,
 	}
 	//优先使用本地rpc
-<<<<<<< HEAD
-	if c.local_client != nil {
-		err = c.local_client.CallNR(*callInfo)
-	} else
-	if c.nats_client != nil {
-		err = c.nats_client.CallNR(*callInfo)
-	}  else if c.remote_client != nil {
-		err = c.remote_client.CallNR(*callInfo)
-	} else if c.redis_client != nil {
-		err = c.redis_client.CallNR(*callInfo)
-	} else if c.udp_client != nil {
-		err = c.udp_client.CallNR(*callInfo)
-	} else {
-		return fmt.Errorf("rpc service (%s) connection failed", c.serverId)
-	}
-	return nil
-=======
 	//if c.local_client != nil {
 	//	err = c.local_client.CallNR(*callInfo)
 	//} else
 	return c.nats_client.CallNR(*callInfo)
->>>>>>> real
 }
 
 /**

@@ -284,39 +284,7 @@ func (app *DefaultApp) Configure(settings conf.Config) error {
 /**
  */
 func (app *DefaultApp) OnInit(settings conf.Config) error {
-<<<<<<< HEAD
-	app.serverList = make(map[string]module.ServerSession)
-	for Type, ModuleInfos := range settings.Module {
-		for _, moduel := range ModuleInfos {
-			m := app.serverList[moduel.Id]
-			if m != nil {
-				//如果Id已经存在,说明有两个相同Id的模块,这种情况不能被允许,这里就直接抛异常 强制崩溃以免以后调试找不到问题
-				panic(fmt.Sprintf("ServerId (%s) Type (%s) of the modules already exist Can not be reused ServerId (%s) Type (%s)", m.GetId(), m.GetType(), moduel.Id, Type))
-			}
-			client, err := defaultrpc.NewRPCClient(app, moduel.Id)
-			if err != nil {
-				continue
-			}
-			if moduel.Rabbitmq != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRabbitmqClient(moduel.Rabbitmq)
-			}
-			if moduel.Redis != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewRedisClient(moduel.Redis)
-			}
-			if moduel.UDP != nil {
-				//如果远程的rpc存在则创建一个对应的客户端
-				client.NewUdpClient(moduel.UDP)
-			}
-			session := basemodule.NewServerSession(moduel.Id, Type, client)
-			app.serverList[moduel.Id] = session
-			log.Info("RPCClient create success type(%s) id(%s)", Type, moduel.Id)
-		}
-	}
-=======
 
->>>>>>> real
 	return nil
 }
 
