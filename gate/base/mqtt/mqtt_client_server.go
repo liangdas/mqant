@@ -30,11 +30,10 @@ type PackRecover interface {
 	OnRecover(*Pack)
 }
 
-
 type Client struct {
 	queue *PackQueue
 
-	recover  PackRecover        //消息接收者,从上层接口传过来的 只接收正式消息(心跳包,回复包等都不要)
+	recover PackRecover //消息接收者,从上层接口传过来的 只接收正式消息(心跳包,回复包等都不要)
 
 	isStop bool
 	lock   *sync.Mutex
@@ -44,12 +43,12 @@ type Client struct {
 }
 
 func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
-	client:=&Client{
-		recover:   recover,
-		lock:      new(sync.Mutex),
-		curr_id:   0,
+	client := &Client{
+		recover: recover,
+		lock:    new(sync.Mutex),
+		curr_id: 0,
 	}
-	client.queue=NewPackQueue(conf, r, w, conn, client.waitPack, alive)
+	client.queue = NewPackQueue(conf, r, w, conn, client.waitPack, alive)
 	return client
 }
 
@@ -173,7 +172,6 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	}
 	return
 }
-
 
 func (c *Client) WriteMsg(topic string, body []byte) error {
 	c.lock.Lock()

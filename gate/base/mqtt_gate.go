@@ -32,10 +32,7 @@ var RPC_PARAM_ProtocolMarshal_TYPE = gate.RPC_PARAM_ProtocolMarshal_TYPE
 type Gate struct {
 	//module.RPCSerialize
 	basemodule.BaseModule
-	MaxConnNum          int
-	MaxMsgLen           uint32
-	MinStorageHeartbeat int64 //Session持久化最短心跳包
-
+	opts gate.Options
 	// websocket
 	WSAddr      string
 	HTTPTimeout time.Duration
@@ -48,13 +45,7 @@ type Gate struct {
 	CertFile string
 	KeyFile  string
 	//
-	handler        gate.GateHandler
-	agentLearner   gate.AgentLearner
-	sessionLearner gate.SessionLearner
-	storage        gate.StorageHandler
-	tracing        gate.TracingHandler
-	router         gate.RouteHandler
-	judgeGuest     func(session gate.Session) bool
+	judgeGuest func(session gate.Session) bool
 
 	createAgent func() gate.Agent
 }
@@ -73,7 +64,7 @@ func (this *Gate) SetJudgeGuest(judgeGuest func(session gate.Session) bool) erro
 设置Session信息持久化接口
 */
 func (this *Gate) SetRouteHandler(router gate.RouteHandler) error {
-	this.router = router
+	this.opts.RouteHandler = router
 	return nil
 }
 
@@ -81,7 +72,7 @@ func (this *Gate) SetRouteHandler(router gate.RouteHandler) error {
 设置Session信息持久化接口
 */
 func (this *Gate) SetStorageHandler(storage gate.StorageHandler) error {
-	this.storage = storage
+	this.opts.StorageHandler = storage
 	return nil
 }
 
@@ -89,15 +80,7 @@ func (this *Gate) SetStorageHandler(storage gate.StorageHandler) error {
 设置客户端连接和断开的监听器
 */
 func (this *Gate) SetSessionLearner(sessionLearner gate.SessionLearner) error {
-	this.sessionLearner = sessionLearner
-	return nil
-}
-
-/**
-设置Session信息持久化接口
-*/
-func (this *Gate) SetTracingHandler(tracing gate.TracingHandler) error {
-	this.tracing = tracing
+	this.opts.SessionLearner = sessionLearner
 	return nil
 }
 
@@ -108,27 +91,23 @@ func (this *Gate) SetCreateAgent(cfunc func() gate.Agent) error {
 	this.createAgent = cfunc
 	return nil
 }
-
-func (this *Gate) GetStorageHandler() (storage gate.StorageHandler) {
-	return this.storage
+func (this *Gate) Options() gate.Options {
+	return this.opts
 }
-func (this *Gate) GetMinStorageHeartbeat() int64 {
-	return this.MinStorageHeartbeat
+func (this *Gate) GetStorageHandler() (storage gate.StorageHandler) {
+	return this.opts.StorageHandler
 }
 func (this *Gate) GetGateHandler() gate.GateHandler {
-	return this.handler
+	return this.opts.GateHandler
 }
 func (this *Gate) GetAgentLearner() gate.AgentLearner {
-	return this.agentLearner
+	return this.opts.AgentLearner
 }
 func (this *Gate) GetSessionLearner() gate.SessionLearner {
-	return this.sessionLearner
-}
-func (this *Gate) GetTracingHandler() gate.TracingHandler {
-	return this.tracing
+	return this.opts.SessionLearner
 }
 func (this *Gate) GetRouteHandler() gate.RouteHandler {
-	return this.router
+	return this.opts.RouteHandler
 }
 func (this *Gate) GetJudgeGuest() func(session gate.Session) bool {
 	return this.judgeGuest
@@ -193,11 +172,9 @@ func (this *Gate) OnAppConfigurationLoaded(app module.App) {
 		log.Warning("Adding session structures failed to serialize interfaces %s", err.Error())
 	}
 }
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings) {
+func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
 	this.BaseModule.OnInit(subclass, app, settings) //这是必须的
-
-	this.MaxConnNum = int(settings.Settings["MaxConnNum"].(float64))
-	this.MaxMsgLen = uint32(settings.Settings["MaxMsgLen"].(float64))
+	this.opts = gate.NewOptions(opts...)
 	if WSAddr, ok := settings.Settings["WSAddr"]; ok {
 		this.WSAddr = WSAddr.(string)
 	}
@@ -221,27 +198,21 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 		this.KeyFile = ""
 	}
 
-	if MinHBStorage, ok := settings.Settings["MinHBStorage"]; ok {
-		this.MinStorageHeartbeat = int64(MinHBStorage.(float64))
-	} else {
-		this.MinStorageHeartbeat = 60
-	}
-
 	handler := NewGateHandler(this)
 
-	this.agentLearner = handler
-	this.handler = handler
-	this.GetServer().RegisterGO("Update", this.handler.Update)
-	this.GetServer().RegisterGO("Bind", this.handler.Bind)
-	this.GetServer().RegisterGO("UnBind", this.handler.UnBind)
-	this.GetServer().RegisterGO("Push", this.handler.Push)
-	this.GetServer().RegisterGO("Set", this.handler.Set)
-	this.GetServer().RegisterGO("Remove", this.handler.Remove)
-	this.GetServer().RegisterGO("Send", this.handler.Send)
-	this.GetServer().RegisterGO("SendBatch", this.handler.SendBatch)
-	this.GetServer().RegisterGO("BroadCast", this.handler.BroadCast)
-	this.GetServer().RegisterGO("IsConnect", this.handler.IsConnect)
-	this.GetServer().RegisterGO("Close", this.handler.Close)
+	this.opts.AgentLearner = handler
+	this.opts.GateHandler = handler
+	this.GetServer().RegisterGO("Update", this.opts.GateHandler.Update)
+	this.GetServer().RegisterGO("Bind", this.opts.GateHandler.Bind)
+	this.GetServer().RegisterGO("UnBind", this.opts.GateHandler.UnBind)
+	this.GetServer().RegisterGO("Push", this.opts.GateHandler.Push)
+	this.GetServer().RegisterGO("Set", this.opts.GateHandler.Set)
+	this.GetServer().RegisterGO("Remove", this.opts.GateHandler.Remove)
+	this.GetServer().RegisterGO("Send", this.opts.GateHandler.Send)
+	this.GetServer().RegisterGO("SendBatch", this.opts.GateHandler.SendBatch)
+	this.GetServer().RegisterGO("BroadCast", this.opts.GateHandler.BroadCast)
+	this.GetServer().RegisterGO("IsConnect", this.opts.GateHandler.IsConnect)
+	this.GetServer().RegisterGO("Close", this.opts.GateHandler.Close)
 }
 
 func (this *Gate) Run(closeSig chan bool) {
@@ -249,8 +220,6 @@ func (this *Gate) Run(closeSig chan bool) {
 	if this.WSAddr != "" {
 		wsServer = new(network.WSServer)
 		wsServer.Addr = this.WSAddr
-		wsServer.MaxConnNum = this.MaxConnNum
-		wsServer.MaxMsgLen = this.MaxMsgLen
 		wsServer.HTTPTimeout = this.HTTPTimeout
 		wsServer.Tls = this.Tls
 		wsServer.CertFile = this.CertFile
@@ -269,7 +238,6 @@ func (this *Gate) Run(closeSig chan bool) {
 	if this.TCPAddr != "" {
 		tcpServer = new(network.TCPServer)
 		tcpServer.Addr = this.TCPAddr
-		tcpServer.MaxConnNum = this.MaxConnNum
 		tcpServer.Tls = this.Tls
 		tcpServer.CertFile = this.CertFile
 		tcpServer.KeyFile = this.KeyFile
@@ -290,8 +258,8 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.Start()
 	}
 	<-closeSig
-	if this.handler != nil {
-		this.handler.OnDestroy()
+	if this.opts.GateHandler != nil {
+		this.opts.GateHandler.OnDestroy()
 	}
 	if wsServer != nil {
 		wsServer.Close()

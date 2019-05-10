@@ -380,7 +380,7 @@ func ReadPack(r *bufio.Reader) (pack *Pack, err error) {
 		if err != nil {
 			break
 		}
-		if n > 23 || n < 1 {
+		if n > 64 || n < 1 {
 			err = fmt.Errorf("Identifier Rejected length is:%v", n)
 			conn.return_code = 2
 			break

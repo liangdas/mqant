@@ -14,58 +14,74 @@
 package defaultrpc
 
 import (
+	"fmt"
+	"github.com/golang/protobuf/proto"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/golang/protobuf/proto"
-	"fmt"
 	"github.com/nats-io/go-nats"
 	"runtime"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/conf"
+	"strings"
+	"time"
 )
 
 type NatsServer struct {
-	call_chan   chan mqrpc.CallInfo
-	nc 		*nats.Conn
-	subs 		*nats.Subscription
-	done        chan error
+	call_chan chan mqrpc.CallInfo
+	addr      string
+	app       module.App
+	server    *RPCServer
+	done      chan error
 }
 
-func NewNatsServer(conf *conf.ModuleSettings,call_chan chan mqrpc.CallInfo) (*NatsServer, error) {
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
+func setAddrs(addrs []string) []string {
+	var cAddrs []string
+	for _, addr := range addrs {
+		if len(addr) == 0 {
+			continue
+		}
+		if !strings.HasPrefix(addr, "nats://") {
+			addr = "nats://" + addr
+		}
+		cAddrs = append(cAddrs, addr)
 	}
+	if len(cAddrs) == 0 {
+		cAddrs = []string{nats.DefaultURL}
+	}
+	return cAddrs
+}
+
+func NewNatsServer(app module.App, s *RPCServer) (*NatsServer, error) {
 	server := new(NatsServer)
-	server.call_chan = call_chan
-	server.nc = nc
-	subs,err:=nc.Subscribe(conf.Id, server.on_request_handle)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
-	server.subs=subs
+	server.server = s
+	server.done = make(chan error)
+	server.app = app
+	server.addr = nats.NewInbox()
+	go server.on_request_handle()
 	return server, nil
+}
+func (s *NatsServer) Addr() string {
+	return s.addr
 }
 
 /**
 注销消息队列
 */
 func (s *NatsServer) Shutdown() (err error) {
-	err =s.subs.Unsubscribe()
-	s.nc.Close()
+	s.done <- nil
 	return
 }
 
 func (s *NatsServer) Callback(callinfo mqrpc.CallInfo) error {
 	body, _ := s.MarshalResult(callinfo.Result)
-	reply_to:=callinfo.Props["reply_to"].(string)
-	return s.nc.Publish(reply_to,body)
+	reply_to := callinfo.Props["reply_to"].(string)
+	return s.app.Transport().Publish(reply_to, body)
 }
 
 /**
 接收请求信息
 */
-func (s *NatsServer) on_request_handle(m *nats.Msg) {
+func (s *NatsServer) on_request_handle() error {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -82,22 +98,43 @@ func (s *NatsServer) on_request_handle(m *nats.Msg) {
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-
-	rpcInfo, err := s.Unmarshal(m.Data)
-	if err == nil {
-		callInfo := &mqrpc.CallInfo{
-			RpcInfo: *rpcInfo,
-		}
-		callInfo.Props = map[string]interface{}{
-			"reply_to":rpcInfo.ReplyTo,
-		}
-
-		callInfo.Agent = s //设置代理为NatsServer
-
-		s.call_chan <- *callInfo
-	} else {
-		fmt.Println("error ", err)
+	subs, err := s.app.Transport().SubscribeSync(s.addr)
+	if err != nil {
+		return err
 	}
+
+	go func() {
+		<-s.done
+		subs.Unsubscribe()
+	}()
+
+	for {
+		m, err := subs.NextMsg(time.Minute)
+		if err != nil && err == nats.ErrTimeout {
+			continue
+		} else if err != nil {
+			//log.Error("NatsServer error with '%v'",err)
+			return err
+		}
+
+		rpcInfo, err := s.Unmarshal(m.Data)
+		if err == nil {
+			callInfo := &mqrpc.CallInfo{
+				RpcInfo: *rpcInfo,
+			}
+			callInfo.Props = map[string]interface{}{
+				"reply_to": rpcInfo.ReplyTo,
+			}
+
+			callInfo.Agent = s //设置代理为NatsServer
+
+			s.server.Call(*callInfo)
+		} else {
+			fmt.Println("error ", err)
+		}
+	}
+
+	return nil
 }
 
 func (s *NatsServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
@@ -120,4 +157,3 @@ func (s *NatsServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) 
 	b, err := proto.Marshal(&resultInfo)
 	return b, err
 }
-

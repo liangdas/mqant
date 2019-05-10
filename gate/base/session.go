@@ -58,6 +58,10 @@ func (this *sessionagent) GetIP() string {
 	return this.session.GetIP()
 }
 
+func (this *sessionagent) GetTopic() string {
+	return this.session.GetTopic()
+}
+
 func (this *sessionagent) GetNetwork() string {
 	return this.session.GetNetwork()
 }
@@ -89,6 +93,9 @@ func (this *sessionagent) GetSettings() map[string]string {
 func (this *sessionagent) SetIP(ip string) {
 	this.session.IP = ip
 }
+func (this *sessionagent) SetTopic(topic string) {
+	this.session.Topic = topic
+}
 func (this *sessionagent) SetNetwork(network string) {
 	this.session.Network = network
 }
@@ -114,6 +121,9 @@ func (this *sessionagent) updateMap(s map[string]interface{}) error {
 	if IP != nil {
 		this.session.IP = IP.(string)
 	}
+	if topic, ok := s["Topic"]; ok {
+		this.session.Topic = topic.(string)
+	}
 	Network := s["Network"]
 	if Network != nil {
 		this.session.Network = Network.(string)
@@ -138,6 +148,7 @@ func (this *sessionagent) update(s gate.Session) error {
 	this.session.UserId = Userid
 	IP := s.GetIP()
 	this.session.IP = IP
+	this.session.Topic = s.GetTopic()
 	Network := s.GetNetwork()
 	this.session.Network = Network
 	Sessionid := s.GetSessionId()

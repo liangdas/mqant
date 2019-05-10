@@ -14,60 +14,50 @@
 package defaultrpc
 
 import (
-	"sync"
-	"github.com/liangdas/mqant/rpc"
-	"time"
-	"github.com/liangdas/mqant/rpc/util"
-	"github.com/liangdas/mqant/utils"
-	"github.com/liangdas/mqant/rpc/pb"
 	"fmt"
 	"github.com/golang/protobuf/proto"
-	"github.com/nats-io/go-nats"
 	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc/pb"
+	"github.com/liangdas/mqant/utils"
+	"github.com/nats-io/go-nats"
 	"runtime"
-	"github.com/liangdas/mqant/conf"
+	"sync"
+	"time"
 )
 
 type NatsClient struct {
-			       //callinfos map[string]*ClinetCallInfo
-	callinfos   *utils.BeeMap
-	cmutex      sync.Mutex //操作callinfos的锁
-	nc 		*nats.Conn
+	//callinfos map[string]*ClinetCallInfo
+	callinfos         *utils.BeeMap
+	cmutex            sync.Mutex //操作callinfos的锁
 	callbackqueueName string
-	subs 		*nats.Subscription
-	done        chan error
-	conf *conf.ModuleSettings
-	timeout_done chan error
+	app               module.App
+	done              chan error
+	session           module.ServerSession
 }
 
-func NewNatsClient(conf *conf.ModuleSettings) (client *NatsClient, err error) {
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
+func NewNatsClient(app module.App, session module.ServerSession) (client *NatsClient, err error) {
 	client = new(NatsClient)
-	client.conf=conf
+	client.session = session
+	client.app = app
 	client.callinfos = utils.NewBeeMap()
-	client.callbackqueueName = createQueueName()
-	client.nc = nc
+	client.callbackqueueName = nats.NewInbox()
 	client.done = make(chan error)
-	client.timeout_done = make(chan error)
-	subs,err:=nc.Subscribe(client.callbackqueueName, client.on_response_handle)
-	if err != nil {
-		return nil, fmt.Errorf("nats agent: %s", err.Error())
-	}
-	client.subs=subs
-	go client.on_timeout_handle(client.timeout_done) //处理超时请求的协程
+	go client.on_request_handle()
 	return client, nil
+}
+
+func (c *NatsClient) Delete(key string) (err error) {
+	c.callinfos.Delete(key)
+	return
 }
 
 func (c *NatsClient) Done() (err error) {
 	//关闭amqp链接通道
-	c.nc.Close()
-	c.timeout_done <- nil
 	//close(c.send_chan)
 	//c.send_done<-nil
-	//c.done<-nil
+
 	//清理 callinfos 列表
 	for key, clinetCallInfo := range c.callinfos.Items() {
 		if clinetCallInfo != nil {
@@ -78,6 +68,7 @@ func (c *NatsClient) Done() (err error) {
 		}
 	}
 	c.callinfos = nil
+	c.done <- nil
 	return
 }
 
@@ -102,7 +93,7 @@ func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 	if err != nil {
 		return err
 	}
-	return c.nc.Publish(c.conf.Id,body)
+	return c.app.Transport().Publish(c.session.GetNode().Address, body)
 }
 
 /**
@@ -113,48 +104,13 @@ func (c *NatsClient) CallNR(callInfo mqrpc.CallInfo) error {
 	if err != nil {
 		return err
 	}
-	return c.nc.Publish(c.conf.Id,body)
-}
-
-func (c *NatsClient) on_timeout_handle(done chan error) {
-	timeout := time.NewTimer(time.Second * 1)
-	for {
-		select {
-		case <-timeout.C:
-			timeout.Reset(time.Second * 1)
-			for key, clinetCallInfo := range c.callinfos.Items() {
-				if clinetCallInfo != nil {
-					var clinetCallInfo = clinetCallInfo.(ClinetCallInfo)
-					if clinetCallInfo.timeout < (time.Now().UnixNano() / 1000000) {
-						//从Map中删除
-						c.callinfos.Delete(key)
-						//已经超时了
-						resultInfo := &rpcpb.ResultInfo{
-							Result:     nil,
-							Error:      "timeout: This is Call",
-							ResultType: argsutil.NULL,
-						}
-						//发送一个超时的消息
-						clinetCallInfo.call <- *resultInfo
-						//关闭管道
-						close(clinetCallInfo.call)
-					}
-
-				}
-			}
-		case <-done:
-			timeout.Stop()
-			goto LLForEnd
-
-		}
-	}
-	LLForEnd:
+	return c.app.Transport().Publish(c.session.GetNode().Address, body)
 }
 
 /**
 接收应答信息
 */
-func (c *NatsClient) on_response_handle(m *nats.Msg) {
+func (c *NatsClient) on_request_handle() error {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -171,22 +127,43 @@ func (c *NatsClient) on_response_handle(m *nats.Msg) {
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
 		}
 	}()
-	resultInfo, err := c.UnmarshalResult(m.Data)
+	subs, err := c.app.Transport().SubscribeSync(c.callbackqueueName)
 	if err != nil {
-		log.Error("Unmarshal faild", err)
-	} else {
-		correlation_id := resultInfo.Cid
-		clinetCallInfo := c.callinfos.Get(correlation_id)
-		//删除
-		c.callinfos.Delete(correlation_id)
-		if clinetCallInfo != nil {
-			clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
-			close(clinetCallInfo.(ClinetCallInfo).call)
+		return err
+	}
+
+	go func() {
+		<-c.done
+		subs.Unsubscribe()
+	}()
+
+	for {
+		m, err := subs.NextMsg(time.Minute)
+		if err != nil && err == nats.ErrTimeout {
+			continue
+		} else if err != nil {
+			return err
+		}
+
+		resultInfo, err := c.UnmarshalResult(m.Data)
+		if err != nil {
+			log.Error("Unmarshal faild", err)
 		} else {
-			//可能客户端已超时了，但服务端处理完还给回调了
-			log.Warning("rpc callback no found : [%s]", correlation_id)
+			correlation_id := resultInfo.Cid
+			clinetCallInfo := c.callinfos.Get(correlation_id)
+			//删除
+			c.callinfos.Delete(correlation_id)
+			if clinetCallInfo != nil {
+				clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
+				close(clinetCallInfo.(ClinetCallInfo).call)
+			} else {
+				//可能客户端已超时了，但服务端处理完还给回调了
+				log.Warning("rpc callback no found : [%s]", correlation_id)
+			}
 		}
 	}
+
+	return nil
 }
 
 func (c *NatsClient) UnmarshalResult(data []byte) (*rpcpb.ResultInfo, error) {
@@ -221,4 +198,3 @@ func (c *NatsClient) Marshal(rpcInfo *rpcpb.RPCInfo) ([]byte, error) {
 	b, err := proto.Marshal(rpcInfo)
 	return b, err
 }
-
