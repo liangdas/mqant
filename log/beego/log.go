@@ -284,10 +284,10 @@ func (bl *BeeLogger) formatText(when time.Time, span *BeegoTraceSpan, logLevel i
 		//_, filename := path.Split(file)
 		//msg = "[" + filename + ":" + strconv.Itoa(line) + "] " + msg
 		if logLevel <= LevelWarn {
-			CallStack, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			CallStack, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			msg = "[" + ShortFile + "] " + msg + " " + CallStack
 		} else {
-			_, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			msg = "[" + ShortFile + "] " + msg
 		}
 
@@ -328,11 +328,11 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		//_, filename := path.Split(file)
 		//msg = "[" + filename + ":" + strconv.Itoa(line) + "] " + msg
 		if logLevel <= LevelWarn {
-			CallStack, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			CallStack, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			msgjson["file"] = ShortFile
 			msgjson["stack"] = CallStack
 		} else {
-			_, ShortFile := GetCallStack(4, bl.loggerFuncCallDepth, "")
+			_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			msgjson["file"] = ShortFile
 			msgjson["stack"] = ""
 		}
