@@ -84,6 +84,7 @@ type App interface {
 	ProtocolMarshal(Trace string, Result interface{}, Error string) (ProtocolMarshal, string)
 	NewProtocolMarshal(data []byte) ProtocolMarshal
 	GetProcessID() string
+	WorkDir() string
 }
 
 type Module interface {

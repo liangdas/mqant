@@ -101,6 +101,7 @@ type DefaultApp struct {
 	settings      conf.Config
 	serverList    sync.Map
 	processId     string
+	workDir     	string
 	opts          module.Options
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
@@ -139,7 +140,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		}
 
 	}
-
+	app.workDir=ApplicationDir
 	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
@@ -387,6 +388,9 @@ func (app *DefaultApp) GetSettings() conf.Config {
 }
 func (app *DefaultApp) GetProcessID() string {
 	return app.processId
+}
+func (app *DefaultApp) WorkDir() string {
+	return app.workDir
 }
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
 	server, e := app.GetRouteServer(moduleType, module.GetServerId())
