@@ -181,7 +181,7 @@ func (a *agent) ConnTime() time.Time {
 func (a *agent) OnRecover(pack *mqtt.Pack) {
 	err := a.Wait()
 	if err != nil {
-		log.Warning("Gate  OnRecover error [%v]", err)
+		log.Warning("Gate OnRecover error [%v]", err)
 		pub := pack.GetVariable().(*mqtt.Publish)
 		a.toResult(a, *pub.GetTopic(), nil, err.Error())
 	} else {
@@ -209,7 +209,9 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 	defer a.Finish()
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("Gate  OnRecover error [%s]", r)
+			buff := make([]byte, 4096)
+			runtime.Stack(buff, false)
+			log.Error("Gate recoverworker error [%v] stack : %v",r, string(buff))
 		}
 	}()
 
