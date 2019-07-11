@@ -229,7 +229,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.session, *pub.GetTopic(), pub.GetMsg())
 			if err != nil {
 				if needreturn {
-					toResult(a, *pub.GetTopic(), nil, err.Error())
+					toResult(a, *pub.GetTopic(), result, err.Error())
 				}
 				return
 			} else {
@@ -313,7 +313,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				}
 			}
 		}
-		if a.GetSession().GetUserId() != "" {
+		//if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			a.lock.Lock()
 			interval := int64(a.last_storage_heartbeat_data_time) + int64(a.gate.Options().Heartbeat) //单位纳秒
@@ -326,10 +326,10 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession())
 				}
 			}
-		}
+		//}
 	case mqtt.PINGREQ:
 		//客户端发送的心跳包
-		if a.GetSession().GetUserId() != "" {
+		//if a.GetSession().GetUserId() != "" {
 			//这个链接已经绑定Userid
 			a.lock.Lock()
 			interval := int64(a.last_storage_heartbeat_data_time) + int64(a.gate.Options().Heartbeat) //单位纳秒
@@ -342,7 +342,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					a.gate.GetStorageHandler().Heartbeat(a.GetSession())
 				}
 			}
-		}
+		//}
 	}
 }
 
