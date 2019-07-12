@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"sync"
 	"time"
+	"encoding/json"
 )
 
 type RPCServer struct {
@@ -295,29 +296,42 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		if len(ArgsType) > 0 {
 			in = make([]reflect.Value, len(params))
 			for k, v := range ArgsType {
-				v, err := argsutil.Bytes2Args(s.app, v, params[k])
+				ty, err := argsutil.Bytes2Args(s.app, v, params[k])
 				if err != nil {
 					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
 					return
 				}
-				switch v2 := v.(type) { //多选语句switch
+				switch v2 := ty.(type) { //多选语句switch
 				case gate.Session:
 					//尝试加载Span
 					if v2 != nil {
 						session = v2.Clone()
 						span = session
 					}
-					in[k] = reflect.ValueOf(v)
+					in[k] = reflect.ValueOf(ty)
 				case log.TraceSpan:
 					//尝试加载Span
 					if v2 != nil {
 						span = v2.ExtractSpan()
 					}
-					in[k] = reflect.ValueOf(v)
+					in[k] = reflect.ValueOf(ty)
+				case []uint8:
+					if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)){
+						in[k] = reflect.ValueOf(ty)
+					}else{
+						elemp := reflect.New(f.Type().In(k))
+						err:=json.Unmarshal(v2,elemp.Interface())
+						if err!=nil{
+							log.Error("%v []uint8--> %v error with='%v'",callInfo.RpcInfo.Fn,f.Type().In(k),err)
+							in[k] = reflect.ValueOf(ty)
+						}else{
+							in[k] = elemp.Elem()
+						}
+					}
 				case nil:
 					in[k] = reflect.Zero(f.Type().In(k))
 				default:
-					in[k] = reflect.ValueOf(v)
+					in[k] = reflect.ValueOf(ty)
 				}
 
 			}

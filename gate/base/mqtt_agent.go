@@ -70,6 +70,7 @@ func (this *agent) OnInit(gate gate.Gate, conn network.Conn) error {
 	this.isclose = false
 	this.rev_num = 0
 	this.send_num = 0
+	this.last_storage_heartbeat_data_time=time.Duration(time.Now().UnixNano())
 	return nil
 }
 func (a *agent) IsClosed() bool {
