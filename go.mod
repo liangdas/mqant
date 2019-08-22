@@ -9,4 +9,5 @@ require (
 	github.com/liangdas/mqant v1.8.0 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/streadway/amqp v0.0.0-20190815230801-eade30b20f1d // indirect
+	github.com/nats-io/go-nats v1.8.1
 )
