@@ -34,7 +34,7 @@ type WSHandler struct {
 func (handler *WSHandler) Echo(conn *websocket.Conn) {
 	handler.wg.Add(1)
 	defer handler.wg.Done()
-
+	conn.PayloadType=websocket.BinaryFrame
 	wsConn := newWSConn(conn)
 	agent := handler.newAgent(wsConn)
 	agent.Run()
@@ -44,6 +44,22 @@ func (handler *WSHandler) Echo(conn *websocket.Conn) {
 	handler.mutexConns.Lock()
 	handler.mutexConns.Unlock()
 	agent.OnClose()
+}
+
+func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
+
+	ws:=websocket.Server{
+		Handler:websocket.Handler(handler.Echo),
+		Handshake: func(config *websocket.Config, request *http.Request) error {
+			config.Protocol=[]string{"mqttv3.1"}
+			return nil
+		},
+	}
+	ws.ServeHTTP(w,r)
 }
 
 func (server *WSServer) Start() {
@@ -76,16 +92,17 @@ func (server *WSServer) Start() {
 		maxMsgLen:  server.MaxMsgLen,
 		newAgent:   server.NewAgent,
 	}
-	ws:=websocket.Server{
-		Handler:websocket.Handler(server.handler.Echo),
-		Config:websocket.Config{
-			Protocol:[]string{"mqttv3.1"},
+	//ws:=websocket.Server{
+	//	Handler:websocket.Handler(server.handler.Echo),
+	//	Config:websocket.Config{
+	//		Protocol:[]string{"mqttv3.1"},
+	//		Version:websocket.ProtocolVersionHybi13,
+	//	},
+	//}
 
-		},
-	}
 	httpServer := &http.Server{
 		Addr:           server.Addr,
-		Handler:        ws,
+		Handler:        server.handler,
 		ReadTimeout:    server.HTTPTimeout,
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,

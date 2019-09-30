@@ -139,10 +139,11 @@ func (a *agent) Run() (err error) {
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
 	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
 	a.client = c
+	addr:=a.conn.RemoteAddr()
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
 		"Sessionid": utils.GenerateID().String(),
-		"Network":   a.conn.RemoteAddr().Network(),
-		"IP":        a.conn.RemoteAddr().String(),
+		"Network":   addr.Network(),
+		"IP":        addr.String(),
 		"Serverid":  a.module.GetServerId(),
 		"Settings":  make(map[string]string),
 	})

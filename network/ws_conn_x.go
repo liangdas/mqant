@@ -43,15 +43,15 @@ func (wsConn *WSConn) doDestroy() {
 }
 
 func (wsConn *WSConn) Destroy() {
-	wsConn.Lock()
-	defer wsConn.Unlock()
+	//wsConn.Lock()
+	//defer wsConn.Unlock()
 
 	wsConn.doDestroy()
 }
 
 func (wsConn *WSConn) Close() error {
-	wsConn.Lock()
-	defer wsConn.Unlock()
+	//wsConn.Lock()
+	//defer wsConn.Unlock()
 	if wsConn.closeFlag {
 		return nil
 	}
