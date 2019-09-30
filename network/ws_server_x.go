@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"net/url"
 )
 
 type WSServer struct {
@@ -51,10 +52,16 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-
 	ws:=websocket.Server{
 		Handler:websocket.Handler(handler.Echo),
 		Handshake: func(config *websocket.Config, request *http.Request) error {
+			var scheme string
+			if request.TLS != nil {
+				scheme = "wss"
+			} else {
+				scheme = "ws"
+			}
+			config.Origin,_=url.ParseRequestURI(scheme + "://" + request.RemoteAddr + request.URL.RequestURI())
 			config.Protocol=[]string{"mqttv3.1"}
 			return nil
 		},
@@ -92,17 +99,23 @@ func (server *WSServer) Start() {
 		maxMsgLen:  server.MaxMsgLen,
 		newAgent:   server.NewAgent,
 	}
-	//ws:=websocket.Server{
-	//	Handler:websocket.Handler(server.handler.Echo),
-	//	Config:websocket.Config{
-	//		Protocol:[]string{"mqttv3.1"},
-	//		Version:websocket.ProtocolVersionHybi13,
-	//	},
-	//}
-
+	ws:=websocket.Server{
+		Handler:websocket.Handler(server.handler.Echo),
+		Handshake: func(config *websocket.Config, r *http.Request) error {
+			var scheme string
+			if r.TLS != nil {
+				scheme = "wss"
+			} else {
+				scheme = "ws"
+			}
+			config.Origin,_=url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
+			config.Protocol=[]string{"mqttv3.1"}
+			return nil
+		},
+	}
 	httpServer := &http.Server{
 		Addr:           server.Addr,
-		Handler:        server.handler,
+		Handler:        ws,
 		ReadTimeout:    server.HTTPTimeout,
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,
