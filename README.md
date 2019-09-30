@@ -41,7 +41,6 @@ QQ交流群 :463735103
 # 依赖项目
 
 	go get github.com/gorilla/mux
-	go get github.com/gorilla/websocket
 	go get go.etcd.io/etcd/clientv3
 	go get go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes
 	go get github.com/hashicorp/consul

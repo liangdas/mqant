@@ -14,6 +14,7 @@
 package defaultrpc
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
@@ -25,7 +26,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-	"encoding/json"
 )
 
 type RPCServer struct {
@@ -316,15 +316,15 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 					}
 					in[k] = reflect.ValueOf(ty)
 				case []uint8:
-					if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)){
+					if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)) {
 						in[k] = reflect.ValueOf(ty)
-					}else{
+					} else {
 						elemp := reflect.New(f.Type().In(k))
-						err:=json.Unmarshal(v2,elemp.Interface())
-						if err!=nil{
-							log.Error("%v []uint8--> %v error with='%v'",callInfo.RpcInfo.Fn,f.Type().In(k),err)
+						err := json.Unmarshal(v2, elemp.Interface())
+						if err != nil {
+							log.Error("%v []uint8--> %v error with='%v'", callInfo.RpcInfo.Fn, f.Type().In(k), err)
 							in[k] = reflect.ValueOf(ty)
-						}else{
+						} else {
 							in[k] = elemp.Elem()
 						}
 					}

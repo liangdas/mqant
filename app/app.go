@@ -101,7 +101,7 @@ type DefaultApp struct {
 	settings      conf.Config
 	serverList    sync.Map
 	processId     string
-	workDir     	string
+	workDir       string
 	opts          module.Options
 	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
 	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
@@ -140,7 +140,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		}
 
 	}
-	app.workDir=ApplicationDir
+	app.workDir = ApplicationDir
 	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
