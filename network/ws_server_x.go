@@ -76,9 +76,16 @@ func (server *WSServer) Start() {
 		maxMsgLen:  server.MaxMsgLen,
 		newAgent:   server.NewAgent,
 	}
+	ws:=websocket.Server{
+		Handler:websocket.Handler(server.handler.Echo),
+		Config:websocket.Config{
+			Protocol:[]string{"mqttv3.1"},
+
+		},
+	}
 	httpServer := &http.Server{
 		Addr:           server.Addr,
-		Handler:        websocket.Handler(server.handler.Echo),
+		Handler:        ws,
 		ReadTimeout:    server.HTTPTimeout,
 		WriteTimeout:   server.HTTPTimeout,
 		MaxHeaderBytes: 1024,
