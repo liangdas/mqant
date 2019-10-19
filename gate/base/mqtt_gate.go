@@ -131,6 +131,11 @@ func (this *Gate) OnConfChanged(settings *conf.ModuleSettings) {
 自定义rpc参数序列化反序列化  Session
 */
 func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err error) {
+	rv := reflect.ValueOf(param)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		//不是指针
+		return "", nil, fmt.Errorf("Serialize [%v ] or not pointer type", rv.Type())
+	}
 	switch v2 := param.(type) {
 	case gate.Session:
 		bytes, err := v2.Serializable()

@@ -33,18 +33,13 @@ type ServerSession interface {
 	GetApp() App
 	GetNode() *registry.Node
 	SetNode(node *registry.Node) (err error)
-	Call(_func string, params ...interface{}) (interface{}, string)
+	Call(ctx context.Context, _func string, params ...interface{}) (interface{}, string)
 	CallNR(_func string, params ...interface{}) (err error)
-	CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string)
+	CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (interface{}, string)
 	CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error)
 }
 type App interface {
-	Run(debug bool, mods ...Module) error
-	/**
-	当同一个类型的Module存在多个服务时,需要根据情况选择最终路由到哪一个服务去
-	fn: func(moduleType string,serverId string,[]*ServerSession)(*ServerSession)
-	*/
-	Route(moduleType string, fn func(app App, Type string, hash string) ServerSession) error
+	Run(mods ...Module) error
 	SetMapRoute(fn func(app App, route string) string) error
 	Configure(settings conf.Config) error
 	OnInit(settings conf.Config) error
@@ -57,12 +52,12 @@ type App interface {
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
+	GetRouteServer(filter string, opts ...selector.SelectOption) (ServerSession, error) //获取经过筛选过的服务
 	GetServersByType(Type string) []ServerSession
 	GetSettings() conf.Config //获取配置信息
 	RpcInvoke(module RPCModule, moduleType string, _func string, params ...interface{}) (interface{}, string)
 	RpcInvokeNR(module RPCModule, moduleType string, _func string, params ...interface{}) error
-
+	RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (interface{}, string)
 	/**
 	添加一个 自定义参数序列化接口
 	gate,system 关键词一被占用请使用其他名称
@@ -83,6 +78,8 @@ type App interface {
 	*/
 	ProtocolMarshal(Trace string, Result interface{}, Error string) (ProtocolMarshal, string)
 	NewProtocolMarshal(data []byte) ProtocolMarshal
+	GetMoudleGroup() string
+	//计划废弃,用GetMoudleGroup代替
 	GetProcessID() string
 	WorkDir() string
 }
@@ -105,12 +102,13 @@ type RPCModule interface {
 	RpcInvokeNR(moduleType string, _func string, params ...interface{}) error
 	RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string)
 	RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) error
+	RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (interface{}, string)
 	GetModuleSettings() (settings *conf.ModuleSettings)
 	/**
 	filter		 调用者服务类型    moduleType|moduleType@moduleID
 	Type	   	想要调用的服务类型
 	*/
-	GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (ServerSession, error)
+	GetRouteServer(filter string, opts ...selector.SelectOption) (ServerSession, error)
 	GetStatistical() (statistical string, err error)
 	GetExecuting() int64
 }

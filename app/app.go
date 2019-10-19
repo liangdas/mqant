@@ -24,8 +24,6 @@ import (
 	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/registry"
 	"github.com/nats-io/go-nats"
-	"hash/crc32"
-	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -35,6 +33,8 @@ import (
 	"syscall"
 	"time"
 	//"github.com/liangdas/mqant/registry/etcdv3"
+	"context"
+	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/selector"
 	"github.com/liangdas/mqant/selector/cache"
 	"github.com/pkg/errors"
@@ -55,11 +55,21 @@ func (this *protocolMarshalImp) GetData() []byte {
 }
 
 func newOptions(opts ...module.Option) module.Options {
+	wdPath := flag.String("wd", "", "Server work directory")
+	confPath := flag.String("conf", "", "Server configuration file path")
+	ProcessID := flag.String("pid", "development", "Server ProcessID?")
+	Logdir := flag.String("log", "", "Log file directory?")
+	BIdir := flag.String("bi", "", "bi file directory?")
+	flag.Parse() //解析输入的参数
+
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
 		RegisterInterval: time.Second * time.Duration(10),
 		RegisterTTL:      time.Second * time.Duration(20),
+		KillWaitTTL:      time.Second * time.Duration(60),
+		Debug:            true,
+		ModuleGroup:      "development",
 	}
 
 	for _, o := range opts {
@@ -73,55 +83,13 @@ func newOptions(opts ...module.Option) module.Options {
 		}
 		opt.Nats = nc
 	}
-	return opt
-}
 
-func NewApp(opts ...module.Option) module.App {
-	options := newOptions(opts...)
-	app := new(DefaultApp)
-	app.opts = options
-	options.Selector.Init(selector.SetWatcher(app.Watcher))
-	app.routes = map[string]func(app module.App, Type string, hash string) module.ServerSession{}
-	app.defaultRoutes = func(app module.App, Type string, hash string) module.ServerSession {
-		//默认使用第一个Server
-		servers := app.GetServersByType(Type)
-		if len(servers) == 0 {
-			return nil
-		}
-		index := int(math.Abs(float64(crc32.ChecksumIEEE([]byte(hash))))) % len(servers)
-		return servers[index]
+	if opt.WorkDir == "" {
+		opt.WorkDir = *wdPath
 	}
-	app.rpcserializes = map[string]module.RPCSerialize{}
-	return app
-}
-
-type DefaultApp struct {
-	//module.App
-	version       string
-	settings      conf.Config
-	serverList    sync.Map
-	processId     string
-	workDir       string
-	opts          module.Options
-	routes        map[string]func(app module.App, Type string, hash string) module.ServerSession
-	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
-	//将一个RPC调用路由到新的路由上
-	mapRoute            func(app module.App, route string) string
-	rpcserializes       map[string]module.RPCSerialize
-	configurationLoaded func(app module.App)
-	startup             func(app module.App)
-	moduleInited        func(app module.App, module module.Module)
-	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
-}
-
-func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
-	wdPath := flag.String("wd", "", "Server work directory")
-	confPath := flag.String("conf", "", "Server configuration file path")
-	ProcessID := flag.String("pid", "development", "Server ProcessID?")
-	Logdir := flag.String("log", "", "Log file directory?")
-	BIdir := flag.String("bi", "", "bi file directory?")
-	flag.Parse() //解析输入的参数
-	app.processId = *ProcessID
+	if opt.ModuleGroup == "" {
+		opt.ModuleGroup = *ProcessID
+	}
 	ApplicationDir := ""
 	if *wdPath != "" {
 		_, err := os.Open(*wdPath)
@@ -140,52 +108,98 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		}
 
 	}
-	app.workDir = ApplicationDir
+	opt.WorkDir = ApplicationDir
 	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
-	if *confPath == "" {
-		*confPath = defaultConfPath
+	if opt.ConfPath == "" {
+		if *confPath == "" {
+			opt.ConfPath = defaultConfPath
+		} else {
+			opt.ConfPath = *confPath
+		}
 	}
 
-	if *Logdir == "" {
-		*Logdir = defaultLogPath
+	if opt.LogDir == "" {
+		if *Logdir == "" {
+			opt.LogDir = defaultLogPath
+		} else {
+			opt.LogDir = *Logdir
+		}
 	}
 
-	if *BIdir == "" {
-		*BIdir = defaultBIPath
+	if opt.BIDir == "" {
+		if *BIdir == "" {
+			opt.BIDir = defaultBIPath
+		} else {
+			opt.BIDir = *BIdir
+		}
 	}
 
-	f, err := os.Open(*confPath)
+	_, err := os.Open(opt.ConfPath)
 	if err != nil {
 		//文件不存在
 		panic(fmt.Sprintf("config path error %v", err))
 	}
-	_, err = os.Open(*Logdir)
+	_, err = os.Open(opt.LogDir)
 	if err != nil {
 		//文件不存在
-		err := os.Mkdir(*Logdir, os.ModePerm) //
+		err := os.Mkdir(opt.LogDir, os.ModePerm) //
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 
-	_, err = os.Open(*BIdir)
+	_, err = os.Open(opt.BIDir)
 	if err != nil {
 		//文件不存在
-		err := os.Mkdir(*BIdir, os.ModePerm) //
+		err := os.Mkdir(opt.BIDir, os.ModePerm) //
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
+	return opt
+}
+
+func NewApp(opts ...module.Option) module.App {
+	options := newOptions(opts...)
+	app := new(DefaultApp)
+	app.opts = options
+	options.Selector.Init(selector.SetWatcher(app.Watcher))
+	app.rpcserializes = map[string]module.RPCSerialize{}
+	return app
+}
+
+type DefaultApp struct {
+	//module.App
+	version       string
+	settings      conf.Config
+	serverList    sync.Map
+	opts          module.Options
+	defaultRoutes func(app module.App, Type string, hash string) module.ServerSession
+	//将一个RPC调用路由到新的路由上
+	mapRoute            func(app module.App, route string) string
+	rpcserializes       map[string]module.RPCSerialize
+	configurationLoaded func(app module.App)
+	startup             func(app module.App)
+	moduleInited        func(app module.App, module module.Module)
+	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
+}
+
+func (app *DefaultApp) Run(mods ...module.Module) error {
+	f, err := os.Open(app.opts.ConfPath)
+	if err != nil {
+		//文件不存在
+		panic(fmt.Sprintf("config path error %v", err))
+	}
 	var cof conf.Config
-	fmt.Println("Server configuration path :", *confPath)
+	fmt.Println("Server configuration path :", app.opts.ConfPath)
 	conf.LoadConfig(f.Name()) //加载配置文件
 	cof = conf.Conf
 	app.Configure(cof) //解析配置信息
-	log.InitLog(debug, *ProcessID, *Logdir, cof.Log)
-	log.InitBI(debug, *ProcessID, *BIdir, cof.BI)
+	log.InitLog(app.opts.Debug, app.opts.ModuleGroup, app.opts.LogDir, cof.Log)
+	log.InitBI(app.opts.Debug, app.opts.ModuleGroup, app.opts.BIDir, cof.BI)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -201,7 +215,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 		manager.Register(mods[i])
 	}
 	app.OnInit(app.settings)
-	manager.Init(app, *ProcessID)
+	manager.Init(app, app.opts.ModuleGroup)
 	if app.startup != nil {
 		app.startup(app)
 	}
@@ -211,7 +225,7 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	sig := <-c
 
 	//如果一分钟都关不了则强制关闭
-	timeout := time.NewTimer(time.Minute)
+	timeout := time.NewTimer(app.opts.KillWaitTTL)
 	wait := make(chan struct{})
 	go func() {
 		manager.Destroy()
@@ -226,23 +240,10 @@ func (app *DefaultApp) Run(debug bool, mods ...module.Module) error {
 	}
 	return nil
 }
-func (app *DefaultApp) Route(moduleType string, fn func(app module.App, Type string, hash string) module.ServerSession) error {
-	app.routes[moduleType] = fn
-	return nil
-}
 
 func (app *DefaultApp) SetMapRoute(fn func(app module.App, route string) string) error {
 	app.mapRoute = fn
 	return nil
-}
-
-func (app *DefaultApp) getRoute(moduleType string) func(app module.App, Type string, hash string) module.ServerSession {
-	fn := app.routes[moduleType]
-	if fn == nil {
-		//如果没有设置的路由,则使用默认的
-		return app.defaultRoutes
-	}
-	return fn
 }
 
 func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerialize) error {
@@ -367,7 +368,7 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 	return sessions
 }
 
-func (app *DefaultApp) GetRouteServer(filter string, hash string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
+func (app *DefaultApp) GetRouteServer(filter string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {
 		//进行一次路由转换
 		filter = app.mapRoute(app, filter)
@@ -387,22 +388,25 @@ func (app *DefaultApp) GetSettings() conf.Config {
 	return app.settings
 }
 func (app *DefaultApp) GetProcessID() string {
-	return app.processId
+	return app.opts.ModuleGroup
+}
+func (app *DefaultApp) GetMoudleGroup() string {
+	return app.opts.ModuleGroup
 }
 func (app *DefaultApp) WorkDir() string {
-	return app.workDir
+	return app.opts.WorkDir
 }
 func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := app.GetRouteServer(moduleType, module.GetServerId())
+	server, e := app.GetRouteServer(moduleType)
 	if e != nil {
 		err = e.Error()
 		return
 	}
-	return server.Call(_func, params...)
+	return server.Call(nil, _func, params...)
 }
 
 func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := app.GetRouteServer(moduleType, module.GetServerId())
+	server, err := app.GetRouteServer(moduleType)
 	if err != nil {
 		return
 	}
@@ -410,20 +414,29 @@ func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _
 }
 
 func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-	server, e := app.GetRouteServer(moduleType, module.GetServerId())
+	server, e := app.GetRouteServer(moduleType)
 	if e != nil {
 		err = e.Error()
 		return
 	}
-	return server.CallArgs(_func, ArgsType, args)
+	return server.CallArgs(nil, _func, ArgsType, args)
 }
 
 func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-	server, err := app.GetRouteServer(moduleType, module.GetServerId())
+	server, err := app.GetRouteServer(moduleType)
 	if err != nil {
 		return
 	}
 	return server.CallNRArgs(_func, ArgsType, args)
+}
+
+func (app *DefaultApp) RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (result interface{}, errstr string) {
+	server, err := app.GetRouteServer(moduleType, opts...)
+	if err != nil {
+		errstr = err.Error()
+		return
+	}
+	return server.Call(ctx, _func, param()...)
 }
 
 func (app *DefaultApp) GetModuleInited() func(app module.App, module module.Module) {

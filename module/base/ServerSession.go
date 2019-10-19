@@ -14,6 +14,7 @@
 package basemodule
 
 import (
+	"context"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/rpc"
@@ -66,8 +67,8 @@ func (c *serverSession) SetNode(node *registry.Node) (err error) {
 /**
 消息请求 需要回复
 */
-func (c *serverSession) Call(_func string, params ...interface{}) (interface{}, string) {
-	return c.Rpc.Call(_func, params...)
+func (c *serverSession) Call(ctx context.Context, _func string, params ...interface{}) (interface{}, string) {
+	return c.Rpc.Call(ctx, _func, params...)
 }
 
 /**
@@ -80,8 +81,8 @@ func (c *serverSession) CallNR(_func string, params ...interface{}) (err error) 
 /**
 消息请求 需要回复
 */
-func (c *serverSession) CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
-	return c.Rpc.CallArgs(_func, ArgsType, args)
+func (c *serverSession) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
+	return c.Rpc.CallArgs(ctx, _func, ArgsType, args)
 }
 
 /**

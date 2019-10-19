@@ -20,6 +20,7 @@ type SelectOptions struct {
 	Filters  []Filter
 	Strategy Strategy
 
+	Param []interface{}
 	// Other options for implementations of the interface
 	// can be stored in a context
 	Context context.Context

@@ -6,9 +6,9 @@ import (
 	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
-	"net/url"
 )
 
 type WSServer struct {
@@ -35,7 +35,7 @@ type WSHandler struct {
 func (handler *WSHandler) Echo(conn *websocket.Conn) {
 	handler.wg.Add(1)
 	defer handler.wg.Done()
-	conn.PayloadType=websocket.BinaryFrame
+	conn.PayloadType = websocket.BinaryFrame
 	wsConn := newWSConn(conn)
 	agent := handler.newAgent(wsConn)
 	agent.Run()
@@ -52,8 +52,8 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", 405)
 		return
 	}
-	ws:=websocket.Server{
-		Handler:websocket.Handler(handler.Echo),
+	ws := websocket.Server{
+		Handler: websocket.Handler(handler.Echo),
 		Handshake: func(config *websocket.Config, request *http.Request) error {
 			var scheme string
 			if request.TLS != nil {
@@ -61,12 +61,12 @@ func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else {
 				scheme = "ws"
 			}
-			config.Origin,_=url.ParseRequestURI(scheme + "://" + request.RemoteAddr + request.URL.RequestURI())
-			config.Protocol=[]string{"mqttv3.1"}
+			config.Origin, _ = url.ParseRequestURI(scheme + "://" + request.RemoteAddr + request.URL.RequestURI())
+			config.Protocol = []string{"mqttv3.1"}
 			return nil
 		},
 	}
-	ws.ServeHTTP(w,r)
+	ws.ServeHTTP(w, r)
 }
 
 func (server *WSServer) Start() {
@@ -99,8 +99,8 @@ func (server *WSServer) Start() {
 		maxMsgLen:  server.MaxMsgLen,
 		newAgent:   server.NewAgent,
 	}
-	ws:=websocket.Server{
-		Handler:websocket.Handler(server.handler.Echo),
+	ws := websocket.Server{
+		Handler: websocket.Handler(server.handler.Echo),
 		Handshake: func(config *websocket.Config, r *http.Request) error {
 			var scheme string
 			if r.TLS != nil {
@@ -108,8 +108,8 @@ func (server *WSServer) Start() {
 			} else {
 				scheme = "ws"
 			}
-			config.Origin,_=url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
-			config.Protocol=[]string{"mqttv3.1"}
+			config.Origin, _ = url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
+			config.Protocol = []string{"mqttv3.1"}
 			return nil
 		},
 	}

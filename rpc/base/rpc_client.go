@@ -14,6 +14,7 @@
 package defaultrpc
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/log"
@@ -49,7 +50,7 @@ func (c *RPCClient) Done() (err error) {
 	return
 }
 
-func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (interface{}, string) {
+func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
@@ -73,6 +74,9 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 	if err != nil {
 		return nil, err.Error()
 	}
+	if ctx == nil {
+		ctx, _ = context.WithTimeout(context.TODO(), time.Second*time.Duration(c.app.GetSettings().Rpc.RpcExpired))
+	}
 	select {
 	case resultInfo, ok := <-callback:
 		if !ok {
@@ -83,10 +87,14 @@ func (c *RPCClient) CallArgs(_func string, ArgsType []string, args [][]byte) (in
 			return nil, err.Error()
 		}
 		return result, resultInfo.Error
-	case <-time.After(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
+	case <-ctx.Done():
 		close(callback)
 		c.nats_client.Delete(rpcInfo.Cid)
 		return nil, "deadline exceeded"
+		//case <-time.After(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
+		//	close(callback)
+		//	c.nats_client.Delete(rpcInfo.Cid)
+		//	return nil, "deadline exceeded"
 	}
 }
 
@@ -113,7 +121,7 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 /**
 消息请求 需要回复
 */
-func (c *RPCClient) Call(_func string, params ...interface{}) (interface{}, string) {
+func (c *RPCClient) Call(ctx context.Context, _func string, params ...interface{}) (interface{}, string) {
 	var ArgsType []string = make([]string, len(params))
 	var args [][]byte = make([][]byte, len(params))
 	var span log.TraceSpan = nil
@@ -130,7 +138,7 @@ func (c *RPCClient) Call(_func string, params ...interface{}) (interface{}, stri
 		}
 	}
 	start := time.Now()
-	r, errstr := c.CallArgs(_func, ArgsType, args)
+	r, errstr := c.CallArgs(ctx, _func, ArgsType, args)
 	if c.app.GetSettings().Rpc.Log {
 		log.TInfo(span, "RPC Call ServerId = %v Func = %v Elapsed = %v Result = %v ERROR = %v", c.nats_client.session.GetId(), _func, time.Since(start), r, errstr)
 	}

@@ -17,10 +17,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"runtime"
-	"strings"
-	"time"
-
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/gate/base/mqtt"
@@ -29,7 +25,10 @@ import (
 	"github.com/liangdas/mqant/network"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
+	"runtime"
+	"strings"
 	"sync"
+	"time"
 )
 
 //type resultInfo struct {
@@ -139,7 +138,7 @@ func (a *agent) Run() (err error) {
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
 	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
 	a.client = c
-	addr:=a.conn.RemoteAddr()
+	addr := a.conn.RemoteAddr()
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
 		"Sessionid": utils.GenerateID().String(),
 		"Network":   addr.Network(),
@@ -258,17 +257,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 			}
 			var ArgsType []string = make([]string, 2)
 			var args [][]byte = make([][]byte, 2)
-			hash := ""
-			if a.session.GetUserId() != "" {
-				hash = a.session.GetUserId()
-			} else {
-				hash = a.module.GetServerId()
-			}
-			//if (a.gate.GetTracingHandler() != nil) && a.gate.GetTracingHandler().OnRequestTracing(a.session, *pub.GetTopic(), pub.GetMsg()) {
-			//	a.session.CreateRootSpan("gate")
-			//}
-
-			serverSession, err := a.module.GetRouteServer(topics[0], hash)
+			serverSession, err := a.module.GetRouteServer(topics[0])
 			if err != nil {
 				if msgid != "" {
 					toResult(a, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
@@ -299,7 +288,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					return
 				}
 				args[0] = b
-				result, e := serverSession.CallArgs(topics[1], ArgsType, args)
+				result, e := serverSession.CallArgs(nil, topics[1], ArgsType, args)
 				toResult(a, *pub.GetTopic(), result, e)
 			} else {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE

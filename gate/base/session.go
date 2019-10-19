@@ -168,6 +168,26 @@ func (this *sessionagent) Serializable() ([]byte, error) {
 	return data, nil
 }
 
+func (this *sessionagent) Marshal() ([]byte, error) {
+	data, err := proto.Marshal(this.session)
+	if err != nil {
+		return nil, err
+	} // 进行解码
+	return data, nil
+}
+func (this *sessionagent) Unmarshal(data []byte) error {
+	se := &SessionImp{}
+	err := proto.Unmarshal(data, se)
+	if err != nil {
+		return err
+	} // 测试结果
+	this.session = se
+	return nil
+}
+func (this *sessionagent) String() string {
+	return "gate.Session"
+}
+
 func (this *sessionagent) Update() (err string) {
 	if this.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
@@ -178,7 +198,7 @@ func (this *sessionagent) Update() (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
-	result, err := server.Call("Update", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	result, err := server.Call(nil, "Update", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
@@ -198,7 +218,7 @@ func (this *sessionagent) Bind(Userid string) (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
-	result, err := server.Call("Bind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, Userid)
+	result, err := server.Call(nil, "Bind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, Userid)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
@@ -218,7 +238,7 @@ func (this *sessionagent) UnBind() (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
-	result, err := server.Call("UnBind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	result, err := server.Call(nil, "UnBind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
@@ -238,7 +258,7 @@ func (this *sessionagent) Push() (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
-	result, err := server.Call("Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, this.session.Settings)
+	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, this.session.Settings)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
@@ -297,7 +317,7 @@ func (this *sessionagent) Send(topic string, body []byte) string {
 	if e != nil {
 		return fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 	}
-	_, err := server.Call("Send", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, topic, body)
+	_, err := server.Call(nil, "Send", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, topic, body)
 	return err
 }
 
@@ -309,7 +329,7 @@ func (this *sessionagent) SendBatch(Sessionids string, topic string, body []byte
 	if e != nil {
 		return 0, fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 	}
-	count, err := server.Call("SendBatch", log.CreateTrace(this.TraceId(), this.SpanId()), Sessionids, topic, body)
+	count, err := server.Call(nil, "SendBatch", log.CreateTrace(this.TraceId(), this.SpanId()), Sessionids, topic, body)
 	if err != "" {
 		return 0, err
 	}
@@ -324,7 +344,7 @@ func (this *sessionagent) IsConnect(userId string) (bool, string) {
 	if e != nil {
 		return false, fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 	}
-	result, err := server.Call("IsConnect", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, userId)
+	result, err := server.Call(nil, "IsConnect", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, userId)
 	return result.(bool), err
 }
 
@@ -360,7 +380,7 @@ func (this *sessionagent) Close() (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
-	_, err = server.Call("Close", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	_, err = server.Call(nil, "Close", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
 	return
 }
 

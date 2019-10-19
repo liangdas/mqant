@@ -296,44 +296,82 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		if len(ArgsType) > 0 {
 			in = make([]reflect.Value, len(params))
 			for k, v := range ArgsType {
-				ty, err := argsutil.Bytes2Args(s.app, v, params[k])
-				if err != nil {
-					_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
-					return
-				}
-				switch v2 := ty.(type) { //多选语句switch
-				case gate.Session:
-					//尝试加载Span
-					if v2 != nil {
-						session = v2.Clone()
-						span = session
-					}
-					in[k] = reflect.ValueOf(ty)
-				case log.TraceSpan:
-					//尝试加载Span
-					if v2 != nil {
-						span = v2.ExtractSpan()
-					}
-					in[k] = reflect.ValueOf(ty)
-				case []uint8:
-					if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)) {
-						in[k] = reflect.ValueOf(ty)
-					} else {
-						elemp := reflect.New(f.Type().In(k))
-						err := json.Unmarshal(v2, elemp.Interface())
-						if err != nil {
-							log.Error("%v []uint8--> %v error with='%v'", callInfo.RpcInfo.Fn, f.Type().In(k), err)
-							in[k] = reflect.ValueOf(ty)
-						} else {
-							in[k] = elemp.Elem()
-						}
-					}
-				case nil:
-					in[k] = reflect.Zero(f.Type().In(k))
-				default:
-					in[k] = reflect.ValueOf(ty)
+				rv := f.Type().In(k)
+				var elemp reflect.Value
+				if rv.Kind() == reflect.Ptr {
+					//如果是指针类型就得取到指针所代表的具体类型
+					elemp = reflect.New(rv.Elem())
+				} else {
+					elemp = reflect.New(rv)
 				}
 
+				if pb, ok := elemp.Interface().(mqrpc.Marshaler); ok {
+					err := pb.Unmarshal(params[k])
+					if err != nil {
+						_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
+						return
+					}
+					switch v2 := pb.(type) { //多选语句switch
+					case gate.Session:
+						//尝试加载Span
+						if v2 != nil {
+							session = v2.Clone()
+							span = session
+						}
+					case log.TraceSpan:
+						//尝试加载Span
+						if v2 != nil {
+							span = v2.ExtractSpan()
+						}
+					}
+					if rv.Kind() == reflect.Ptr {
+						//接收指针变量的参数
+						in[k] = reflect.ValueOf(elemp.Interface())
+					} else {
+						//接收值变量
+						in[k] = elemp.Elem()
+					}
+				} else {
+					//不是Marshaler 才尝试用 argsutil 解析
+					ty, err := argsutil.Bytes2Args(s.app, v, params[k])
+					if err != nil {
+						_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
+						return
+					}
+					switch v2 := ty.(type) { //多选语句switch
+					case gate.Session:
+						//尝试加载Span
+						if v2 != nil {
+							session = v2.Clone()
+							span = session
+						}
+						in[k] = reflect.ValueOf(ty)
+					case log.TraceSpan:
+						//尝试加载Span
+						if v2 != nil {
+							span = v2.ExtractSpan()
+						}
+						in[k] = reflect.ValueOf(ty)
+					case []uint8:
+						if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)) {
+							//如果ty "继承" 于接受参数类型
+							in[k] = reflect.ValueOf(ty)
+						} else {
+							elemp := reflect.New(f.Type().In(k))
+							err := json.Unmarshal(v2, elemp.Interface())
+							if err != nil {
+								log.Error("%v []uint8--> %v error with='%v'", callInfo.RpcInfo.Fn, f.Type().In(k), err)
+								in[k] = reflect.ValueOf(ty)
+							} else {
+								in[k] = elemp.Elem()
+							}
+						}
+					case nil:
+						in[k] = reflect.Zero(f.Type().In(k))
+					default:
+						in[k] = reflect.ValueOf(ty)
+					}
+				}
 			}
 		}
 
@@ -348,7 +386,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		out := f.Call(in)
 		var rs []interface{}
 		if len(out) != 2 {
-			_errorCallback(callInfo.RpcInfo.Cid, "The number of prepare is not adapted.", span)
+			_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RpcInfo.Fn, "func(....)(result interface{}, err error)"), span)
 			return
 		}
 		if len(out) > 0 { //prepare out paras
@@ -357,6 +395,19 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 				rs[i] = v.Interface()
 			}
 		}
+		var rerr string
+		switch e := rs[1].(type) {
+		case string:
+			rerr = e
+			break
+		case error:
+			rerr = e.Error()
+		case nil:
+			rerr = ""
+		default:
+			_errorCallback(callInfo.RpcInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RpcInfo.Fn, "func(....)(result interface{}, err error)"), span)
+			return
+		}
 		argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
 		if err != nil {
 			_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
@@ -364,7 +415,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		}
 		resultInfo := rpcpb.NewResultInfo(
 			callInfo.RpcInfo.Cid,
-			rs[1].(string),
+			rerr,
 			argsType,
 			args,
 		)

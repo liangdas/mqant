@@ -10,10 +10,17 @@ import (
 type Option func(*Options)
 
 type Options struct {
-	Nats     *nats.Conn
-	Version  string
-	Registry registry.Registry
-	Selector selector.Selector
+	Nats        *nats.Conn
+	Version     string
+	Debug       bool
+	WorkDir     string
+	ConfPath    string
+	LogDir      string
+	BIDir       string
+	ModuleGroup string
+	KillWaitTTL time.Duration
+	Registry    registry.Registry
+	Selector    selector.Selector
 	// Register loop interval
 	RegisterInterval time.Duration
 	RegisterTTL      time.Duration
@@ -22,6 +29,43 @@ type Options struct {
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
+	}
+}
+
+//只有是在调试模式下才会在控制台打印日志, 非调试模式下只在日志文件中输出日志
+func Debug(t bool) Option {
+	return func(o *Options) {
+		o.Debug = t
+	}
+}
+
+func WorkDir(v string) Option {
+	return func(o *Options) {
+		o.WorkDir = v
+	}
+}
+
+func Configure(v string) Option {
+	return func(o *Options) {
+		o.ConfPath = v
+	}
+}
+
+func LogDir(v string) Option {
+	return func(o *Options) {
+		o.LogDir = v
+	}
+}
+
+func ModuleGroup(v string) Option {
+	return func(o *Options) {
+		o.ModuleGroup = v
+	}
+}
+
+func BILogDir(v string) Option {
+	return func(o *Options) {
+		o.BIDir = v
 	}
 }
 
@@ -57,5 +101,12 @@ func RegisterTTL(t time.Duration) Option {
 func RegisterInterval(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterInterval = t
+	}
+}
+
+// RegisterInterval specifies the interval on which to re-register
+func KillWaitTTL(t time.Duration) Option {
+	return func(o *Options) {
+		o.KillWaitTTL = t
 	}
 }

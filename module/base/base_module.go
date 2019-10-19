@@ -147,42 +147,37 @@ func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 func (m *BaseModule) GetModuleSettings() *conf.ModuleSettings {
 	return m.settings
 }
-func (m *BaseModule) GetRouteServer(moduleType string, hash string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
-	return m.App.GetRouteServer(moduleType, hash, opts...)
+func (m *BaseModule) GetRouteServer(moduleType string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
+	return m.App.GetRouteServer(moduleType, opts...)
 }
 
 func (m *BaseModule) RpcInvoke(moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
-	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
-	if e != nil {
-		err = e.Error()
-		return
-	}
-	return server.Call(_func, params...)
+	return m.App.RpcInvoke(m.GetSubclass(), moduleType, _func, params...)
 }
 
 func (m *BaseModule) RpcInvokeNR(moduleType string, _func string, params ...interface{}) (err error) {
-	server, err := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
-	if err != nil {
-		return
-	}
-	return server.CallNR(_func, params...)
+	return m.App.RpcInvokeNR(m.GetSubclass(), moduleType, _func, params...)
 }
 
 func (m *BaseModule) RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-	server, e := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
+	server, e := m.App.GetRouteServer(moduleType)
 	if e != nil {
 		err = e.Error()
 		return
 	}
-	return server.CallArgs(_func, ArgsType, args)
+	return server.CallArgs(nil, _func, ArgsType, args)
 }
 
 func (m *BaseModule) RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-	server, err := m.App.GetRouteServer(moduleType, m.subclass.GetServerId())
+	server, err := m.App.GetRouteServer(moduleType)
 	if err != nil {
 		return
 	}
 	return server.CallNRArgs(_func, ArgsType, args)
+}
+
+func (m *BaseModule) RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (interface{}, string) {
+	return m.App.RpcCall(ctx, moduleType, _func, param, opts...)
 }
 
 func (m *BaseModule) NoFoundFunction(fn string) (*mqrpc.FunctionInfo, error) {
