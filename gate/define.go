@@ -65,7 +65,8 @@ type Session interface {
 	UnBind() (err string)
 	Push() (err string)
 	Set(key string, value string) (err string)
-	SetPush(key string, value string) (err string) //设置值以后立即推送到gate网关
+	SetPush(key string, value string) (err string)    //设置值以后立即推送到gate网关,跟Set功能相同
+	SetBatch(settings map[string]string) (err string) //批量设置settings,跟当前已存在的settings合并,如果跟当前已存在的key重复则会被新value覆盖
 	Get(key string) (result string)
 	Remove(key string) (err string)
 	Send(topic string, body []byte) (err string)

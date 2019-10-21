@@ -78,8 +78,6 @@ type App interface {
 	*/
 	ProtocolMarshal(Trace string, Result interface{}, Error string) (ProtocolMarshal, string)
 	NewProtocolMarshal(data []byte) ProtocolMarshal
-	GetMoudleGroup() string
-	//计划废弃,用GetMoudleGroup代替
 	GetProcessID() string
 	WorkDir() string
 }

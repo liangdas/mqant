@@ -69,7 +69,7 @@ func newOptions(opts ...module.Option) module.Options {
 		RegisterTTL:      time.Second * time.Duration(20),
 		KillWaitTTL:      time.Second * time.Duration(60),
 		Debug:            true,
-		ModuleGroup:      "development",
+		ProcessID:        "development",
 	}
 
 	for _, o := range opts {
@@ -87,8 +87,8 @@ func newOptions(opts ...module.Option) module.Options {
 	if opt.WorkDir == "" {
 		opt.WorkDir = *wdPath
 	}
-	if opt.ModuleGroup == "" {
-		opt.ModuleGroup = *ProcessID
+	if opt.ProcessID == "" {
+		opt.ProcessID = *ProcessID
 	}
 	ApplicationDir := ""
 	if *wdPath != "" {
@@ -198,8 +198,8 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	conf.LoadConfig(f.Name()) //加载配置文件
 	cof = conf.Conf
 	app.Configure(cof) //解析配置信息
-	log.InitLog(app.opts.Debug, app.opts.ModuleGroup, app.opts.LogDir, cof.Log)
-	log.InitBI(app.opts.Debug, app.opts.ModuleGroup, app.opts.BIDir, cof.BI)
+	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
+	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 
 	log.Info("mqant %v starting up", app.version)
 
@@ -215,7 +215,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		manager.Register(mods[i])
 	}
 	app.OnInit(app.settings)
-	manager.Init(app, app.opts.ModuleGroup)
+	manager.Init(app, app.opts.ProcessID)
 	if app.startup != nil {
 		app.startup(app)
 	}
@@ -388,10 +388,7 @@ func (app *DefaultApp) GetSettings() conf.Config {
 	return app.settings
 }
 func (app *DefaultApp) GetProcessID() string {
-	return app.opts.ModuleGroup
-}
-func (app *DefaultApp) GetMoudleGroup() string {
-	return app.opts.ModuleGroup
+	return app.opts.ProcessID
 }
 func (app *DefaultApp) WorkDir() string {
 	return app.opts.WorkDir

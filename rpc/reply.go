@@ -253,5 +253,5 @@ func Marshal(mrsp interface{}, ff func() (reply interface{}, err interface{})) e
 			return fmt.Errorf("mrsp [%v ] not *mqrpc.marshaler type", rv.Type())
 		}
 	}
-	return fmt.Errorf("mqrpc: unexpected type for []Byte, got type %T", reply)
+	return fmt.Errorf("mqrpc: unexpected type for %v, got type %T", reflect.ValueOf(reply), reply)
 }

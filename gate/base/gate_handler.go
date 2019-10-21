@@ -186,7 +186,10 @@ func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string
 		err = "No Sesssion found"
 		return
 	}
-	agent.(gate.Agent).GetSession().SetSettings(Settings)
+	//覆盖当前map对应的key-value
+	for key, value := range Settings {
+		agent.(gate.Agent).GetSession().GetSettings()[key] = value
+	}
 	result = agent.(gate.Agent).GetSession()
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())

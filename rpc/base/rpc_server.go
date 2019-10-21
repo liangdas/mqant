@@ -323,6 +323,8 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						if v2 != nil {
 							span = v2.ExtractSpan()
 						}
+					case nil:
+						in[k] = reflect.Zero(f.Type().In(k))
 					}
 					if rv.Kind() == reflect.Ptr {
 						//接收指针变量的参数
@@ -352,6 +354,8 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 							span = v2.ExtractSpan()
 						}
 						in[k] = reflect.ValueOf(ty)
+					case nil:
+						in[k] = reflect.Zero(f.Type().In(k))
 					case []uint8:
 						if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)) {
 							//如果ty "继承" 于接受参数类型
@@ -366,8 +370,6 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 								in[k] = elemp.Elem()
 							}
 						}
-					case nil:
-						in[k] = reflect.Zero(f.Type().In(k))
 					default:
 						in[k] = reflect.ValueOf(ty)
 					}

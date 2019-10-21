@@ -19,6 +19,7 @@ import (
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/utils"
 	"strconv"
 )
@@ -273,10 +274,22 @@ func (this *sessionagent) Set(key string, value string) (err string) {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	if this.session.Settings == nil {
-		this.session.Settings = map[string]string{}
+	result, err := this.app.RpcCall(nil,
+		this.session.ServerId,
+		"Set",
+		mqrpc.Param(
+			log.CreateTrace(this.TraceId(), this.SpanId()),
+			this.session.SessionId,
+			key,
+			value,
+		),
+	)
+	if err == "" {
+		if result != nil {
+			//绑定成功,重新更新当前Session
+			this.update(result.(gate.Session))
+		}
 	}
-	this.session.Settings[key] = value
 	return
 }
 func (this *sessionagent) SetPush(key string, value string) (err string) {
@@ -290,6 +303,25 @@ func (this *sessionagent) SetPush(key string, value string) (err string) {
 	this.session.Settings[key] = value
 	return this.Push()
 }
+func (this *sessionagent) SetBatch(settings map[string]string) (err string) {
+	if this.app == nil {
+		err = fmt.Sprintf("Module.App is nil")
+		return
+	}
+	server, e := this.app.GetServerById(this.session.ServerId)
+	if e != nil {
+		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		return
+	}
+	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, settings)
+	if err == "" {
+		if result != nil {
+			//绑定成功,重新更新当前Session
+			this.update(result.(gate.Session))
+		}
+	}
+	return
+}
 func (this *sessionagent) Get(key string) (result string) {
 	if this.session.Settings == nil {
 		return
@@ -298,15 +330,26 @@ func (this *sessionagent) Get(key string) (result string) {
 	return
 }
 
-func (this *sessionagent) Remove(key string) (err string) {
+func (this *sessionagent) Remove(key string) (errStr string) {
 	if this.app == nil {
-		err = fmt.Sprintf("Module.App is nil")
+		errStr = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	if this.session.Settings == nil {
-		this.session.Settings = map[string]string{}
+	result, err := this.app.RpcCall(nil,
+		this.session.ServerId,
+		"Remove",
+		mqrpc.Param(
+			log.CreateTrace(this.TraceId(), this.SpanId()),
+			this.session.SessionId,
+			key,
+		),
+	)
+	if err == "" {
+		if result != nil {
+			//绑定成功,重新更新当前Session
+			this.update(result.(gate.Session))
+		}
 	}
-	delete(this.session.Settings, key)
 	return
 }
 func (this *sessionagent) Send(topic string, body []byte) string {

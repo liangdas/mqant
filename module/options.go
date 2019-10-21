@@ -17,7 +17,7 @@ type Options struct {
 	ConfPath    string
 	LogDir      string
 	BIDir       string
-	ModuleGroup string
+	ProcessID   string
 	KillWaitTTL time.Duration
 	Registry    registry.Registry
 	Selector    selector.Selector
@@ -57,9 +57,9 @@ func LogDir(v string) Option {
 	}
 }
 
-func ModuleGroup(v string) Option {
+func ProcessID(v string) Option {
 	return func(o *Options) {
-		o.ModuleGroup = v
+		o.ProcessID = v
 	}
 }
 
