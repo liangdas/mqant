@@ -100,6 +100,14 @@ type RPCModule interface {
 	RpcInvokeNR(moduleType string, _func string, params ...interface{}) error
 	RpcInvokeArgs(moduleType string, _func string, ArgsType []string, args [][]byte) (interface{}, string)
 	RpcInvokeNRArgs(moduleType string, _func string, ArgsType []string, args [][]byte) error
+	/*
+		通用RPC调度函数
+		ctx 		context.Context 			上下文,可以设置这次请求的超时时间
+		moduleType	string 						服务名称
+		_func		string						需要调度的服务方法
+		param 		mqrpc.ParamOption			方法传参
+		opts ...selector.SelectOption			服务发现模块过滤，可以用来选择调用哪个服务节点
+	*/
 	RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (interface{}, string)
 	GetModuleSettings() (settings *conf.ModuleSettings)
 	/**

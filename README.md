@@ -1,5 +1,5 @@
 # mqant
-mqant是一款基于Golang语言的简洁,高效,高性能的分布式游戏服务器框架,研发的初衷是要实现一款能支持高并发,高性能,高实时性,的游戏服务器框架,也希望mqant未来能够做即时通讯和物联网方面的应用
+mqant是一款基于Golang语言的简洁,高效,高性能的分布式微服务游戏服务器框架,研发的初衷是要实现一款能支持高并发,高性能,高实时性,的游戏服务器框架,也希望mqant未来能够做即时通讯和物联网方面的应用
 
 # mqant 2x开始支持分布式服务发现
 
@@ -12,7 +12,7 @@ mqant是一款基于Golang语言的简洁,高效,高性能的分布式游戏服�
 
 #	特性
 1. 高性能分布式
-2. 支持分布式服务发现
+2. 支持分布式服务注册发现,是一款功能完整的微服务框架
 3. 基于golang协程,开发过程全程做到无callback回调,代码可读性更高
 4. 远程RPC使用nats作为通道
 5. 网关采用MQTT协议,无需再开发客户端底层库,直接套用已有的MQTT客户端代码库,可以支持IOS,Android,websocket,PC等多平台通信
@@ -120,6 +120,10 @@ bug请直接通过issue提交
 ![alt mqant作者打赏码](https://github.com/liangdas/mqant/wiki/images/donation.png)
 
 ## 版本日志
+
+### [v2.5.0新特性](https://github.com/liangdas/mqant/wiki/v2.5.0)
+
+### [v2.0.0新特性](https://github.com/liangdas/mqant/wiki/v2.0.0)
 
 ### [v1.7.0新特性](https://github.com/liangdas/mqant/wiki/v1.7.0)
 
