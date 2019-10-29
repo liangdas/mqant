@@ -109,7 +109,8 @@ func (server *WSServer) Start() {
 				scheme = "ws"
 			}
 			config.Origin, _ = url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
-			config.Protocol = []string{"mqttv3.1"}
+			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
+			config.Protocol = []string{offeredProtocol}
 			return nil
 		},
 	}
