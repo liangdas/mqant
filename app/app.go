@@ -69,7 +69,6 @@ func newOptions(opts ...module.Option) module.Options {
 		RegisterTTL:      time.Second * time.Duration(20),
 		KillWaitTTL:      time.Second * time.Duration(60),
 		Debug:            true,
-		ProcessID:        "development",
 	}
 
 	for _, o := range opts {
