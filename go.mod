@@ -22,8 +22,6 @@ require (
 	github.com/hashicorp/consul/api v1.1.0
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/nats-io/gnatsd v1.4.1 // indirect
 	github.com/nats-io/go-nats v1.7.3-0.20190608183121-73ffc26dfe70
 	github.com/nats-io/nats-server v1.4.1 // indirect
