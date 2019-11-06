@@ -16,6 +16,7 @@ package argsutil
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
@@ -36,7 +37,8 @@ var (
 	MAP     = "map"     //map[string]interface{}
 	MAPSTR  = "mapstr"  //map[string]string{}
 	TRACE   = "trace"   //log.TraceSpanImp
-	Marshal = "marshal" //log.TraceSpanImp
+	Marshal = "marshal" //mqrpc.Marshaler
+	Proto = "proto" //proto.Message
 )
 
 func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) {
@@ -97,7 +99,7 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 		rv := reflect.ValueOf(arg)
 		if rv.Kind() != reflect.Ptr {
 			//不是指针
-			return "", nil, fmt.Errorf("Args2Bytes [%v ] not registered to app.addrpcserialize(...) structure type or not *mqrpc.marshaler pointer type", reflect.TypeOf(arg))
+			return "", nil, fmt.Errorf("Args2Bytes [%v] not registered to app.addrpcserialize(...) structure type or not *mqrpc.marshaler pointer type", reflect.TypeOf(arg))
 		} else {
 			if v2, ok := arg.(mqrpc.Marshaler); ok {
 				b, err := v2.Marshal()
@@ -110,6 +112,17 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 					return fmt.Sprintf("%v@%v", Marshal, reflect.TypeOf(arg)), b, nil
 				}
 			}
+			if v2, ok := arg.(proto.Message); ok {
+				b, err := proto.Marshal(v2)
+				if err != nil {
+					return "", nil, fmt.Errorf("args [%s] proto.Marshal error %v", reflect.TypeOf(arg), err)
+				}
+				if v2.String() != "" {
+					return fmt.Sprintf("%v@%v", Proto, v2.String()), b, nil
+				} else {
+					return fmt.Sprintf("%v@%v", Proto, reflect.TypeOf(arg)), b, nil
+				}
+			}
 		}
 
 		return "", nil, fmt.Errorf("Args2Bytes [%s] not registered to app.addrpcserialize(...) structure type", reflect.TypeOf(arg))
@@ -118,6 +131,9 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 
 func Bytes2Args(app module.App, argsType string, args []byte) (interface{}, error) {
 	if strings.HasPrefix(argsType, Marshal) {
+		return args, nil
+	}
+	if strings.HasPrefix(argsType, Proto) {
 		return args, nil
 	}
 	switch argsType {

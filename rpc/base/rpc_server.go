@@ -16,6 +16,7 @@ package defaultrpc
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
@@ -307,6 +308,34 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 
 				if pb, ok := elemp.Interface().(mqrpc.Marshaler); ok {
 					err := pb.Unmarshal(params[k])
+					if err != nil {
+						_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
+						return
+					}
+					switch v2 := pb.(type) { //多选语句switch
+					case gate.Session:
+						//尝试加载Span
+						if v2 != nil {
+							session = v2.Clone()
+							span = session
+						}
+					case log.TraceSpan:
+						//尝试加载Span
+						if v2 != nil {
+							span = v2.ExtractSpan()
+						}
+					case nil:
+						in[k] = reflect.Zero(f.Type().In(k))
+					}
+					if rv.Kind() == reflect.Ptr {
+						//接收指针变量的参数
+						in[k] = reflect.ValueOf(elemp.Interface())
+					} else {
+						//接收值变量
+						in[k] = elemp.Elem()
+					}
+				}else if pb, ok := elemp.Interface().(proto.Message); ok {
+					err := proto.Unmarshal(params[k],pb)
 					if err != nil {
 						_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
 						return
