@@ -23,8 +23,7 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/gnatsd v1.4.1 // indirect
-	github.com/nats-io/go-nats v1.7.3-0.20190608183121-73ffc26dfe70
-	github.com/nats-io/nats-server v1.4.1 // indirect
+	github.com/nats-io/go-nats v1.7.2
 	github.com/nats-io/nkeys v0.1.0 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pborman/uuid v1.2.0
