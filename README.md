@@ -50,7 +50,7 @@ QQ交流群 :463735103
 	go get github.com/golang/protobuf
 	go get github.com/golang/net/context
 	go get github.com/gomodule/redigo
-	go get github.com/nats-io/go-nats
+	go get github.com/nats-io/nats.go
 
 
 #	文档

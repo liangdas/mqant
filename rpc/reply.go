@@ -278,7 +278,7 @@ func Proto(mrsp interface{}, ff func() (reply interface{}, err interface{})) err
 		if v2, ok := mrsp.(proto.Message); ok {
 			switch r := reply.(type) {
 			case []byte:
-				err := proto.Unmarshal(r,v2)
+				err := proto.Unmarshal(r, v2)
 				if err != nil {
 					return err
 				}

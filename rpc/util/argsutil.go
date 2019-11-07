@@ -38,7 +38,7 @@ var (
 	MAPSTR  = "mapstr"  //map[string]string{}
 	TRACE   = "trace"   //log.TraceSpanImp
 	Marshal = "marshal" //mqrpc.Marshaler
-	Proto = "proto" //proto.Message
+	Proto   = "proto"   //proto.Message
 )
 
 func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) {

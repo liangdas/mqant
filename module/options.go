@@ -3,7 +3,7 @@ package module
 import (
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/selector"
-	"github.com/nats-io/go-nats"
+	"github.com/nats-io/nats.go"
 	"time"
 )
 

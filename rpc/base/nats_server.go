@@ -20,7 +20,7 @@ import (
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
-	"github.com/nats-io/go-nats"
+	"github.com/nats-io/nats.go"
 	"runtime"
 	"strings"
 	"time"

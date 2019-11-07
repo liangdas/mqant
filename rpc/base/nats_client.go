@@ -21,7 +21,7 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/utils"
-	"github.com/nats-io/go-nats"
+	"github.com/nats-io/nats.go"
 	"runtime"
 	"sync"
 	"time"

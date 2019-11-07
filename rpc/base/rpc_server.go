@@ -334,8 +334,8 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						//接收值变量
 						in[k] = elemp.Elem()
 					}
-				}else if pb, ok := elemp.Interface().(proto.Message); ok {
-					err := proto.Unmarshal(params[k],pb)
+				} else if pb, ok := elemp.Interface().(proto.Message); ok {
+					err := proto.Unmarshal(params[k], pb)
 					if err != nil {
 						_errorCallback(callInfo.RpcInfo.Cid, err.Error(), span)
 						return
