@@ -174,11 +174,19 @@ loop:
 
 	//log.Info("read_loop Groutine will esc.")
 }
+func (queue *PackQueue) CloseFch() {
+	defer func() {
+		if recover() != nil {
+			// close(ch) panic occur
+		}
+	}()
 
+	close(queue.fch) // panic if ch is closed
+}
 // Close the all of queue's channels
 func (queue *PackQueue) Close(err error) error {
 	queue.writeError = err
-	close(queue.fch)
+	queue.CloseFch()
 	queue.status = CLOSED
 	return nil
 }
