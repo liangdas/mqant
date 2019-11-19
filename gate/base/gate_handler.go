@@ -15,6 +15,7 @@ package basegate
 
 import (
 	"fmt"
+	"runtime"
 
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
@@ -40,6 +41,13 @@ func NewGateHandler(gate gate.Gate) *handler {
 
 //当连接建立  并且MQTT协议握手成功
 func (h *handler) Connect(a gate.Agent) {
+	defer func() {
+		if err := recover(); err != nil {
+			buff := make([]byte, 1024)
+			runtime.Stack(buff, false)
+			log.Error("handler Connect panic(%v)\n info:%s", err, string(buff))
+		}
+	}()
 	if a.GetSession() != nil {
 		h.sessions.Store(a.GetSession().GetSessionId(), a)
 		h.agentNum++
@@ -51,6 +59,13 @@ func (h *handler) Connect(a gate.Agent) {
 
 //当连接关闭	或者客户端主动发送MQTT DisConnect命令
 func (h *handler) DisConnect(a gate.Agent) {
+	defer func() {
+		if err := recover(); err != nil {
+			buff := make([]byte, 1024)
+			runtime.Stack(buff, false)
+			log.Error("handler DisConnect panic(%v)\n info:%s", err, string(buff))
+		}
+	}()
 	if a.GetSession() != nil {
 		h.sessions.Delete(a.GetSession().GetSessionId())
 		h.agentNum--

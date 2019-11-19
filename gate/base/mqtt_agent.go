@@ -16,6 +16,7 @@ package basegate
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/gate"
@@ -107,6 +108,13 @@ func (a *agent) Run() (err error) {
 
 	}()
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				buff := make([]byte, 1024)
+				runtime.Stack(buff, false)
+				log.Error("OverTime panic(%v)\n info:%s", err, string(buff))
+			}
+		}()
 		select {
 		case <-time.After(a.gate.Options().OverTime):
 			if a.GetSession() == nil {
@@ -165,6 +173,13 @@ func (a *agent) Run() (err error) {
 }
 
 func (a *agent) OnClose() error {
+	defer func() {
+		if err := recover(); err != nil {
+			buff := make([]byte, 1024)
+			runtime.Stack(buff, false)
+			log.Error("agent OnClose panic(%v)\n info:%s", err, string(buff))
+		}
+	}()
 	a.isclose = true
 	a.gate.GetAgentLearner().DisConnect(a) //发送连接断开的事件
 	return nil
@@ -338,14 +353,21 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 }
 
 func (a *agent) WriteMsg(topic string, body []byte) error {
+	if a.client==nil{
+		return errors.New("mqtt.Client nil")
+	}
 	a.send_num++
 	return a.client.WriteMsg(topic, body)
 }
 
 func (a *agent) Close() {
-	a.conn.Close()
+	if a.conn!=nil{
+		a.conn.Close()
+	}
 }
 
 func (a *agent) Destroy() {
-	a.conn.Destroy()
+	if a.conn!=nil{
+		a.conn.Destroy()
+	}
 }

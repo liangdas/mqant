@@ -1,10 +1,7 @@
 package service
 
 import (
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/liangdas/mqant/log"
@@ -136,12 +133,12 @@ func (s *service) Run() error {
 	ex := make(chan bool)
 	go s.run(ex)
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	//ch := make(chan os.Signal, 1)
+	//signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	select {
 	// wait on kill signal
-	case <-ch:
+	//case <-ch:
 	// wait on context cancel
 	case <-s.opts.Context.Done():
 	}
@@ -149,5 +146,6 @@ func (s *service) Run() error {
 	// exit reg loop
 	close(ex)
 
-	return s.Stop()
+	//return s.Stop()
+	return nil
 }

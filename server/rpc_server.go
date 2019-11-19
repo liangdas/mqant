@@ -245,10 +245,6 @@ func (s *rpcServer) Stop() error {
 }
 
 func (s *rpcServer) OnDestroy() error {
-	if err := s.ServiceDeregister(); err != nil {
-		return err
-	}
-
 	return s.Stop()
 }
 

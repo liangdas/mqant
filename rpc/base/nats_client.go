@@ -52,7 +52,15 @@ func (c *NatsClient) Delete(key string) (err error) {
 	c.callinfos.Delete(key)
 	return
 }
+func (c *NatsClient) CloseFch(fch chan rpcpb.ResultInfo) {
+	defer func() {
+		if recover() != nil {
+			// close(ch) panic occur
+		}
+	}()
 
+	close(fch) // panic if ch is closed
+}
 func (c *NatsClient) Done() (err error) {
 	//关闭amqp链接通道
 	//close(c.send_chan)
@@ -62,7 +70,7 @@ func (c *NatsClient) Done() (err error) {
 	for key, clinetCallInfo := range c.callinfos.Items() {
 		if clinetCallInfo != nil {
 			//关闭管道
-			close(clinetCallInfo.(ClinetCallInfo).call)
+			c.CloseFch(clinetCallInfo.(ClinetCallInfo).call)
 			//从Map中删除
 			c.callinfos.Delete(key)
 		}
