@@ -80,7 +80,7 @@ func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network
 		w:       w,
 		conn:    conn,
 		recover: recover,
-		fch:     make(chan struct{}, 1024),
+		fch:     make(chan struct{}, 256),
 		status:  CONNECTED,
 	}
 }
@@ -155,9 +155,9 @@ func (queue *PackQueue) ReadPackInLoop() {
 loop:
 	for queue.isConnected() {
 		if queue.alive > 0 {
-			queue.conn.SetReadDeadline(time.Now().Add(time.Second * time.Duration(int(float64(queue.alive)*1.5))))
+			queue.conn.SetDeadline(time.Now().Add(time.Second * time.Duration(int(float64(queue.alive)*1.5))))
 		} else {
-			queue.conn.SetReadDeadline(time.Now().Add(time.Second * 90))
+			queue.conn.SetDeadline(time.Now().Add(time.Second * 90))
 		}
 		p.pack, p.err = ReadPack(queue.r)
 		if p.err != nil {

@@ -78,7 +78,7 @@ func (wsConn *WSConn) RemoteAddr() net.Addr {
 
 // A zero value for t means I/O operations will not time out.
 func (wsConn *WSConn) SetDeadline(t time.Time) error {
-	err := wsConn.conn.SetWriteDeadline(t)
+	err := wsConn.conn.SetReadDeadline(t)
 	if err != nil {
 		return err
 	}

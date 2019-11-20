@@ -47,27 +47,28 @@ func (handler *WSHandler) Echo(conn *websocket.Conn) {
 	agent.OnClose()
 }
 
-func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", 405)
-		return
-	}
-	ws := websocket.Server{
-		Handler: websocket.Handler(handler.Echo),
-		Handshake: func(config *websocket.Config, request *http.Request) error {
-			var scheme string
-			if request.TLS != nil {
-				scheme = "wss"
-			} else {
-				scheme = "ws"
-			}
-			config.Origin, _ = url.ParseRequestURI(scheme + "://" + request.RemoteAddr + request.URL.RequestURI())
-			config.Protocol = []string{"mqttv3.1"}
-			return nil
-		},
-	}
-	ws.ServeHTTP(w, r)
-}
+//func (handler *WSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+//	if r.Method != "GET" {
+//		http.Error(w, "Method not allowed", 405)
+//		return
+//	}
+//	ws := websocket.Server{
+//		Handler: websocket.Handler(handler.Echo),
+//		Handshake: func(config *websocket.Config, request *http.Request) error {
+//			var scheme string
+//			if request.TLS != nil {
+//				scheme = "wss"
+//			} else {
+//				scheme = "ws"
+//			}
+//			config.Origin, _ = url.ParseRequestURI(scheme + "://" + request.RemoteAddr + request.URL.RequestURI())
+//			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
+//			config.Protocol = []string{offeredProtocol}
+//			return nil
+//		},
+//	}
+//	ws.ServeHTTP(w, r)
+//}
 
 func (server *WSServer) Start() {
 	ln, err := net.Listen("tcp", server.Addr)
