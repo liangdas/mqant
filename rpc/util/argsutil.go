@@ -104,6 +104,10 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 			//不是指针
 			return "", nil, fmt.Errorf("Args2Bytes [%v] not registered to app.addrpcserialize(...) structure type or not *mqrpc.marshaler pointer type", reflect.TypeOf(arg))
 		} else {
+			if rv.IsNil(){
+				//如果是nil则直接返回
+				return NULL, nil, nil
+			}
 			if v2, ok := arg.(mqrpc.Marshaler); ok {
 				b, err := v2.Marshal()
 				if err != nil {
@@ -118,6 +122,7 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 			if v2, ok := arg.(proto.Message); ok {
 				b, err := proto.Marshal(v2)
 				if err != nil {
+					log.Error("proto.Marshal error")
 					return "", nil, fmt.Errorf("args [%s] proto.Marshal error %v", reflect.TypeOf(arg), err)
 				}
 				if v2.String() != "" {
