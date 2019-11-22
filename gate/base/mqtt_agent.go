@@ -100,7 +100,7 @@ func (a *agent) Finish() {
 func (a *agent) Run() (err error) {
 	defer func() {
 		if err := recover(); err != nil {
-			buff := make([]byte, 4096)
+			buff := make([]byte, 1024)
 			runtime.Stack(buff, false)
 			log.Error("conn.serve() panic(%v)\n info:%s", err, string(buff))
 		}
@@ -225,7 +225,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 	defer a.Finish()
 	defer func() {
 		if r := recover(); r != nil {
-			buff := make([]byte, 4096)
+			buff := make([]byte, 1024)
 			runtime.Stack(buff, false)
 			log.Error("Gate recoverworker error [%v] stack : %v", r, string(buff))
 		}

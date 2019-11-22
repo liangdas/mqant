@@ -52,6 +52,8 @@ type Session interface {
 	GetSessionId() string
 	GetServerId() string
 	GetSettings() map[string]string
+	//网关本地的额外数据,不会再rpc中传递
+	LocalUserData() interface{}
 	SetIP(ip string)
 	SetTopic(topic string)
 	SetNetwork(network string)
@@ -59,6 +61,8 @@ type Session interface {
 	SetSessionId(sessionid string)
 	SetServerId(serverid string)
 	SetSettings(settings map[string]string)
+	//网关本地的额外数据,不会再rpc中传递
+	SetLocalUserData(data interface{}) error
 	Serializable() ([]byte, error)
 	Update() (err string)
 	Bind(UserId string) (err string)

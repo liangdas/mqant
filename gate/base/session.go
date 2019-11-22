@@ -27,6 +27,7 @@ import (
 type sessionagent struct {
 	app        module.App
 	session    *SessionImp
+	userdata 	interface{}
 	judgeGuest func(session gate.Session) bool
 }
 
@@ -91,6 +92,10 @@ func (this *sessionagent) GetSettings() map[string]string {
 	return this.session.GetSettings()
 }
 
+func (this *sessionagent)LocalUserData() interface{} {
+	return this.userdata
+}
+
 func (this *sessionagent) SetIP(ip string) {
 	this.session.IP = ip
 }
@@ -111,6 +116,11 @@ func (this *sessionagent) SetServerId(serverid string) {
 }
 func (this *sessionagent) SetSettings(settings map[string]string) {
 	this.session.Settings = settings
+}
+
+func (this *sessionagent) SetLocalUserData(data interface{}) error {
+	this.userdata = data
+	return nil
 }
 
 func (this *sessionagent) updateMap(s map[string]interface{}) error {
