@@ -40,7 +40,6 @@ type RPCServer struct {
 	listener       mqrpc.RPCListener
 	control        mqrpc.GoroutineControl //控制模块可同时开启的最大协程数
 	executing      int64                  //正在执行的goroutine数量
-	ch             chan int               //控制模块可同时开启的最大协程数
 }
 
 func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error) {
@@ -50,8 +49,6 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 	rpc_server.call_chan_done = make(chan error)
 	rpc_server.functions = make(map[string]*mqrpc.FunctionInfo)
 	rpc_server.mq_chan = make(chan mqrpc.CallInfo)
-	rpc_server.ch = make(chan int, app.GetSettings().Rpc.MaxCoroutine)
-	rpc_server.SetGoroutineControl(rpc_server)
 
 	nats_server, err := NewNatsServer(app, rpc_server)
 	if err != nil {
@@ -66,16 +63,6 @@ func NewRPCServer(app module.App, module module.Module) (mqrpc.RPCServer, error)
 
 func (this *RPCServer) Addr() string {
 	return this.nats_server.Addr()
-}
-
-func (this *RPCServer) Wait() error {
-	// 如果ch满了则会处于阻塞，从而达到限制最大协程的功能
-	this.ch <- 1
-	return nil
-}
-func (this *RPCServer) Finish() {
-	// 完成则从ch推出数据
-	<-this.ch
 }
 
 func (s *RPCServer) SetListener(listener mqrpc.RPCListener) {
