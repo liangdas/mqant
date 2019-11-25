@@ -65,11 +65,11 @@ func (h *handler) DisConnect(a gate.Agent) {
 			runtime.Stack(buff, false)
 			log.Error("handler DisConnect panic(%v)\n info:%s", err, string(buff))
 		}
+		if a.GetSession() != nil {
+			h.sessions.Delete(a.GetSession().GetSessionId())
+			h.agentNum--
+		}
 	}()
-	if a.GetSession() != nil {
-		h.sessions.Delete(a.GetSession().GetSessionId())
-		h.agentNum--
-	}
 	if h.gate.GetSessionLearner() != nil {
 		h.gate.GetSessionLearner().DisConnect(a.GetSession())
 	}
