@@ -89,6 +89,9 @@ func (this *sessionagent) GetServerId() string {
 }
 
 func (this *sessionagent) GetSettings() map[string]string {
+	if this.session.GetSettings()==nil{
+		this.session.Settings=make(map[string]string)
+	}
 	return this.session.GetSettings()
 }
 

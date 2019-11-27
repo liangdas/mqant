@@ -128,6 +128,11 @@ type RouteHandler interface {
 	OnRoute(session Session, topic string, msg []byte) (bool, interface{}, error)
 }
 
+/**
+	给客户端下发消息
+*/
+type SendMessageHook func(session Session, topic string, msg []byte) ([]byte,error)
+
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Agent) //当连接关闭	或者客户端主动发送MQTT DisConnect命令

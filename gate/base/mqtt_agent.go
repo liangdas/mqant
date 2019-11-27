@@ -241,8 +241,9 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		pub := pack.GetVariable().(*mqtt.Publish)
 		topics := strings.Split(*pub.GetTopic(), "/")
 		a.session.CreateTrace()
+		a.session.SetTopic(*pub.GetTopic())
 		if a.gate.GetRouteHandler() != nil {
-			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.session, *pub.GetTopic(), pub.GetMsg())
+			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.GetSession(), *pub.GetTopic(), pub.GetMsg())
 			if err != nil {
 				if needreturn {
 					toResult(a, *pub.GetTopic(), result, err.Error())
@@ -295,7 +296,6 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				ArgsType[1] = argsutil.BYTES
 				args[1] = pub.GetMsg()
 			}
-			a.session.SetTopic(*pub.GetTopic())
 			if msgid != "" {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE
 				b, err := a.GetSession().Serializable()
@@ -357,6 +357,13 @@ func (a *agent) WriteMsg(topic string, body []byte) error {
 		return errors.New("mqtt.Client nil")
 	}
 	a.send_num++
+	if a.gate.Options().SendMessageHook!=nil{
+		bb,err:=a.gate.Options().SendMessageHook(a.GetSession(),topic,body)
+		if err!=nil{
+			return err
+		}
+		body=bb
+	}
 	return a.client.WriteMsg(topic, body)
 }
 
