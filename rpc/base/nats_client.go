@@ -163,7 +163,7 @@ func (c *NatsClient) on_request_handle() error {
 			c.callinfos.Delete(correlation_id)
 			if clinetCallInfo != nil {
 				clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
-				close(clinetCallInfo.(ClinetCallInfo).call)
+				c.CloseFch(clinetCallInfo.(ClinetCallInfo).call)
 			} else {
 				//可能客户端已超时了，但服务端处理完还给回调了
 				log.Warning("rpc callback no found : [%s]", correlation_id)

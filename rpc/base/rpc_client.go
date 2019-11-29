@@ -88,7 +88,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		}
 		return result, resultInfo.Error
 	case <-ctx.Done():
-		close(callback)
+		c.close_callback_chan(callback)
 		c.nats_client.Delete(rpcInfo.Cid)
 		return nil, "deadline exceeded"
 		//case <-time.After(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
@@ -97,7 +97,15 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		//	return nil, "deadline exceeded"
 	}
 }
+func (c *RPCClient) close_callback_chan(ch chan rpcpb.ResultInfo) {
+	defer func() {
+		if recover() != nil {
+			// close(ch) panic occur
+		}
+	}()
 
+	close(ch) // panic if ch is closed
+}
 func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
