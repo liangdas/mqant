@@ -160,14 +160,13 @@ func (a *agent) Run() (err error) {
 	}
 	a.session.JudgeGuest(a.gate.GetJudgeGuest())
 	a.session.CreateTrace()             //代码跟踪
-	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
-
 	//回复客户端 CONNECT
 	err = mqtt.WritePack(mqtt.GetConnAckPack(0), a.w)
 	if err != nil {
 		return
 	}
 	a.conn_time = time.Now()
+	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
 	c.Listen_loop() //开始监听,直到连接中断
 	return nil
 }

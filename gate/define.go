@@ -61,6 +61,8 @@ type Session interface {
 	SetSessionId(sessionid string)
 	SetServerId(serverid string)
 	SetSettings(settings map[string]string)
+	SetLocalKV(key,value string)(error)
+	RemoveLocalKV(key string)(error)
 	//网关本地的额外数据,不会再rpc中传递
 	SetLocalUserData(data interface{}) error
 	Serializable() ([]byte, error)

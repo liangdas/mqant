@@ -53,7 +53,9 @@ func (h *handler) Connect(a gate.Agent) {
 		h.agentNum++
 	}
 	if h.gate.GetSessionLearner() != nil {
-		h.gate.GetSessionLearner().Connect(a.GetSession())
+		go func() {
+			h.gate.GetSessionLearner().Connect(a.GetSession())
+		}()
 	}
 }
 
@@ -139,7 +141,7 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 							if _, ok := agent.(gate.Agent).GetSession().GetSettings()[k]; ok {
 								//不用替换
 							} else {
-								agent.(gate.Agent).GetSession().GetSettings()[k] = v
+								_=agent.(gate.Agent).GetSession().SetLocalKV(k,v)
 							}
 						}
 					}
@@ -150,7 +152,7 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 			}
 		}
 		//数据持久化
-		h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
+		_ = h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 	}
 
 	result = agent.(gate.Agent).GetSession()
@@ -203,7 +205,7 @@ func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string
 	}
 	//覆盖当前map对应的key-value
 	for key, value := range Settings {
-		agent.(gate.Agent).GetSession().GetSettings()[key] = value
+		_ = agent.(gate.Agent).GetSession().SetLocalKV(key, value)
 	}
 	result = agent.(gate.Agent).GetSession()
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
@@ -225,7 +227,7 @@ func (h *handler) Set(span log.TraceSpan, Sessionid string, key string, value st
 		err = "No Sesssion found"
 		return
 	}
-	agent.(gate.Agent).GetSession().GetSettings()[key] = value
+	_ = agent.(gate.Agent).GetSession().SetLocalKV(key, value)
 	result = agent.(gate.Agent).GetSession()
 
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
@@ -247,7 +249,7 @@ func (h *handler) Remove(span log.TraceSpan, Sessionid string, key string) (resu
 		err = "No Sesssion found"
 		return
 	}
-	delete(agent.(gate.Agent).GetSession().GetSettings(), key)
+	_ = agent.(gate.Agent).GetSession().RemoveLocalKV(key)
 	result = agent.(gate.Agent).GetSession()
 
 	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {

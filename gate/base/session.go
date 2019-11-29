@@ -22,11 +22,13 @@ import (
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/utils"
 	"strconv"
+	"sync"
 )
 
 type sessionagent struct {
 	app        module.App
 	session    *SessionImp
+	lock   	*sync.Mutex
 	userdata 	interface{}
 	judgeGuest func(session gate.Session) bool
 }
@@ -34,6 +36,7 @@ type sessionagent struct {
 func NewSession(app module.App, data []byte) (gate.Session, error) {
 	agent := &sessionagent{
 		app: app,
+		lock:  new(sync.Mutex),
 	}
 	se := &SessionImp{}
 	err := proto.Unmarshal(data, se)
@@ -48,6 +51,7 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	agent := &sessionagent{
 		app:     app,
 		session: new(SessionImp),
+		lock:  new(sync.Mutex),
 	}
 	err := agent.updateMap(data)
 	if err != nil {
@@ -89,9 +93,11 @@ func (this *sessionagent) GetServerId() string {
 }
 
 func (this *sessionagent) GetSettings() map[string]string {
+	this.lock.Lock()
 	if this.session.GetSettings()==nil{
 		this.session.Settings=make(map[string]string)
 	}
+	this.lock.Unlock()
 	return this.session.GetSettings()
 }
 
@@ -118,9 +124,22 @@ func (this *sessionagent) SetServerId(serverid string) {
 	this.session.ServerId = serverid
 }
 func (this *sessionagent) SetSettings(settings map[string]string) {
+	this.lock.Lock()
 	this.session.Settings = settings
+	this.lock.Unlock()
 }
-
+func (this *sessionagent) SetLocalKV(key,value string)(error) {
+	this.lock.Lock()
+	this.session.GetSettings()[key]=value
+	this.lock.Unlock()
+	return nil
+}
+func (this *sessionagent) RemoveLocalKV(key string)(error){
+	this.lock.Lock()
+	delete(this.session.GetSettings(),key)
+	this.lock.Unlock()
+	return nil
+}
 func (this *sessionagent) SetLocalUserData(data interface{}) error {
 	this.userdata = data
 	return nil
@@ -158,6 +177,8 @@ func (this *sessionagent) updateMap(s map[string]interface{}) error {
 }
 
 func (this *sessionagent) update(s gate.Session) error {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	Userid := s.GetUserId()
 	this.session.UserId = Userid
 	IP := s.GetIP()
@@ -175,6 +196,8 @@ func (this *sessionagent) update(s gate.Session) error {
 }
 
 func (this *sessionagent) Serializable() ([]byte, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -183,6 +206,8 @@ func (this *sessionagent) Serializable() ([]byte, error) {
 }
 
 func (this *sessionagent) Marshal() ([]byte, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -190,6 +215,8 @@ func (this *sessionagent) Marshal() ([]byte, error) {
 	return data, nil
 }
 func (this *sessionagent) Unmarshal(data []byte) error {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	se := &SessionImp{}
 	err := proto.Unmarshal(data, se)
 	if err != nil {

@@ -16,6 +16,7 @@ package mqtt
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/network"
@@ -123,13 +124,19 @@ func (queue *PackQueue) WritePack(pack *Pack) (err error) {
 			queue.Close(err)
 		}
 	}()
+	queue.writelock.Lock()
+	if !queue.isConnected() {
+		queue.writelock.Unlock()
+		return errors.New("disconnect")
+	}
+	queue.writelock.Unlock()
 	if queue.writeError != nil {
 		return queue.writeError
 	}
 	queue.writelock.Lock()
+	defer queue.writelock.Unlock()
 	err = DelayWritePack(pack, queue.w)
 	queue.fch <- struct{}{}
-	queue.writelock.Unlock()
 	if err != nil {
 		// Tell listener the error
 		// Notice the read
