@@ -159,7 +159,7 @@ func (a *agent) Run() (err error) {
 		return
 	}
 	a.session.JudgeGuest(a.gate.GetJudgeGuest())
-	a.session.CreateTrace()             //代码跟踪
+	a.session.CreateTrace() //代码跟踪
 	//回复客户端 CONNECT
 	err = mqtt.WritePack(mqtt.GetConnAckPack(0), a.w)
 	if err != nil {
@@ -167,7 +167,7 @@ func (a *agent) Run() (err error) {
 	}
 	a.conn_time = time.Now()
 	a.gate.GetAgentLearner().Connect(a) //发送连接成功的事件
-	c.Listen_loop() //开始监听,直到连接中断
+	c.Listen_loop()                     //开始监听,直到连接中断
 	return nil
 }
 
@@ -352,28 +352,28 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 }
 
 func (a *agent) WriteMsg(topic string, body []byte) error {
-	if a.client==nil{
+	if a.client == nil {
 		return errors.New("mqtt.Client nil")
 	}
 	a.send_num++
-	if a.gate.Options().SendMessageHook!=nil{
-		bb,err:=a.gate.Options().SendMessageHook(a.GetSession(),topic,body)
-		if err!=nil{
+	if a.gate.Options().SendMessageHook != nil {
+		bb, err := a.gate.Options().SendMessageHook(a.GetSession(), topic, body)
+		if err != nil {
 			return err
 		}
-		body=bb
+		body = bb
 	}
 	return a.client.WriteMsg(topic, body)
 }
 
 func (a *agent) Close() {
-	if a.conn!=nil{
+	if a.conn != nil {
 		a.conn.Close()
 	}
 }
 
 func (a *agent) Destroy() {
-	if a.conn!=nil{
+	if a.conn != nil {
 		a.conn.Destroy()
 	}
 }

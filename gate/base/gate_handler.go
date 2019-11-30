@@ -141,7 +141,7 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 							if _, ok := agent.(gate.Agent).GetSession().GetSettings()[k]; ok {
 								//不用替换
 							} else {
-								_=agent.(gate.Agent).GetSession().SetLocalKV(k,v)
+								_ = agent.(gate.Agent).GetSession().SetLocalKV(k, v)
 							}
 						}
 					}

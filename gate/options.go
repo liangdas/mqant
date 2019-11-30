@@ -18,16 +18,16 @@ import "time"
 type Option func(*Options)
 
 type Options struct {
-	ConcurrentTasks 	int
-	BufSize         	int
-	Heartbeat       	time.Duration
-	OverTime        	time.Duration
-	RouteHandler    	RouteHandler
-	StorageHandler  	StorageHandler
-	AgentLearner    	AgentLearner
-	SessionLearner  	SessionLearner
-	GateHandler     	GateHandler
-	SendMessageHook     SendMessageHook
+	ConcurrentTasks int
+	BufSize         int
+	Heartbeat       time.Duration
+	OverTime        time.Duration
+	RouteHandler    RouteHandler
+	StorageHandler  StorageHandler
+	AgentLearner    AgentLearner
+	SessionLearner  SessionLearner
+	GateHandler     GateHandler
+	SendMessageHook SendMessageHook
 }
 
 func NewOptions(opts ...Option) Options {

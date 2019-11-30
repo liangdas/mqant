@@ -190,6 +190,7 @@ func (queue *PackQueue) CloseFch() {
 
 	close(queue.fch) // panic if ch is closed
 }
+
 // Close the all of queue's channels
 func (queue *PackQueue) Close(err error) error {
 	queue.writeError = err

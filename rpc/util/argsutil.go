@@ -42,7 +42,7 @@ var (
 )
 
 func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) {
-	if arg==nil{
+	if arg == nil {
 		return NULL, nil, nil
 	}
 	switch v2 := arg.(type) {
@@ -104,7 +104,7 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 			//不是指针
 			return "", nil, fmt.Errorf("Args2Bytes [%v] not registered to app.addrpcserialize(...) structure type or not *mqrpc.marshaler pointer type", reflect.TypeOf(arg))
 		} else {
-			if rv.IsNil(){
+			if rv.IsNil() {
 				//如果是nil则直接返回
 				return NULL, nil, nil
 			}

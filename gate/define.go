@@ -61,8 +61,8 @@ type Session interface {
 	SetSessionId(sessionid string)
 	SetServerId(serverid string)
 	SetSettings(settings map[string]string)
-	SetLocalKV(key,value string)(error)
-	RemoveLocalKV(key string)(error)
+	SetLocalKV(key, value string) error
+	RemoveLocalKV(key string) error
 	//网关本地的额外数据,不会再rpc中传递
 	SetLocalUserData(data interface{}) error
 	Serializable() ([]byte, error)
@@ -131,9 +131,9 @@ type RouteHandler interface {
 }
 
 /**
-	给客户端下发消息
+给客户端下发消息
 */
-type SendMessageHook func(session Session, topic string, msg []byte) ([]byte,error)
+type SendMessageHook func(session Session, topic string, msg []byte) ([]byte, error)
 
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功

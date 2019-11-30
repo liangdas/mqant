@@ -28,15 +28,15 @@ import (
 type sessionagent struct {
 	app        module.App
 	session    *SessionImp
-	lock   	*sync.Mutex
-	userdata 	interface{}
+	lock       *sync.Mutex
+	userdata   interface{}
 	judgeGuest func(session gate.Session) bool
 }
 
 func NewSession(app module.App, data []byte) (gate.Session, error) {
 	agent := &sessionagent{
-		app: app,
-		lock:  new(sync.Mutex),
+		app:  app,
+		lock: new(sync.Mutex),
 	}
 	se := &SessionImp{}
 	err := proto.Unmarshal(data, se)
@@ -51,7 +51,7 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	agent := &sessionagent{
 		app:     app,
 		session: new(SessionImp),
-		lock:  new(sync.Mutex),
+		lock:    new(sync.Mutex),
 	}
 	err := agent.updateMap(data)
 	if err != nil {
@@ -94,14 +94,14 @@ func (this *sessionagent) GetServerId() string {
 
 func (this *sessionagent) GetSettings() map[string]string {
 	this.lock.Lock()
-	if this.session.GetSettings()==nil{
-		this.session.Settings=make(map[string]string)
+	if this.session.GetSettings() == nil {
+		this.session.Settings = make(map[string]string)
 	}
 	this.lock.Unlock()
 	return this.session.GetSettings()
 }
 
-func (this *sessionagent)LocalUserData() interface{} {
+func (this *sessionagent) LocalUserData() interface{} {
 	return this.userdata
 }
 
@@ -128,15 +128,15 @@ func (this *sessionagent) SetSettings(settings map[string]string) {
 	this.session.Settings = settings
 	this.lock.Unlock()
 }
-func (this *sessionagent) SetLocalKV(key,value string)(error) {
+func (this *sessionagent) SetLocalKV(key, value string) error {
 	this.lock.Lock()
-	this.session.GetSettings()[key]=value
+	this.session.GetSettings()[key] = value
 	this.lock.Unlock()
 	return nil
 }
-func (this *sessionagent) RemoveLocalKV(key string)(error){
+func (this *sessionagent) RemoveLocalKV(key string) error {
 	this.lock.Lock()
-	delete(this.session.GetSettings(),key)
+	delete(this.session.GetSettings(), key)
 	this.lock.Unlock()
 	return nil
 }

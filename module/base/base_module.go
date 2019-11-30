@@ -53,7 +53,7 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 
 type BaseModule struct {
 	context.Context
-	exit 		context.CancelFunc
+	exit        context.CancelFunc
 	App         module.App
 	subclass    module.RPCModule
 	settings    *conf.ModuleSettings
@@ -127,8 +127,8 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 
 	server := server.NewServer(opt...)
 	server.OnInit(subclass, app, settings)
-	ctx,cancel:=context.WithCancel(context.Background())
-	m.exit=cancel
+	ctx, cancel := context.WithCancel(context.Background())
+	m.exit = cancel
 	m.service = service.NewService(
 		service.Server(server),
 		service.RegisterTTL(app.Options().RegisterTTL),
