@@ -15,14 +15,15 @@ package basegate
 
 import (
 	"fmt"
+	"strconv"
+	"sync"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/rpc"
+	mqrpc "github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/utils"
-	"strconv"
-	"sync"
 )
 
 type sessionagent struct {
@@ -297,6 +298,12 @@ func (this *sessionagent) Push() (err string) {
 		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 		return
 	}
+	this.lock.Lock()
+	tmp := map[string]string{}
+	for k, v := range this.session.Settings {
+		tmp[k] = v
+	}
+	this.lock.Unlock()
 	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, this.session.Settings)
 	if err == "" {
 		if result != nil {
@@ -338,7 +345,9 @@ func (this *sessionagent) SetPush(key string, value string) (err string) {
 	if this.session.Settings == nil {
 		this.session.Settings = map[string]string{}
 	}
+	this.lock.Lock()
 	this.session.Settings[key] = value
+	this.lock.Unlock()
 	return this.Push()
 }
 func (this *sessionagent) SetBatch(settings map[string]string) (err string) {
