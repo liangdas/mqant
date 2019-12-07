@@ -181,6 +181,8 @@ func (this *sessionagent) updateMap(s map[string]interface{}) error {
 }
 
 func (this *sessionagent) update(s gate.Session) error {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	Userid := s.GetUserId()
 	this.session.UserId = Userid
 	IP := s.GetIP()
@@ -304,7 +306,7 @@ func (this *sessionagent) Push() (err string) {
 		tmp[k] = v
 	}
 	this.lock.Unlock()
-	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, this.session.Settings)
+	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, tmp)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
