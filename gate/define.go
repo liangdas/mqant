@@ -42,7 +42,7 @@ type GateHandler interface {
 	Update(span log.TraceSpan, Sessionid string) (result Session, err string)    //更新整个Session 通常是其他模块拉取最新数据
 	OnDestroy()                                                                  //退出事件,主动关闭所有的连接
 }
-
+//不是线程安全的
 type Session interface {
 	GetIP() string
 	GetTopic() string

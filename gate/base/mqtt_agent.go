@@ -239,8 +239,6 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		a.lock.Unlock()
 		pub := pack.GetVariable().(*mqtt.Publish)
 		topics := strings.Split(*pub.GetTopic(), "/")
-		a.session.CreateTrace()
-		a.session.SetTopic(*pub.GetTopic())
 		if a.gate.GetRouteHandler() != nil {
 			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.GetSession(), *pub.GetTopic(), pub.GetMsg())
 			if err != nil {
@@ -295,9 +293,11 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				ArgsType[1] = argsutil.BYTES
 				args[1] = pub.GetMsg()
 			}
+			session:=a.GetSession().Clone()
+			session.SetTopic(*pub.GetTopic())
 			if msgid != "" {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE
-				b, err := a.GetSession().Serializable()
+				b, err := session.Serializable()
 				if err != nil {
 					return
 				}
@@ -306,7 +306,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				toResult(a, *pub.GetTopic(), result, e)
 			} else {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE
-				b, err := a.GetSession().Serializable()
+				b, err := session.Serializable()
 				if err != nil {
 					return
 				}

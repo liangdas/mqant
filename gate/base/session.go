@@ -28,7 +28,7 @@ import (
 type sessionagent struct {
 	app        module.App
 	session    *SessionImp
-	lock       *sync.Mutex
+	lock       *sync.RWMutex
 	userdata   interface{}
 	judgeGuest func(session gate.Session) bool
 }
@@ -36,7 +36,7 @@ type sessionagent struct {
 func NewSession(app module.App, data []byte) (gate.Session, error) {
 	agent := &sessionagent{
 		app:  app,
-		lock: new(sync.Mutex),
+		lock: new(sync.RWMutex),
 	}
 	se := &SessionImp{}
 	err := proto.Unmarshal(data, se)
@@ -54,7 +54,7 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	agent := &sessionagent{
 		app:     app,
 		session: new(SessionImp),
-		lock:    new(sync.Mutex),
+		lock:    new(sync.RWMutex),
 	}
 	err := agent.updateMap(data)
 	if err != nil {
@@ -116,7 +116,9 @@ func (this *sessionagent) SetNetwork(network string) {
 	this.session.Network = network
 }
 func (this *sessionagent) SetUserId(userid string) {
+	this.lock.Lock()
 	this.session.UserId = userid
+	this.lock.Unlock()
 }
 func (this *sessionagent) SetSessionId(sessionid string) {
 	this.session.SessionId = sessionid
@@ -195,8 +197,6 @@ func (this *sessionagent) update(s gate.Session) error {
 }
 
 func (this *sessionagent) Serializable() ([]byte, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -205,8 +205,6 @@ func (this *sessionagent) Serializable() ([]byte, error) {
 }
 
 func (this *sessionagent) Marshal() ([]byte, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -219,12 +217,10 @@ func (this *sessionagent) Unmarshal(data []byte) error {
 	if err != nil {
 		return err
 	} // 测试结果
-	this.lock.Lock()
 	this.session = se
 	if this.session.GetSettings() == nil {
 		this.session.Settings = make(map[string]string)
 	}
-	this.lock.Unlock()
 	return nil
 }
 func (this *sessionagent) String() string {
@@ -368,7 +364,9 @@ func (this *sessionagent) Get(key string) (result string) {
 	if this.session.Settings == nil {
 		return
 	}
+	this.lock.RLock()
 	result = this.session.Settings[key]
+	this.lock.RUnlock()
 	return
 }
 
@@ -475,6 +473,8 @@ func (this *sessionagent) Close() (err string) {
 func (this *sessionagent) Clone() gate.Session {
 	agent := &sessionagent{
 		app: this.app,
+		userdata:this.userdata,
+		lock: new(sync.RWMutex),
 	}
 	se := &SessionImp{
 		IP:        this.session.IP,
@@ -506,6 +506,8 @@ func (this *sessionagent) SpanId() string {
 func (this *sessionagent) ExtractSpan() log.TraceSpan {
 	agent := &sessionagent{
 		app: this.app,
+		userdata:this.userdata,
+		lock: new(sync.RWMutex),
 	}
 	se := &SessionImp{
 		IP:        this.session.IP,
