@@ -3,10 +3,12 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/pborman/uuid"
+	"os"
 )
 
 type Server interface {
@@ -59,7 +61,7 @@ var (
 	DefaultAddress = ":0"
 	DefaultName    = "go-server"
 	DefaultVersion = "1.0.0"
-	DefaultId      = uuid.NewUUID().String()
+	DefaultId      = fmt.Sprintf("%v_%v",os.Hostname(),uuid.NewUUID().String())
 )
 
 // NewServer returns a new server with options passed in
