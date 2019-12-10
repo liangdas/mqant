@@ -2,7 +2,9 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"github.com/liangdas/mqant/registry"
+	"os"
 	"time"
 )
 
@@ -45,7 +47,12 @@ func newOptions(opt ...Option) Options {
 	}
 
 	if len(opts.Id) == 0 {
-		opts.Id = DefaultId
+		hostname,err:=os.Hostname()
+		if err!=nil{
+			opts.Id = DefaultId
+		}else{
+			opts.Id = fmt.Sprintf("%v_%v",hostname,DefaultId)
+		}
 	}
 
 	if len(opts.Version) == 0 {
