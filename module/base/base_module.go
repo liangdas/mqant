@@ -16,6 +16,7 @@ package basemodule
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
@@ -25,6 +26,7 @@ import (
 	"github.com/liangdas/mqant/service"
 	"github.com/liangdas/mqant/utils"
 	"github.com/pkg/errors"
+	"os"
 	"sync"
 	"time"
 )
@@ -118,7 +120,12 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	}
 
 	if len(opts.Id) == 0 {
-		opt = append(opt, server.Id(utils.GenerateID().String()))
+		hostname,err:=os.Hostname()
+		if err!=nil{
+			opt = append(opt, server.Id(utils.GenerateID().String()))
+		}else{
+			opt = append(opt, server.Id(fmt.Sprintf("%v_%v",hostname,utils.GenerateID().String())))
+		}
 	}
 
 	if len(opts.Version) == 0 {
