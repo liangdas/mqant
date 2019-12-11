@@ -129,13 +129,12 @@ func (queue *PackQueue) WritePack(pack *Pack) (err error) {
 		queue.writelock.Unlock()
 		return errors.New("disconnect")
 	}
-	queue.writelock.Unlock()
 	if queue.writeError != nil {
+		queue.writelock.Unlock()
 		return queue.writeError
 	}
-	queue.writelock.Lock()
-	defer queue.writelock.Unlock()
 	err = DelayWritePack(pack, queue.w)
+	queue.writelock.Unlock()
 	queue.fch <- struct{}{}
 	if err != nil {
 		// Tell listener the error
