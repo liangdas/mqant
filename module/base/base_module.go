@@ -27,6 +27,7 @@ import (
 	"github.com/liangdas/mqant/utils"
 	"github.com/pkg/errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -124,6 +125,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 		if err!=nil{
 			opt = append(opt, server.Id(utils.GenerateID().String()))
 		}else{
+			hostname=strings.Replace(hostname,"@","_",-1)
 			opt = append(opt, server.Id(fmt.Sprintf("%v_%v",hostname,utils.GenerateID().String())))
 		}
 	}

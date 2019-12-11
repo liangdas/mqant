@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/liangdas/mqant/registry"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -51,6 +52,7 @@ func newOptions(opt ...Option) Options {
 		if err!=nil{
 			opts.Id = DefaultId
 		}else{
+			hostname=strings.Replace(hostname,"@","_",-1)
 			opts.Id = fmt.Sprintf("%v_%v",hostname,DefaultId)
 		}
 	}

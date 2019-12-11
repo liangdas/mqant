@@ -2,6 +2,7 @@ package module
 
 import (
 	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/selector"
 	"github.com/nats-io/nats.go"
 	"time"
@@ -24,7 +25,10 @@ type Options struct {
 	// Register loop interval
 	RegisterInterval time.Duration
 	RegisterTTL      time.Duration
+	ClientRPChandler ClientRPChandler
 }
+
+type ClientRPChandler func(app App,server registry.Node,rpcinfo rpcpb.RPCInfo,result interface{},err string,exec_time int64)
 
 func Version(v string) Option {
 	return func(o *Options) {
@@ -108,5 +112,13 @@ func RegisterInterval(t time.Duration) Option {
 func KillWaitTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.KillWaitTTL = t
+	}
+}
+
+
+// RegisterInterval specifies the interval on which to re-register
+func SetClientRPChandler(t ClientRPChandler) Option {
+	return func(o *Options) {
+		o.ClientRPChandler = t
 	}
 }

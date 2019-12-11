@@ -50,7 +50,10 @@ func (c *RPCClient) Done() (err error) {
 	return
 }
 
-func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
+func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (r interface{}, e string) {
+
+	start := time.Now()
+
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
@@ -60,7 +63,13 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		Args:     args,
 		ArgsType: ArgsType,
 	}
-
+	defer func() {
+		//异常日志都应该打印
+		if c.app.Options().ClientRPChandler!=nil{
+			exec_time:=time.Since(start).Nanoseconds()
+			c.app.Options().ClientRPChandler(c.app,*c.nats_client.session.GetNode(),*rpcInfo,r,e,exec_time)
+		}
+	}()
 	callInfo := &mqrpc.CallInfo{
 		RpcInfo: *rpcInfo,
 	}
