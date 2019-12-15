@@ -94,7 +94,10 @@ func (a *agent) Wait() error {
 }
 func (a *agent) Finish() {
 	// 完成则从ch推出数据
-	<-a.ch
+	select {
+	case <-a.ch:
+	default:
+	}
 }
 
 func (a *agent) Run() (err error) {

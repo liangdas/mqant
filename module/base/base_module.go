@@ -27,7 +27,6 @@ import (
 	"github.com/liangdas/mqant/utils"
 	"github.com/pkg/errors"
 	"os"
-	"strings"
 	"sync"
 	"time"
 )
@@ -97,9 +96,14 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
 	opts := server.Options{
-		Metadata: map[string]string{},
+		Metadata: map[string]string{
+			"pid":fmt.Sprintf("%v",os.Getpid()),
+		},
 	}
-
+	hostname,err:=os.Hostname()
+	if err==nil{
+		opts.Metadata["hostname"]=hostname
+	}
 	for _, o := range opt {
 		o(&opts)
 	}
@@ -121,19 +125,12 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	}
 
 	if len(opts.Id) == 0 {
-		hostname,err:=os.Hostname()
-		if err!=nil{
-			opt = append(opt, server.Id(utils.GenerateID().String()))
-		}else{
-			hostname=strings.Replace(hostname,"@","_",-1)
-			opt = append(opt, server.Id(fmt.Sprintf("%v_%v",hostname,utils.GenerateID().String())))
-		}
+		opt = append(opt, server.Id(utils.GenerateID().String()))
 	}
 
 	if len(opts.Version) == 0 {
 		opt = append(opt, server.Version(subclass.Version()))
 	}
-
 	server := server.NewServer(opt...)
 	server.OnInit(subclass, app, settings)
 	ctx, cancel := context.WithCancel(context.Background())
