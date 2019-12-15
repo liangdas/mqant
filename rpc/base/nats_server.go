@@ -32,6 +32,7 @@ type NatsServer struct {
 	app       module.App
 	server    *RPCServer
 	done      chan error
+	isClose   bool
 }
 
 func setAddrs(addrs []string) []string {
@@ -55,6 +56,7 @@ func NewNatsServer(app module.App, s *RPCServer) (*NatsServer, error) {
 	server := new(NatsServer)
 	server.server = s
 	server.done = make(chan error)
+	server.isClose=false
 	server.app = app
 	server.addr = nats.NewInbox()
 	go server.on_request_handle()
@@ -69,6 +71,7 @@ func (s *NatsServer) Addr() string {
 */
 func (s *NatsServer) Shutdown() (err error) {
 	s.done <- nil
+	s.isClose=true
 	return
 }
 
@@ -96,6 +99,7 @@ func (s *NatsServer) on_request_handle() error {
 			l := runtime.Stack(buf, false)
 			errstr := string(buf[:l])
 			log.Error("%s\n ----Stack----\n%s", rn, errstr)
+			fmt.Println(errstr)
 		}
 	}()
 	subs, err := s.app.Transport().SubscribeSync(s.addr)
@@ -108,14 +112,16 @@ func (s *NatsServer) on_request_handle() error {
 		subs.Unsubscribe()
 	}()
 
-	for {
+	for !s.isClose{
 		m, err := subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
+			fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
 			continue
 		} else if err != nil {
-			//log.Error("NatsServer error with '%v'",err)
-			return err
+			fmt.Println(err.Error())
+			log.Error("NatsServer error with '%v'",err)
+			continue
 		}
 
 		rpcInfo, err := s.Unmarshal(m.Data)
