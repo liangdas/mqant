@@ -115,11 +115,11 @@ func (s *NatsServer) on_request_handle() error {
 	for !s.isClose{
 		m, err := subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
-			fmt.Println(err.Error())
+			//fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
 			continue
 		} else if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println(fmt.Sprintf("%v rpcserver error: %v",time.Now().String(),err.Error()))
 			log.Error("NatsServer error with '%v'",err)
 			continue
 		}
