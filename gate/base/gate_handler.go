@@ -73,7 +73,10 @@ func (h *handler) DisConnect(a gate.Agent) {
 		}
 	}()
 	if h.gate.GetSessionLearner() != nil {
-		h.gate.GetSessionLearner().DisConnect(a.GetSession())
+		if a.GetSession()!=nil{
+			//没有session的就不返回了
+			h.gate.GetSessionLearner().DisConnect(a.GetSession())
+		}
 	}
 }
 

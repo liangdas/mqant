@@ -95,17 +95,13 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	m.settings = settings
 	m.statistical = map[string]*StatisticalMethod{}
 	//创建一个远程调用的RPC
+
 	opts := server.Options{
 		Metadata: map[string]string{},
 	}
 	for _, o := range opt {
 		o(&opts)
 	}
-	hostname,err:=os.Hostname()
-	if err==nil{
-		opts.Metadata["hostname"]=hostname
-	}
-	opts.Metadata["pid"]=fmt.Sprintf("%v",os.Getpid())
 	if opts.Registry == nil {
 		opt = append(opt, server.Registry(app.Registry()))
 	}
@@ -131,6 +127,9 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	}
 	server := server.NewServer(opt...)
 	server.OnInit(subclass, app, settings)
+	hostname,_:=os.Hostname()
+	server.Options().Metadata["hostname"]=hostname
+	server.Options().Metadata["pid"]=fmt.Sprintf("%v",os.Getpid())
 	ctx, cancel := context.WithCancel(context.Background())
 	m.exit = cancel
 	m.service = service.NewService(
