@@ -42,13 +42,13 @@ type Client struct {
 	curr_id int
 }
 
-func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive int) *Client {
+func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive,MaxPackSize int) *Client {
 	client := &Client{
 		recover: recover,
 		lock:    new(sync.Mutex),
 		curr_id: 0,
 	}
-	client.queue = NewPackQueue(conf, r, w, conn, client.waitPack, alive)
+	client.queue = NewPackQueue(conf, r, w, conn, client.waitPack, alive,MaxPackSize)
 	return client
 }
 
@@ -95,14 +95,14 @@ func (c *Client) waitPack(pAndErr *packAndErr) (err error) {
 	// Choose the requst type
 	switch pAndErr.pack.GetType() {
 	case CONNECT:
-		info, ok := (pAndErr.pack.GetVariable()).(*Connect)
+		conn, ok := (pAndErr.pack.GetVariable()).(*Connect)
 		if !ok {
 			err = errors.New("It's not a mqtt connection package.")
 			return
 		}
 		//id := info.GetUserName()
 		//psw := info.GetPassword()
-		c.queue.SetAlive(info.GetKeepAlive())
+		c.queue.SetAlive(conn.GetKeepAlive())
 		err = c.queue.WritePack(GetConnAckPack(0))
 	case PUBLISH:
 		pub := pAndErr.pack.GetVariable().(*Publish)

@@ -42,6 +42,8 @@ type PackQueue struct {
 
 	alive int
 
+	MaxPackSize int // mqtt包最大长度
+
 	status int
 }
 
@@ -69,14 +71,18 @@ type packAndType struct {
 }
 
 // Init a pack queue
-func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover func(pAndErr *packAndErr) (err error), alive int) *PackQueue {
+func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover func(pAndErr *packAndErr) (err error), alive ,MaxPackSize int) *PackQueue {
 	if alive < 1 {
 		alive = conf.ReadTimeout
+	}
+	if MaxPackSize < 1 {
+		MaxPackSize = 65535
 	}
 	alive = int(float32(alive)*1.5 + 1)
 	return &PackQueue{
 		conf:    conf,
 		alive:   alive,
+		MaxPackSize:MaxPackSize,
 		r:       r,
 		w:       w,
 		conn:    conn,
@@ -165,7 +171,7 @@ loop:
 		} else {
 			queue.conn.SetDeadline(time.Now().Add(time.Second * 90))
 		}
-		p.pack, p.err = ReadPack(queue.r)
+		p.pack, p.err = ReadPack(queue.r,queue.MaxPackSize)
 		if p.err != nil {
 			queue.Close(p.err)
 			break loop

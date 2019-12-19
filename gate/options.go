@@ -20,6 +20,7 @@ type Option func(*Options)
 type Options struct {
 	ConcurrentTasks int
 	BufSize         int
+	MaxPackSize     int
 	Heartbeat       time.Duration
 	OverTime        time.Duration
 	RouteHandler    RouteHandler
@@ -34,6 +35,7 @@ func NewOptions(opts ...Option) Options {
 	opt := Options{
 		ConcurrentTasks: 20,
 		BufSize:         2048,
+		MaxPackSize:	 65535,
 		Heartbeat:       time.Minute,
 		OverTime:        time.Second * 10,
 	}
@@ -53,6 +55,11 @@ func ConcurrentTasks(s int) Option {
 func BufSize(s int) Option {
 	return func(o *Options) {
 		o.BufSize = s
+	}
+}
+func MaxPackSize(s int) Option {
+	return func(o *Options) {
+		o.MaxPackSize = s
 	}
 }
 func Heartbeat(s time.Duration) Option {

@@ -130,7 +130,7 @@ func (a *agent) Run() (err error) {
 
 	//握手协议
 	var pack *mqtt.Pack
-	pack, err = mqtt.ReadPack(a.r)
+	pack, err = mqtt.ReadPack(a.r,a.gate.Options().MaxPackSize)
 	if err != nil {
 		log.Error("Read login pack error", err)
 		return
@@ -139,7 +139,7 @@ func (a *agent) Run() (err error) {
 		log.Error("Recive login pack's type error:%v \n", pack.GetType())
 		return
 	}
-	info, ok := (pack.GetVariable()).(*mqtt.Connect)
+	conn, ok := (pack.GetVariable()).(*mqtt.Connect)
 	if !ok {
 		log.Error("It's not a mqtt connection package.")
 		return
@@ -147,7 +147,7 @@ func (a *agent) Run() (err error) {
 	//id := info.GetUserName()
 	//psw := info.GetPassword()
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
-	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, info.GetKeepAlive())
+	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, conn.GetKeepAlive(),a.gate.Options().MaxPackSize)
 	a.client = c
 	addr := a.conn.RemoteAddr()
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
