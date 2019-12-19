@@ -56,7 +56,7 @@ func NewNatsServer(app module.App, s *RPCServer) (*NatsServer, error) {
 	server := new(NatsServer)
 	server.server = s
 	server.done = make(chan error)
-	server.isClose=false
+	server.isClose = false
 	server.app = app
 	server.addr = nats.NewInbox()
 	go server.on_request_handle()
@@ -71,7 +71,7 @@ func (s *NatsServer) Addr() string {
 */
 func (s *NatsServer) Shutdown() (err error) {
 	s.done <- nil
-	s.isClose=true
+	s.isClose = true
 	return
 }
 
@@ -112,15 +112,15 @@ func (s *NatsServer) on_request_handle() error {
 		subs.Unsubscribe()
 	}()
 
-	for !s.isClose{
+	for !s.isClose {
 		m, err := subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
 			//fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
 			continue
 		} else if err != nil {
-			fmt.Println(fmt.Sprintf("%v rpcserver error: %v",time.Now().String(),err.Error()))
-			log.Error("NatsServer error with '%v'",err)
+			fmt.Println(fmt.Sprintf("%v rpcserver error: %v", time.Now().String(), err.Error()))
+			log.Error("NatsServer error with '%v'", err)
 			continue
 		}
 

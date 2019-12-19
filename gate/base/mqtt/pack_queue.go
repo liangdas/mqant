@@ -71,7 +71,7 @@ type packAndType struct {
 }
 
 // Init a pack queue
-func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover func(pAndErr *packAndErr) (err error), alive ,MaxPackSize int) *PackQueue {
+func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network.Conn, recover func(pAndErr *packAndErr) (err error), alive, MaxPackSize int) *PackQueue {
 	if alive < 1 {
 		alive = conf.ReadTimeout
 	}
@@ -80,15 +80,15 @@ func NewPackQueue(conf conf.Mqtt, r *bufio.Reader, w *bufio.Writer, conn network
 	}
 	alive = int(float32(alive)*1.5 + 1)
 	return &PackQueue{
-		conf:    conf,
-		alive:   alive,
-		MaxPackSize:MaxPackSize,
-		r:       r,
-		w:       w,
-		conn:    conn,
-		recover: recover,
-		fch:     make(chan struct{}, 256),
-		status:  CONNECTED,
+		conf:        conf,
+		alive:       alive,
+		MaxPackSize: MaxPackSize,
+		r:           r,
+		w:           w,
+		conn:        conn,
+		recover:     recover,
+		fch:         make(chan struct{}, 256),
+		status:      CONNECTED,
 	}
 }
 
@@ -171,7 +171,7 @@ loop:
 		} else {
 			queue.conn.SetDeadline(time.Now().Add(time.Second * 90))
 		}
-		p.pack, p.err = ReadPack(queue.r,queue.MaxPackSize)
+		p.pack, p.err = ReadPack(queue.r, queue.MaxPackSize)
 		if p.err != nil {
 			queue.Close(p.err)
 			break loop

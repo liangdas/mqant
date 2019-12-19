@@ -30,9 +30,9 @@ type Options struct {
 	ServerRPCHandler ServerRPCHandler
 }
 
-type ClientRPCHandler func(app App,server registry.Node,rpcinfo rpcpb.RPCInfo,result interface{},err string,exec_time int64)
+type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
 
-type ServerRPCHandler func(app App,module Module,callInfo mqrpc.CallInfo)
+type ServerRPCHandler func(app App, module Module, callInfo mqrpc.CallInfo)
 
 func Version(v string) Option {
 	return func(o *Options) {
@@ -118,8 +118,6 @@ func KillWaitTTL(t time.Duration) Option {
 		o.KillWaitTTL = t
 	}
 }
-
-
 
 func SetClientRPChandler(t ClientRPCHandler) Option {
 	return func(o *Options) {

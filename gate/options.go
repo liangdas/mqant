@@ -35,7 +35,7 @@ func NewOptions(opts ...Option) Options {
 	opt := Options{
 		ConcurrentTasks: 20,
 		BufSize:         2048,
-		MaxPackSize:	 65535,
+		MaxPackSize:     65535,
 		Heartbeat:       time.Minute,
 		OverTime:        time.Second * 10,
 	}

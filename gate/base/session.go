@@ -483,9 +483,9 @@ func (this *sessionagent) Close() (err string) {
 */
 func (this *sessionagent) Clone() gate.Session {
 	agent := &sessionagent{
-		app: this.app,
-		userdata:this.userdata,
-		lock: new(sync.RWMutex),
+		app:      this.app,
+		userdata: this.userdata,
+		lock:     new(sync.RWMutex),
 	}
 	se := &SessionImp{
 		IP:        this.session.IP,
@@ -516,9 +516,9 @@ func (this *sessionagent) SpanId() string {
 
 func (this *sessionagent) ExtractSpan() log.TraceSpan {
 	agent := &sessionagent{
-		app: this.app,
-		userdata:this.userdata,
-		lock: new(sync.RWMutex),
+		app:      this.app,
+		userdata: this.userdata,
+		lock:     new(sync.RWMutex),
 	}
 	se := &SessionImp{
 		IP:        this.session.IP,

@@ -190,8 +190,8 @@ func (s *RPCServer) doCallback(callInfo mqrpc.CallInfo) {
 			log.Warning("rpc callback erro :\n%s", callInfo.Result.Error)
 		}
 	}
-	if s.app.Options().ServerRPCHandler!=nil{
-		s.app.Options().ServerRPCHandler(s.app,s.module,callInfo)
+	if s.app.Options().ServerRPCHandler != nil {
+		s.app.Options().ServerRPCHandler(s.app, s.module, callInfo)
 	}
 }
 
@@ -203,7 +203,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		//log.TError(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start), Error)
 		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
 		callInfo.Result = *resultInfo
-		callInfo.ExecTime=time.Since(start).Nanoseconds()
+		callInfo.ExecTime = time.Since(start).Nanoseconds()
 		s.doCallback(callInfo)
 		if s.listener != nil {
 			s.listener.OnError(callInfo.RpcInfo.Fn, &callInfo, fmt.Errorf(Error))
@@ -442,7 +442,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 			args,
 		)
 		callInfo.Result = *resultInfo
-		callInfo.ExecTime=time.Since(start).Nanoseconds()
+		callInfo.ExecTime = time.Since(start).Nanoseconds()
 		s.doCallback(callInfo)
 		if s.app.GetSettings().Rpc.Log {
 			log.TInfo(span, "RPC Exec ModuleType = %v Func = %v Elapsed = %v", s.module.GetType(), callInfo.RpcInfo.Fn, time.Since(start))

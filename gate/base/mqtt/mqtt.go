@@ -301,7 +301,7 @@ func parse_flags(b byte, flag *Connect) {
 }
 
 // Read and Write a mqtt pack
-func ReadPack(r *bufio.Reader,max_pack_length int) (pack *Pack, err error) {
+func ReadPack(r *bufio.Reader, max_pack_length int) (pack *Pack, err error) {
 	// Read the fixed header
 	var (
 		fixed     byte
@@ -342,7 +342,7 @@ func ReadPack(r *bufio.Reader,max_pack_length int) (pack *Pack, err error) {
 			break
 		}
 	}
-	if pack.length>max_pack_length{
+	if pack.length > max_pack_length {
 		err = fmt.Errorf("pack out of max length:%v", max_pack_length)
 		return
 	}

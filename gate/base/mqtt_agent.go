@@ -130,7 +130,7 @@ func (a *agent) Run() (err error) {
 
 	//握手协议
 	var pack *mqtt.Pack
-	pack, err = mqtt.ReadPack(a.r,a.gate.Options().MaxPackSize)
+	pack, err = mqtt.ReadPack(a.r, a.gate.Options().MaxPackSize)
 	if err != nil {
 		log.Error("Read login pack error", err)
 		return
@@ -147,7 +147,7 @@ func (a *agent) Run() (err error) {
 	//id := info.GetUserName()
 	//psw := info.GetPassword()
 	//log.Debug("Read login pack %s %s %s %s",*id,*psw,info.GetProtocol(),info.GetVersion())
-	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, conn.GetKeepAlive(),a.gate.Options().MaxPackSize)
+	c := mqtt.NewClient(conf.Conf.Mqtt, a, a.r, a.w, a.conn, conn.GetKeepAlive(), a.gate.Options().MaxPackSize)
 	a.client = c
 	addr := a.conn.RemoteAddr()
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
@@ -296,7 +296,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				ArgsType[1] = argsutil.BYTES
 				args[1] = pub.GetMsg()
 			}
-			session:=a.GetSession().Clone()
+			session := a.GetSession().Clone()
 			session.SetTopic(*pub.GetTopic())
 			if msgid != "" {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE

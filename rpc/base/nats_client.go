@@ -34,7 +34,7 @@ type NatsClient struct {
 	callbackqueueName string
 	app               module.App
 	done              chan error
-	isClose   			bool
+	isClose           bool
 	session           module.ServerSession
 }
 
@@ -45,7 +45,7 @@ func NewNatsClient(app module.App, session module.ServerSession) (client *NatsCl
 	client.callinfos = utils.NewBeeMap()
 	client.callbackqueueName = nats.NewInbox()
 	client.done = make(chan error)
-	client.isClose=false
+	client.isClose = false
 	go client.on_request_handle()
 	return client, nil
 }
@@ -79,7 +79,7 @@ func (c *NatsClient) Done() (err error) {
 	}
 	c.callinfos = nil
 	c.done <- nil
-	c.isClose=true
+	c.isClose = true
 	return
 }
 
@@ -149,15 +149,15 @@ func (c *NatsClient) on_request_handle() error {
 		subs.Unsubscribe()
 	}()
 
-	for !c.isClose{
+	for !c.isClose {
 		m, err := subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
 			//fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
 			continue
 		} else if err != nil {
-			fmt.Println(fmt.Sprintf("%v rpcclient error: %v",time.Now().String(),err.Error()))
-			log.Error("NatsServer error with '%v'",err)
+			fmt.Println(fmt.Sprintf("%v rpcclient error: %v", time.Now().String(), err.Error()))
+			log.Error("NatsServer error with '%v'", err)
 			continue
 		}
 

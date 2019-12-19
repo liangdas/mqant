@@ -65,9 +65,9 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 	}
 	defer func() {
 		//异常日志都应该打印
-		if c.app.Options().ClientRPChandler!=nil{
-			exec_time:=time.Since(start).Nanoseconds()
-			c.app.Options().ClientRPChandler(c.app,*c.nats_client.session.GetNode(),*rpcInfo,r,e,exec_time)
+		if c.app.Options().ClientRPChandler != nil {
+			exec_time := time.Since(start).Nanoseconds()
+			c.app.Options().ClientRPChandler(c.app, *c.nats_client.session.GetNode(), *rpcInfo, r, e, exec_time)
 		}
 	}()
 	callInfo := &mqrpc.CallInfo{

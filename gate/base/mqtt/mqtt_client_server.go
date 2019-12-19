@@ -42,13 +42,13 @@ type Client struct {
 	curr_id int
 }
 
-func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive,MaxPackSize int) *Client {
+func NewClient(conf conf.Mqtt, recover PackRecover, r *bufio.Reader, w *bufio.Writer, conn network.Conn, alive, MaxPackSize int) *Client {
 	client := &Client{
 		recover: recover,
 		lock:    new(sync.Mutex),
 		curr_id: 0,
 	}
-	client.queue = NewPackQueue(conf, r, w, conn, client.waitPack, alive,MaxPackSize)
+	client.queue = NewPackQueue(conf, r, w, conn, client.waitPack, alive, MaxPackSize)
 	return client
 }
 

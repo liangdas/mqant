@@ -127,9 +127,9 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	}
 	server := server.NewServer(opt...)
 	server.OnInit(subclass, app, settings)
-	hostname,_:=os.Hostname()
-	server.Options().Metadata["hostname"]=hostname
-	server.Options().Metadata["pid"]=fmt.Sprintf("%v",os.Getpid())
+	hostname, _ := os.Hostname()
+	server.Options().Metadata["hostname"] = hostname
+	server.Options().Metadata["pid"] = fmt.Sprintf("%v", os.Getpid())
 	ctx, cancel := context.WithCancel(context.Background())
 	m.exit = cancel
 	m.service = service.NewService(

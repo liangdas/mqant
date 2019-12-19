@@ -29,11 +29,11 @@ type MQServer interface {
 }
 
 type CallInfo struct {
-	RpcInfo rpcpb.RPCInfo
-	Result  rpcpb.ResultInfo
-	Props   map[string]interface{}
+	RpcInfo  rpcpb.RPCInfo
+	Result   rpcpb.ResultInfo
+	Props    map[string]interface{}
 	ExecTime int64
-	Agent   MQServer //代理者  AMQPServer / LocalServer 都继承 Callback(callinfo CallInfo)(error) 方法
+	Agent    MQServer //代理者  AMQPServer / LocalServer 都继承 Callback(callinfo CallInfo)(error) 方法
 }
 type RPCListener interface {
 	/**

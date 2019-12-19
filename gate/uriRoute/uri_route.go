@@ -149,7 +149,7 @@ func (this *UriRoute) OnRoute(session gate.Session, topic string, msg []byte) (b
 		ArgsType[1] = argsutil.BYTES
 		args[1] = msg
 	}
-	s:=session.Clone()
+	s := session.Clone()
 	s.SetTopic(topic)
 	if needreturn {
 		ArgsType[0] = gate.RPC_PARAM_SESSION_TYPE
