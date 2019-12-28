@@ -490,12 +490,12 @@ func (this *sessionagent) Close() (err string) {
 每次rpc调用都拷贝一份新的Session进行传输
 */
 func (this *sessionagent) Clone() gate.Session {
-	this.lock.Lock()
+	this.lock.RLock()
 	tmp := map[string]string{}
 	for k, v := range this.session.Settings {
 		tmp[k] = v
 	}
-	this.lock.Unlock()
+	this.lock.RUnlock()
 	agent := &sessionagent{
 		app:      this.app,
 		userdata: this.userdata,
