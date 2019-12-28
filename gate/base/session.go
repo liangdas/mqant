@@ -202,9 +202,9 @@ func (this *sessionagent) update(s gate.Session) error {
 }
 
 func (this *sessionagent) Serializable() ([]byte, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this.lock.RLock()
 	data, err := proto.Marshal(this.session)
+	this.lock.RUnlock()
 	if err != nil {
 		return nil, err
 	} // 进行解码
@@ -212,9 +212,9 @@ func (this *sessionagent) Serializable() ([]byte, error) {
 }
 
 func (this *sessionagent) Marshal() ([]byte, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this.lock.RLock()
 	data, err := proto.Marshal(this.session)
+	this.lock.RUnlock()
 	if err != nil {
 		return nil, err
 	} // 进行解码
