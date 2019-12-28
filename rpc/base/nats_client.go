@@ -157,7 +157,7 @@ func (c *NatsClient) on_request_handle() error {
 			continue
 		} else if err != nil {
 			fmt.Println(fmt.Sprintf("%v rpcclient error: %v", time.Now().String(), err.Error()))
-			log.Error("NatsServer error with '%v'", err)
+			log.Error("NatsClient error with '%v'", err)
 			continue
 		}
 
