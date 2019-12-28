@@ -175,14 +175,14 @@ func (this *sessionagent) updateMap(s map[string]interface{}) error {
 	}
 	Settings := s["Settings"]
 	if Settings != nil {
+		this.lock.Lock()
 		this.session.Settings = Settings.(map[string]string)
+		this.lock.Unlock()
 	}
 	return nil
 }
 
 func (this *sessionagent) update(s gate.Session) error {
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	Userid := s.GetUserId()
 	this.session.UserId = Userid
 	IP := s.GetIP()
@@ -195,11 +195,15 @@ func (this *sessionagent) update(s gate.Session) error {
 	Serverid := s.GetServerId()
 	this.session.ServerId = Serverid
 	Settings := s.GetSettings()
+	this.lock.Lock()
 	this.session.Settings = Settings
+	this.lock.Unlock()
 	return nil
 }
 
 func (this *sessionagent) Serializable() ([]byte, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -208,6 +212,8 @@ func (this *sessionagent) Serializable() ([]byte, error) {
 }
 
 func (this *sessionagent) Marshal() ([]byte, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	data, err := proto.Marshal(this.session)
 	if err != nil {
 		return nil, err
@@ -222,7 +228,9 @@ func (this *sessionagent) Unmarshal(data []byte) error {
 	} // 测试结果
 	this.session = se
 	if this.session.GetSettings() == nil {
+		this.lock.Lock()
 		this.session.Settings = make(map[string]string)
+		this.lock.Unlock()
 	}
 	return nil
 }
