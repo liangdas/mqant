@@ -33,7 +33,7 @@ func newLogWriter(wr io.Writer) *logWriter {
 
 func (lg *logWriter) println(when time.Time, msg string) {
 	lg.Lock()
-	h, _ := formatTimeHeader(when)
+	h, _ := FormatTimeHeader(when)
 	lg.writer.Write(append(append(h, msg...), '\n'))
 	lg.Unlock()
 }
@@ -89,7 +89,7 @@ const (
 	s2  = `012345678901234567890123456789012345678901234567890123456789`
 )
 
-func formatTimeHeader(when time.Time) ([]byte, int) {
+func FormatTimeHeader(when time.Time) ([]byte, int) {
 	_, _, d := when.Date()
 	//y, mo, d := when.Date()
 	//h, mi, s := when.Clock()

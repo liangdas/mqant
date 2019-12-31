@@ -94,7 +94,7 @@ type Logger interface {
 }
 
 var adapters = make(map[string]newLoggerFunc)
-var levelPrefix = [LevelDebug + 1]string{"[M] ", "[A] ", "[C] ", "[E] ", "[W] ", "[N] ", "[I] ", "[D] "}
+var LevelPrefix = [LevelDebug + 1]string{"[M] ", "[A] ", "[C] ", "[E] ", "[W] ", "[N] ", "[I] ", "[D] "}
 
 // Register makes a log provide available by the provided name.
 // If Register is called twice with the same name or if driver is nil,
@@ -109,6 +109,66 @@ func Register(name string, log newLoggerFunc) {
 	adapters[name] = log
 }
 
+type FormatFunc func(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (string, error)
+
+func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
+	return func(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (s string, e error) {
+		h, _ := FormatTimeHeader(when)
+		msgjson := map[string]interface{}{
+			"formattime": string(h),
+			"timestamp":  when.UnixNano(),
+		}
+		if strings.HasPrefix(msg,"@"){
+			//代表是结构化日志  msg=event_id  可选 v0=sub_event_id v1=error_msg v2=event_params[map,struct] v3=rparam[map,struct]
+			msgjson["event_id"]=msg
+			if len(v) > 0 {
+				msgjson["sub_event_id"]=v[0]
+			}
+			if len(v) > 1 {
+				msgjson["error_msg"]=v[1]
+			}
+			if len(v) > 2 {
+				msgjson["event_params"]=v[2]
+			}
+			if len(v) > 3 {
+				msgjson["rparam"]=v[3]
+			}
+		}else{
+			if len(v) > 0 {
+				msg = fmt.Sprintf(msg, v...)
+			}
+			msgjson["message"]=msg
+		}
+		if logLevel <= LevelWarn {
+			CallStack, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
+			msgjson["file"] = ShortFile
+			msgjson["stack"] = CallStack
+		} else {
+			_, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
+			msgjson["file"] = ShortFile
+			msgjson["stack"] = ""
+		}
+
+		//set level info in front of filename info
+		msgjson["processid"] = processId
+		msgjson["level"] = LevelPrefix[logLevel]
+
+		if span != nil {
+			msgjson["trace_id"] = span.Trace
+			msgjson["trace_span"] = span.Span
+		} else {
+			msgjson["trace_id"] = ""
+			msgjson["trace_span"] = ""
+		}
+		msgbys, err := json.Marshal(msgjson)
+		if err != nil {
+			return "", err
+		}
+		return string(msgbys), nil
+	}
+}
+
+
 // BeeLogger is default logger in beego application.
 // it can contain several providers and log message into all providers.
 type BeeLogger struct {
@@ -116,6 +176,7 @@ type BeeLogger struct {
 	level               int
 	init                bool
 	enableFuncCallDepth bool
+	formatFunc			FormatFunc
 	loggerFuncCallDepth int
 	asynchronous        bool
 	msgChanLen          int64
@@ -298,7 +359,7 @@ func (bl *BeeLogger) formatText(when time.Time, span *BeegoTraceSpan, logLevel i
 		// set to emergency to ensure all log will be print out correctly
 		logLevel = LevelEmergency
 	} else {
-		msg = "[" + bl.ProcessID + "] " + levelPrefix[logLevel] + msg
+		msg = "[" + bl.ProcessID + "] " + LevelPrefix[logLevel] + msg
 	}
 
 	if span != nil {
@@ -313,7 +374,7 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 	if len(v) > 0 {
 		msg = fmt.Sprintf(msg, v...)
 	}
-	h, _ := formatTimeHeader(when)
+	h, _ := FormatTimeHeader(when)
 	msgjson := map[string]interface{}{
 		"message":    msg,
 		"formattime": string(h),
@@ -345,7 +406,7 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		logLevel = LevelEmergency
 	} else {
 		msgjson["processid"] = bl.ProcessID
-		msgjson["level"] = levelPrefix[logLevel]
+		msgjson["level"] = LevelPrefix[logLevel]
 	}
 
 	if span != nil {
@@ -371,7 +432,14 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 
 	when := time.Now()
 	original := false
-	if bl.contentType == "application/json" {
+	if bl.formatFunc!=nil{
+		message, err := bl.formatFunc(when, span, logLevel, msg, v...)
+		if err != nil {
+			return err
+		}
+		msg = message
+		original = true
+	}else if bl.contentType == "application/json" {
 		message, err := bl.formatJson(when, span, logLevel, msg, v...)
 		if err != nil {
 			return err
@@ -475,6 +543,10 @@ func (bl *BeeLogger) SetLevel(l int) {
 // SetLogFuncCallDepth set log funcCallDepth
 func (bl *BeeLogger) SetLogFuncCallDepth(d int) {
 	bl.loggerFuncCallDepth = d
+}
+
+func (bl *BeeLogger) SetFormatFunc(d FormatFunc) {
+	bl.formatFunc = d
 }
 
 // GetLogFuncCallDepth return log funcCallDepth for wrapper

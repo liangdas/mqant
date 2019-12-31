@@ -214,9 +214,12 @@ func (this *agent) toResult(a *agent, Topic string, Result interface{}, Error st
 	}
 	b, err := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), Result, Error)
 	if err == "" {
-		return a.WriteMsg(Topic, b.GetData())
+		if b!=nil{
+			return a.WriteMsg(Topic, b.GetData())
+		}else {
+			return nil
+		}
 	} else {
-		log.Error(err)
 		br, _ := a.module.GetApp().ProtocolMarshal(a.session.TraceId(), nil, err)
 		return a.WriteMsg(Topic, br.GetData())
 	}
