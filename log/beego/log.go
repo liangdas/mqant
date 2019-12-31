@@ -119,7 +119,7 @@ func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
 			"timestamp":  when.UnixNano(),
 		}
 		if strings.HasPrefix(msg,"@"){
-			//代表是结构化日志  msg=event_id  可选 v0=sub_event_id v1=error_msg v2=error_report v3=event_params[map,struct] v4=rparam[map,struct]
+			//代表是结构化日志  msg=event_id  可选 v0=sub_event_id v1=error_msg v2=error_report v3=event_params[map,struct] v4=rparam[map,struct] v5=context_param[map,struct]
 			msgjson["event_id"]=msg
 			if len(v) > 0 {
 				msgjson["sub_event_id"]=v[0]
@@ -135,6 +135,9 @@ func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
 			}
 			if len(v) > 4 {
 				msgjson["rparam"]=v[4]
+			}
+			if len(v) > 5 {
+				msgjson["context_param"]=v[5]
 			}
 		}else{
 			if len(v) > 0 {
