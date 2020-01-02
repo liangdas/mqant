@@ -82,6 +82,25 @@ const (
 	LevelWarn  = LevelWarning
 )
 
+type JsonStruct struct {
+	FormatTime   	string `json:"formattime"`
+	TimeStamp   	int64 `json:"timestamp"`
+	EventId   		string `json:"event_id"`
+	SubEventId   	interface{} `json:"sub_event_id,omitempty"`
+	ErrorMsg   		interface{} `json:"error_msg,omitempty"`
+	ErrorReport   	interface{} `json:"error_report,omitempty"`
+	EventParams   	interface{} `json:"event_params,omitempty"`
+	Rparam   		interface{} `json:"rparam,omitempty"`
+	ContextParam   	interface{} `json:"context_param,omitempty"`
+	Message   		string `json:"message"`
+	File   			string `json:"file"`
+	Stack   		string `json:"stack"`
+	ProcessId   	string `json:"processid"`
+	Level   		string `json:"level"`
+	TraceId   		string `json:"trace_id"`
+	TraceSpan   	string `json:"trace_span"`
+}
+
 type newLoggerFunc func() Logger
 
 // Logger defines the behavior of a log provider.
@@ -114,59 +133,81 @@ type FormatFunc func(when time.Time, span *BeegoTraceSpan, logLevel int, msg str
 func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
 	return func(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (s string, e error) {
 		h, _ := FormatTimeHeader(when)
-		msgjson := map[string]interface{}{
-			"formattime": string(h),
-			"timestamp":  when.UnixNano(),
-		}
+		msgstruct:=&JsonStruct{}
+		msgstruct.FormatTime=string(h)
+		msgstruct.TimeStamp=when.UnixNano()
+		//msgjson := map[string]interface{}{
+		//	"formattime": string(h),
+		//	"timestamp":  when.UnixNano(),
+		//}
 		if strings.HasPrefix(msg,"@"){
 			//代表是结构化日志  msg=event_id  可选 v0=sub_event_id v1=error_msg v2=error_report v3=event_params[map,struct] v4=rparam[map,struct] v5=context_param[map,struct]
-			msgjson["event_id"]=msg
+			//msgjson["event_id"]=msg
+			msgstruct.EventId=msg
 			if len(v) > 0 {
-				msgjson["sub_event_id"]=v[0]
+				//msgjson["sub_event_id"]=v[0]
+				msgstruct.SubEventId=v[0]
 			}
 			if len(v) > 1 {
-				msgjson["error_msg"]=v[1]
+				//msgjson["error_msg"]=v[1]
+				msgstruct.ErrorMsg=v[1]
 			}
 			if len(v) > 2 {
-				msgjson["error_report"]=v[2]
+				//msgjson["error_report"]=v[2]
+				msgstruct.ErrorReport=v[2]
 			}
 			if len(v) > 3 {
-				msgjson["event_params"]=v[3]
+				//msgjson["event_params"]=v[3]
+				msgstruct.EventParams=v[3]
 			}
 			if len(v) > 4 {
-				msgjson["rparam"]=v[4]
+				//msgjson["rparam"]=v[4]
+				msgstruct.Rparam=v[4]
 			}
 			if len(v) > 5 {
-				msgjson["context_param"]=v[5]
+				//msgjson["context_param"]=v[5]
+				msgstruct.ContextParam=v[5]
 			}
 		}else{
 			if len(v) > 0 {
 				msg = fmt.Sprintf(msg, v...)
 			}
-			msgjson["message"]=msg
+			//msgjson["message"]=msg
+			msgstruct.Message=msg
 		}
 		if logLevel <= LevelWarn {
 			CallStack, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
-			msgjson["file"] = ShortFile
-			msgjson["stack"] = CallStack
+			//msgjson["file"] = ShortFile
+			//msgjson["stack"] = CallStack
+			msgstruct.File=CallStack
+			msgstruct.Stack=ShortFile
 		} else {
 			_, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
-			msgjson["file"] = ShortFile
-			msgjson["stack"] = ""
+			//msgjson["file"] = ShortFile
+			//msgjson["stack"] = ""
+			msgstruct.File=ShortFile
+			msgstruct.Stack=""
 		}
 
 		//set level info in front of filename info
-		msgjson["processid"] = processId
-		msgjson["level"] = LevelPrefix[logLevel]
+		//msgjson["processid"] = processId
+		//msgjson["level"] = LevelPrefix[logLevel]
+
+		msgstruct.ProcessId=processId
+		msgstruct.Level=LevelPrefix[logLevel]
 
 		if span != nil {
-			msgjson["trace_id"] = span.Trace
-			msgjson["trace_span"] = span.Span
+			//msgjson["trace_id"] = span.Trace
+			//msgjson["trace_span"] = span.Span
+			msgstruct.TraceId=span.Trace
+			msgstruct.TraceSpan=span.Span
 		} else {
-			msgjson["trace_id"] = ""
-			msgjson["trace_span"] = ""
+			//msgjson["trace_id"] = ""
+			//msgjson["trace_span"] = ""
+			msgstruct.TraceId=""
+			msgstruct.TraceSpan=""
 		}
-		msgbys, err := json.Marshal(msgjson)
+		msgbys, err := json.Marshal(msgstruct)
 		if err != nil {
 			return "", err
 		}
@@ -381,11 +422,15 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		msg = fmt.Sprintf(msg, v...)
 	}
 	h, _ := FormatTimeHeader(when)
-	msgjson := map[string]interface{}{
-		"message":    msg,
-		"formattime": string(h),
-		"timestamp":  when.UnixNano(),
-	}
+	msgstruct:=&JsonStruct{}
+	msgstruct.FormatTime=string(h)
+	msgstruct.TimeStamp=when.UnixNano()
+	msgstruct.Message=msg
+	//msgjson := map[string]interface{}{
+	//	"message":    msg,
+	//	"formattime": string(h),
+	//	"timestamp":  when.UnixNano(),
+	//}
 	if bl.enableFuncCallDepth {
 		//_, file, line, ok := runtime.Caller(bl.loggerFuncCallDepth)
 		//if !ok {
@@ -396,12 +441,16 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		//msg = "[" + filename + ":" + strconv.Itoa(line) + "] " + msg
 		if logLevel <= LevelWarn {
 			CallStack, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
-			msgjson["file"] = ShortFile
-			msgjson["stack"] = CallStack
+			//msgjson["file"] = ShortFile
+			//msgjson["stack"] = CallStack
+			msgstruct.File=CallStack
+			msgstruct.Stack=ShortFile
 		} else {
 			_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
-			msgjson["file"] = ShortFile
-			msgjson["stack"] = ""
+			//msgjson["file"] = ShortFile
+			//msgjson["stack"] = ""
+			msgstruct.File=ShortFile
+			msgstruct.Stack=""
 		}
 
 	}
@@ -411,18 +460,24 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		// set to emergency to ensure all log will be print out correctly
 		logLevel = LevelEmergency
 	} else {
-		msgjson["processid"] = bl.ProcessID
-		msgjson["level"] = LevelPrefix[logLevel]
+		//msgjson["processid"] = bl.ProcessID
+		//msgjson["level"] = LevelPrefix[logLevel]
+		msgstruct.ProcessId=bl.ProcessID
+		msgstruct.Level=LevelPrefix[logLevel]
 	}
 
 	if span != nil {
-		msgjson["trace_id"] = span.Trace
-		msgjson["trace_span"] = span.Span
+		//msgjson["trace_id"] = span.Trace
+		//msgjson["trace_span"] = span.Span
+		msgstruct.TraceId=span.Trace
+		msgstruct.TraceSpan=span.Span
 	} else {
-		msgjson["trace_id"] = ""
-		msgjson["trace_span"] = ""
+		//msgjson["trace_id"] = ""
+		//msgjson["trace_span"] = ""
+		msgstruct.TraceId=""
+		msgstruct.TraceSpan=""
 	}
-	msgbys, err := json.Marshal(msgjson)
+	msgbys, err := json.Marshal(msgstruct)
 	if err != nil {
 		return "", err
 	}
