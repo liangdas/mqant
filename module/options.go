@@ -1,6 +1,7 @@
 package module
 
 import (
+	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
@@ -8,6 +9,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"time"
 )
+
+type JudgeGuest func(session gate.Session) bool
 
 type Option func(*Options)
 
@@ -28,6 +31,7 @@ type Options struct {
 	RegisterTTL      time.Duration
 	ClientRPChandler ClientRPCHandler
 	ServerRPCHandler ServerRPCHandler
+	JudgeGuest		JudgeGuest
 }
 
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
@@ -128,5 +132,11 @@ func SetClientRPChandler(t ClientRPCHandler) Option {
 func SetServerRPCHandler(t ServerRPCHandler) Option {
 	return func(o *Options) {
 		o.ServerRPCHandler = t
+	}
+}
+
+func SetJudgeGuest(t JudgeGuest) Option {
+	return func(o *Options) {
+		o.JudgeGuest = t
 	}
 }

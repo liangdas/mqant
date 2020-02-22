@@ -45,6 +45,7 @@ func NewSession(app module.App, data []byte) (gate.Session, error) {
 		return nil, err
 	} // 测试结果
 	agent.session = se
+	agent.judgeGuest=app.Options().JudgeGuest
 	if agent.session.GetSettings() == nil {
 		agent.session.Settings = make(map[string]string)
 	}
@@ -64,6 +65,7 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	if agent.session.GetSettings() == nil {
 		agent.session.Settings = make(map[string]string)
 	}
+	agent.judgeGuest=app.Options().JudgeGuest
 	return agent, nil
 }
 
