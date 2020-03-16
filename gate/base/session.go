@@ -45,7 +45,9 @@ func NewSession(app module.App, data []byte) (gate.Session, error) {
 		return nil, err
 	} // 测试结果
 	agent.session = se
-	agent.judgeGuest=app.Options().JudgeGuest
+	if app!=nil{
+		agent.judgeGuest=app.Options().JudgeGuest
+	}
 	if agent.session.GetSettings() == nil {
 		agent.session.Settings = make(map[string]string)
 	}
@@ -65,7 +67,9 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	if agent.session.GetSettings() == nil {
 		agent.session.Settings = make(map[string]string)
 	}
-	agent.judgeGuest=app.Options().JudgeGuest
+	if app!=nil{
+		agent.judgeGuest=app.Options().JudgeGuest
+	}
 	return agent, nil
 }
 
@@ -492,12 +496,11 @@ func (this *sessionagent) Close() (err string) {
 每次rpc调用都拷贝一份新的Session进行传输
 */
 func (this *sessionagent) Clone() gate.Session {
-	this.lock.RLock()
+	this.lock.Lock()
 	tmp := map[string]string{}
 	for k, v := range this.session.Settings {
 		tmp[k] = v
 	}
-	this.lock.RUnlock()
 	agent := &sessionagent{
 		app:      this.app,
 		userdata: this.userdata,
@@ -514,6 +517,7 @@ func (this *sessionagent) Clone() gate.Session {
 		Settings:  tmp,
 	}
 	agent.session = se
+	this.lock.Unlock()
 	return agent
 }
 
