@@ -60,6 +60,8 @@ func TestSessionagent_Serializable(t *testing.T) {
 			session.Serializable()
 			session.SetLocalKV("ff","sss")
 			_session.Set("TestTopic", fmt.Sprintf("set %v", j))
+			_session.SetTopic("ttt")
+			_session.Serializable()
 		}
 		wg.Done()
 	}()
@@ -69,6 +71,7 @@ func TestSessionagent_Serializable(t *testing.T) {
 			session.Clone()
 			session.Serializable()
 			session.SetLocalKV("ff","sss")
+			session.SetTopic("ttt")
 			//fmt.Println("Serializable", b)
 		}
 		wg.Done()
