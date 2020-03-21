@@ -453,6 +453,9 @@ func (this *sessionagent) IsConnect(userId string) (bool, string) {
 		return false, fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
 	}
 	result, err := server.Call(nil, "IsConnect", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, userId)
+	if err != "" {
+		return false, err
+	}
 	return result.(bool), err
 }
 
