@@ -83,22 +83,22 @@ const (
 )
 
 type JsonStruct struct {
-	FormatTime   	string `json:"formattime"`
-	TimeStamp   	int64 `json:"timestamp"`
-	EventId   		string `json:"event_id"`
-	SubEventId   	interface{} `json:"sub_event_id,omitempty"`
-	ErrorMsg   		interface{} `json:"error_msg,omitempty"`
-	ErrorReport   	interface{} `json:"error_report,omitempty"`
-	EventParams   	interface{} `json:"event_params,omitempty"`
-	Rparam   		interface{} `json:"rparam,omitempty"`
-	ContextParam   	interface{} `json:"context_param,omitempty"`
-	Message   		string `json:"message"`
-	File   			string `json:"file"`
-	Stack   		string `json:"stack"`
-	ProcessId   	string `json:"processid"`
-	Level   		string `json:"level"`
-	TraceId   		string `json:"trace_id"`
-	TraceSpan   	string `json:"trace_span"`
+	FormatTime   string      `json:"formattime"`
+	TimeStamp    int64       `json:"timestamp"`
+	EventId      string      `json:"event_id"`
+	SubEventId   interface{} `json:"sub_event_id,omitempty"`
+	ErrorMsg     interface{} `json:"error_msg,omitempty"`
+	ErrorReport  interface{} `json:"error_report,omitempty"`
+	EventParams  interface{} `json:"event_params,omitempty"`
+	Rparam       interface{} `json:"rparam,omitempty"`
+	ContextParam interface{} `json:"context_param,omitempty"`
+	Message      string      `json:"message"`
+	File         string      `json:"file"`
+	Stack        string      `json:"stack"`
+	ProcessId    string      `json:"processid"`
+	Level        string      `json:"level"`
+	TraceId      string      `json:"trace_id"`
+	TraceSpan    string      `json:"trace_span"`
 }
 
 type newLoggerFunc func() Logger
@@ -130,82 +130,82 @@ func Register(name string, log newLoggerFunc) {
 
 type FormatFunc func(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (string, error)
 
-func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
+func DefineErrorLogFunc(processId string, loggerFuncCallDepth int) FormatFunc {
 	return func(when time.Time, span *BeegoTraceSpan, logLevel int, msg string, v ...interface{}) (s string, e error) {
 		h, _ := FormatTimeHeader(when)
-		msgstruct:=&JsonStruct{}
-		msgstruct.FormatTime=string(h)
-		msgstruct.TimeStamp=when.UnixNano()
+		msgstruct := &JsonStruct{}
+		msgstruct.FormatTime = string(h)
+		msgstruct.TimeStamp = when.UnixNano()
 		//msgjson := map[string]interface{}{
 		//	"formattime": string(h),
 		//	"timestamp":  when.UnixNano(),
 		//}
-		if strings.HasPrefix(msg,"@"){
+		if strings.HasPrefix(msg, "@") {
 			//代表是结构化日志  msg=event_id  可选 v0=sub_event_id v1=error_msg v2=error_report v3=event_params[map,struct] v4=rparam[map,struct] v5=context_param[map,struct]
 			//msgjson["event_id"]=msg
-			msgstruct.EventId=msg
+			msgstruct.EventId = msg
 			if len(v) > 0 {
 				//msgjson["sub_event_id"]=v[0]
-				msgstruct.SubEventId=v[0]
+				msgstruct.SubEventId = v[0]
 			}
 			if len(v) > 1 {
 				//msgjson["error_msg"]=v[1]
-				msgstruct.ErrorMsg=v[1]
+				msgstruct.ErrorMsg = v[1]
 			}
 			if len(v) > 2 {
 				//msgjson["error_report"]=v[2]
-				msgstruct.ErrorReport=v[2]
+				msgstruct.ErrorReport = v[2]
 			}
 			if len(v) > 3 {
 				//msgjson["event_params"]=v[3]
-				msgstruct.EventParams=v[3]
+				msgstruct.EventParams = v[3]
 			}
 			if len(v) > 4 {
 				//msgjson["rparam"]=v[4]
-				msgstruct.Rparam=v[4]
+				msgstruct.Rparam = v[4]
 			}
 			if len(v) > 5 {
 				//msgjson["context_param"]=v[5]
-				msgstruct.ContextParam=v[5]
+				msgstruct.ContextParam = v[5]
 			}
-		}else{
+		} else {
 			if len(v) > 0 {
 				msg = fmt.Sprintf(msg, v...)
 			}
 			//msgjson["message"]=msg
-			msgstruct.Message=msg
+			msgstruct.Message = msg
 		}
 		if logLevel <= LevelWarn {
 			CallStack, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
 			//msgjson["file"] = ShortFile
 			//msgjson["stack"] = CallStack
-			msgstruct.File=CallStack
-			msgstruct.Stack=ShortFile
+			msgstruct.File = CallStack
+			msgstruct.Stack = ShortFile
 		} else {
 			_, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
 			//msgjson["file"] = ShortFile
 			//msgjson["stack"] = ""
-			msgstruct.File=ShortFile
-			msgstruct.Stack=""
+			msgstruct.File = ShortFile
+			msgstruct.Stack = ""
 		}
 
 		//set level info in front of filename info
 		//msgjson["processid"] = processId
 		//msgjson["level"] = LevelPrefix[logLevel]
 
-		msgstruct.ProcessId=processId
-		msgstruct.Level=LevelPrefix[logLevel]
+		msgstruct.ProcessId = processId
+		msgstruct.Level = LevelPrefix[logLevel]
 
 		if span != nil {
 			//msgjson["trace_id"] = span.Trace
 			//msgjson["trace_span"] = span.Span
-			msgstruct.TraceId=span.Trace
-			msgstruct.TraceSpan=span.Span
+			msgstruct.TraceId = span.Trace
+			msgstruct.TraceSpan = span.Span
 		} else {
 			//msgjson["trace_id"] = ""
 			//msgjson["trace_span"] = ""
-			msgstruct.TraceId=""
-			msgstruct.TraceSpan=""
+			msgstruct.TraceId = ""
+			msgstruct.TraceSpan = ""
 		}
 		msgbys, err := json.Marshal(msgstruct)
 		if err != nil {
@@ -215,7 +215,6 @@ func DefineErrorLogFunc(processId string,loggerFuncCallDepth int) FormatFunc {
 	}
 }
 
-
 // BeeLogger is default logger in beego application.
 // it can contain several providers and log message into all providers.
 type BeeLogger struct {
@@ -223,7 +222,7 @@ type BeeLogger struct {
 	level               int
 	init                bool
 	enableFuncCallDepth bool
-	formatFunc			FormatFunc
+	formatFunc          FormatFunc
 	loggerFuncCallDepth int
 	asynchronous        bool
 	msgChanLen          int64
@@ -422,10 +421,10 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 		msg = fmt.Sprintf(msg, v...)
 	}
 	h, _ := FormatTimeHeader(when)
-	msgstruct:=&JsonStruct{}
-	msgstruct.FormatTime=string(h)
-	msgstruct.TimeStamp=when.UnixNano()
-	msgstruct.Message=msg
+	msgstruct := &JsonStruct{}
+	msgstruct.FormatTime = string(h)
+	msgstruct.TimeStamp = when.UnixNano()
+	msgstruct.Message = msg
 	//msgjson := map[string]interface{}{
 	//	"message":    msg,
 	//	"formattime": string(h),
@@ -443,14 +442,14 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 			CallStack, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			//msgjson["file"] = ShortFile
 			//msgjson["stack"] = CallStack
-			msgstruct.File=CallStack
-			msgstruct.Stack=ShortFile
+			msgstruct.File = CallStack
+			msgstruct.Stack = ShortFile
 		} else {
 			_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			//msgjson["file"] = ShortFile
 			//msgjson["stack"] = ""
-			msgstruct.File=ShortFile
-			msgstruct.Stack=""
+			msgstruct.File = ShortFile
+			msgstruct.Stack = ""
 		}
 
 	}
@@ -462,20 +461,20 @@ func (bl *BeeLogger) formatJson(when time.Time, span *BeegoTraceSpan, logLevel i
 	} else {
 		//msgjson["processid"] = bl.ProcessID
 		//msgjson["level"] = LevelPrefix[logLevel]
-		msgstruct.ProcessId=bl.ProcessID
-		msgstruct.Level=LevelPrefix[logLevel]
+		msgstruct.ProcessId = bl.ProcessID
+		msgstruct.Level = LevelPrefix[logLevel]
 	}
 
 	if span != nil {
 		//msgjson["trace_id"] = span.Trace
 		//msgjson["trace_span"] = span.Span
-		msgstruct.TraceId=span.Trace
-		msgstruct.TraceSpan=span.Span
+		msgstruct.TraceId = span.Trace
+		msgstruct.TraceSpan = span.Span
 	} else {
 		//msgjson["trace_id"] = ""
 		//msgjson["trace_span"] = ""
-		msgstruct.TraceId=""
-		msgstruct.TraceSpan=""
+		msgstruct.TraceId = ""
+		msgstruct.TraceSpan = ""
 	}
 	msgbys, err := json.Marshal(msgstruct)
 	if err != nil {
@@ -493,14 +492,14 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 
 	when := time.Now()
 	original := false
-	if bl.formatFunc!=nil{
+	if bl.formatFunc != nil {
 		message, err := bl.formatFunc(when, span, logLevel, msg, v...)
 		if err != nil {
 			return err
 		}
 		msg = message
 		original = true
-	}else if bl.contentType == "application/json" {
+	} else if bl.contentType == "application/json" {
 		message, err := bl.formatJson(when, span, logLevel, msg, v...)
 		if err != nil {
 			return err

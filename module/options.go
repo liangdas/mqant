@@ -31,7 +31,7 @@ type Options struct {
 	RegisterTTL      time.Duration
 	ClientRPChandler ClientRPCHandler
 	ServerRPCHandler ServerRPCHandler
-	JudgeGuest		JudgeGuest
+	JudgeGuest       JudgeGuest
 }
 
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)

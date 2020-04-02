@@ -22,8 +22,8 @@ import (
 
 func TestSession(t *testing.T) {
 	session := &SessionImp{ // 使用辅助函数设置域的值
-		IP:        *proto.String("127.0.0.1"),
-		Network:   *proto.String("tcp"),
+		IP:      *proto.String("127.0.0.1"),
+		Network: *proto.String("tcp"),
 	} // 进行编码
 	session.Settings = map[string]string{"isLogin": "true"}
 	data, err := proto.Marshal(session)
@@ -46,10 +46,10 @@ func TestSession(t *testing.T) {
 }
 
 func TestSessionagent_Serializable(t *testing.T) {
-	session,err:=NewSessionByMap(nil, map[string]interface{}{
-		"IP":"IP",
+	session, err := NewSessionByMap(nil, map[string]interface{}{
+		"IP": "IP",
 	})
-	if err!=nil{
+	if err != nil {
 		t.Fatalf("NewSessionByMap error: %v", err)
 	}
 	var wg sync.WaitGroup
@@ -58,7 +58,7 @@ func TestSessionagent_Serializable(t *testing.T) {
 		for j := 0; j < 1000000; j++ {
 			_session := session.Clone()
 			session.Serializable()
-			session.SetLocalKV("ff","sss")
+			session.SetLocalKV("ff", "sss")
 			_session.Set("TestTopic", fmt.Sprintf("set %v", j))
 			_session.SetTopic("ttt")
 			_session.Serializable()
@@ -70,7 +70,7 @@ func TestSessionagent_Serializable(t *testing.T) {
 		for j := 0; j < 1000000; j++ {
 			session.Clone()
 			session.Serializable()
-			session.SetLocalKV("ff","sss")
+			session.SetLocalKV("ff", "sss")
 			session.SetTopic("ttt")
 			//fmt.Println("Serializable", b)
 		}
