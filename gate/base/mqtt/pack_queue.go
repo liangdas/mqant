@@ -139,6 +139,10 @@ func (queue *PackQueue) WritePack(pack *Pack) (err error) {
 		queue.writelock.Unlock()
 		return queue.writeError
 	}
+	if queue.w.Available()<= 0{
+		queue.writelock.Unlock()
+		return fmt.Errorf("bufio.Writer is full")
+	}
 	err = DelayWritePack(pack, queue.w)
 	queue.writelock.Unlock()
 	queue.fch <- struct{}{}
