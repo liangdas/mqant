@@ -70,3 +70,11 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(int(rsp.StatusCode))
 	w.Write([]byte(rsp.Body))
 }
+
+func NewHandler(app module.App, opts ...Option) http.Handler {
+	options := NewOptions(opts...)
+	return &ApiHandler{
+		Opts: options,
+		App:  app,
+	}
+}

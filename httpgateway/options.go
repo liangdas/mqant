@@ -16,7 +16,6 @@ package httpgateway
 import (
 	"errors"
 	"fmt"
-	"github.com/liangdas/mqant/httpgateway/api"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/selector"
@@ -26,14 +25,6 @@ import (
 	"sync"
 	"time"
 )
-
-func NewHandler(app module.App, opts ...Option) http.Handler {
-	options := NewOptions(opts...)
-	return &httpgatewayapi.ApiHandler{
-		Opts: options,
-		App:  app,
-	}
-}
 
 // Service represents an API service
 type Service struct {
