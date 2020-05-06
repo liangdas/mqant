@@ -300,7 +300,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						_errorCallback(callInfo.RpcInfo.Cid, err.Error())
 						return
 					}
-					if pb==nil { //多选语句switch
+					if pb == nil { //多选语句switch
 						in[k] = reflect.Zero(f.Type().In(k))
 					}
 					if rv.Kind() == reflect.Ptr {
@@ -316,7 +316,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						_errorCallback(callInfo.RpcInfo.Cid, err.Error())
 						return
 					}
-					if pb==nil { //多选语句switch
+					if pb == nil { //多选语句switch
 						in[k] = reflect.Zero(f.Type().In(k))
 					}
 					if rv.Kind() == reflect.Ptr {

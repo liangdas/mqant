@@ -32,7 +32,7 @@ var RPC_PARAM_ProtocolMarshal_TYPE = gate.RPC_PARAM_ProtocolMarshal_TYPE
 type Gate struct {
 	//module.RPCSerialize
 	basemodule.BaseModule
-	opts gate.Options
+	opts       gate.Options
 	judgeGuest func(session gate.Session) bool
 
 	createAgent func() gate.Agent
@@ -165,21 +165,21 @@ func (this *Gate) OnAppConfigurationLoaded(app module.App) {
 		log.Warning("Adding session structures failed to serialize interfaces %s", err.Error())
 	}
 }
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings,opts ...gate.Option) {
+func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
 	this.opts = gate.NewOptions(opts...)
-	this.BaseModule.OnInit(subclass, app, settings,this.opts.Opts...) //这是必须的
-	if this.opts.WsAddr==""{
+	this.BaseModule.OnInit(subclass, app, settings, this.opts.Opts...) //这是必须的
+	if this.opts.WsAddr == "" {
 		if WSAddr, ok := settings.Settings["WSAddr"]; ok {
 			this.opts.WsAddr = WSAddr.(string)
 		}
 	}
-	if this.opts.TcpAddr==""{
+	if this.opts.TcpAddr == "" {
 		if TCPAddr, ok := settings.Settings["TCPAddr"]; ok {
 			this.opts.TcpAddr = TCPAddr.(string)
 		}
 	}
 
-	if this.opts.Tls==false{
+	if this.opts.Tls == false {
 		if Tls, ok := settings.Settings["Tls"]; ok {
 			this.opts.Tls = Tls.(bool)
 		} else {
@@ -187,7 +187,7 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 		}
 	}
 
-	if this.opts.CertFile==""{
+	if this.opts.CertFile == "" {
 		if CertFile, ok := settings.Settings["CertFile"]; ok {
 			this.opts.CertFile = CertFile.(string)
 		} else {
@@ -195,7 +195,7 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 		}
 	}
 
-	if this.opts.KeyFile==""{
+	if this.opts.KeyFile == "" {
 		if KeyFile, ok := settings.Settings["KeyFile"]; ok {
 			this.opts.KeyFile = KeyFile.(string)
 		} else {
@@ -225,7 +225,7 @@ func (this *Gate) Run(closeSig chan bool) {
 	if this.opts.WsAddr != "" {
 		wsServer = new(network.WSServer)
 		wsServer.Addr = this.opts.WsAddr
-		wsServer.HTTPTimeout = 30*time.Second
+		wsServer.HTTPTimeout = 30 * time.Second
 		wsServer.Tls = this.opts.Tls
 		wsServer.CertFile = this.opts.CertFile
 		wsServer.KeyFile = this.opts.KeyFile

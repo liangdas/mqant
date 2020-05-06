@@ -55,8 +55,8 @@ func (this *protocolMarshalImp) GetData() []byte {
 }
 
 func newOptions(opts ...module.Option) module.Options {
-	var wdPath,confPath,Logdir,BIdir string
-	var ProcessID="development"
+	var wdPath, confPath, Logdir, BIdir string
+	var ProcessID = "development"
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -64,14 +64,14 @@ func newOptions(opts ...module.Option) module.Options {
 		RegisterTTL:      time.Second * time.Duration(20),
 		KillWaitTTL:      time.Second * time.Duration(60),
 		Debug:            true,
-		Parse:			  true,
+		Parse:            true,
 	}
 
 	for _, o := range opts {
 		o(&opt)
 	}
 
-	if opt.Parse{
+	if opt.Parse {
 		wdPath = *flag.String("wd", "", "Server work directory")
 		confPath = *flag.String("conf", "", "Server configuration file path")
 		ProcessID = *flag.String("pid", "development", "Server ProcessID?")

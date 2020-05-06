@@ -9,15 +9,13 @@ import (
 	"time"
 )
 
-
-
 type Option func(*Options)
 
 type Options struct {
 	Nats        *nats.Conn
 	Version     string
 	Debug       bool
-	Parse       bool	//是否由框架解析启动环境变量,默认为true
+	Parse       bool //是否由框架解析启动环境变量,默认为true
 	WorkDir     string
 	ConfPath    string
 	LogDir      string
@@ -31,7 +29,6 @@ type Options struct {
 	RegisterTTL      time.Duration
 	ClientRPChandler ClientRPCHandler
 	ServerRPCHandler ServerRPCHandler
-
 }
 
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)

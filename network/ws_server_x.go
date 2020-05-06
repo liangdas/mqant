@@ -112,10 +112,10 @@ func (server *WSServer) Start() {
 			}
 			config.Origin, _ = url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
 			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
-			ptls:=strings.Split(offeredProtocol,",")
-			if len(ptls)>0{
+			ptls := strings.Split(offeredProtocol, ",")
+			if len(ptls) > 0 {
 				config.Protocol = []string{ptls[0]}
-			}else{
+			} else {
 				config.Protocol = []string{"mqtt"}
 			}
 			return nil

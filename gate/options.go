@@ -24,11 +24,11 @@ type Options struct {
 	ConcurrentTasks int
 	BufSize         int
 	MaxPackSize     int
-	Tls				bool
-	TcpAddr			string
-	WsAddr			string
-	CertFile		string
-	KeyFile			string
+	Tls             bool
+	TcpAddr         string
+	WsAddr          string
+	CertFile        string
+	KeyFile         string
 	Heartbeat       time.Duration
 	OverTime        time.Duration
 	RouteHandler    RouteHandler
@@ -37,18 +37,18 @@ type Options struct {
 	SessionLearner  SessionLearner
 	GateHandler     GateHandler
 	SendMessageHook SendMessageHook
-	Opts			[]server.Option
+	Opts            []server.Option
 }
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
-		Opts:[]server.Option{},
+		Opts:            []server.Option{},
 		ConcurrentTasks: 20,
 		BufSize:         2048,
 		MaxPackSize:     65535,
 		Heartbeat:       time.Minute,
 		OverTime:        time.Second * 10,
-		Tls:false,
+		Tls:             false,
 	}
 
 	for _, o := range opts {
