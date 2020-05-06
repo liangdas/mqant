@@ -1,9 +1,9 @@
 // Package api provides an http-rpc handler which provides the entire http request over rpc
-package httpgatewayapi
+package httpgateway
 
 import (
 	"context"
-	"github.com/liangdas/mqant/httpgateway"
+	"github.com/liangdas/mqant/httpgateway/api"
 	"github.com/liangdas/mqant/httpgateway/errors"
 	"github.com/liangdas/mqant/httpgateway/proto"
 	"github.com/liangdas/mqant/module"
@@ -12,7 +12,7 @@ import (
 )
 
 type ApiHandler struct {
-	Opts httpgateway.Options
+	Opts Options
 	App  module.App
 }
 
@@ -22,7 +22,7 @@ const (
 
 // API handler is the default handler which takes api.Request and returns api.Response
 func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	request, err := RequestToProto(r)
+	request, err := httpgatewayapi.RequestToProto(r)
 	if err != nil {
 		er := errors.InternalServerError("httpgateway", err.Error())
 		w.Header().Set("Content-Type", "application/json")
