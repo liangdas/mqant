@@ -3,17 +3,17 @@ package httpgatewayapi
 
 import (
 	"context"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/httpgateway"
 	"github.com/liangdas/mqant/httpgateway/errors"
 	"github.com/liangdas/mqant/httpgateway/proto"
+	"github.com/liangdas/mqant/module"
+	"github.com/liangdas/mqant/rpc"
 	"net/http"
 )
 
 type ApiHandler struct {
 	Opts httpgateway.Options
-	App module.App
+	App  module.App
 }
 
 const (
@@ -30,7 +30,7 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(er.Error()))
 		return
 	}
-	server,err:=a.Opts.Route(a.App,r)
+	server, err := a.Opts.Route(a.App, r)
 	if err != nil {
 		er := errors.InternalServerError("httpgateway", err.Error())
 		w.Header().Set("Content-Type", "application/json")
@@ -42,7 +42,7 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx, _ := context.WithTimeout(context.TODO(), a.Opts.TimeOut)
 	if err = mqrpc.Proto(rsp, func() (reply interface{}, errstr interface{}) {
 		return server.SrvSession.Call(ctx, server.Hander, request)
-	});err != nil {
+	}); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		ce := errors.Parse(err.Error())
 		switch ce.Code {
@@ -53,7 +53,7 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = w.Write([]byte(ce.Error()))
 		return
-	}else if rsp.StatusCode == 0 {
+	} else if rsp.StatusCode == 0 {
 		rsp.StatusCode = http.StatusOK
 	}
 
@@ -70,5 +70,3 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(int(rsp.StatusCode))
 	w.Write([]byte(rsp.Body))
 }
-
-

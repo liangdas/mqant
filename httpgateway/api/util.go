@@ -2,9 +2,9 @@ package httpgatewayapi
 
 import (
 	"fmt"
+	api "github.com/liangdas/mqant/httpgateway/proto"
 	"io/ioutil"
 	"mime"
-	api "github.com/liangdas/mqant/httpgateway/proto"
 	"net"
 	"net/http"
 	"strings"
