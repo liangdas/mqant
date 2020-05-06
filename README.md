@@ -61,5 +61,5 @@ bug请直接通过issue提交
 
 ## 打赏作者
 
-![](https://github.com/liangdas/mqant/wiki/images/donation.png)
+![](http://docs.mqant.com/images/donation.png)
 
