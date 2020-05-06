@@ -15,6 +15,7 @@ package basegate
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,7 +35,7 @@ import (
 
 //type resultInfo struct {
 //	Error  string      //错误结果 如果为nil表示请求正确
-//	Result interface{} //结果
+//	Result interface{} //RPC 返回结果
 //}
 
 type agent struct {
@@ -308,7 +309,8 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 					return
 				}
 				args[0] = b
-				result, e := serverSession.CallArgs(nil, topics[1], ArgsType, args)
+				ctx, _ := context.WithTimeout(context.TODO(), time.Second*3)
+				result, e := serverSession.CallArgs(ctx, topics[1], ArgsType, args)
 				toResult(a, *pub.GetTopic(), result, e)
 			} else {
 				ArgsType[0] = RPC_PARAM_SESSION_TYPE

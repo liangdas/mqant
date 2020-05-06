@@ -1,7 +1,6 @@
 package module
 
 import (
-	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
@@ -10,7 +9,7 @@ import (
 	"time"
 )
 
-type JudgeGuest func(session gate.Session) bool
+
 
 type Option func(*Options)
 
@@ -18,6 +17,7 @@ type Options struct {
 	Nats        *nats.Conn
 	Version     string
 	Debug       bool
+	Parse       bool	//是否由框架解析启动环境变量,默认为true
 	WorkDir     string
 	ConfPath    string
 	LogDir      string
@@ -31,7 +31,7 @@ type Options struct {
 	RegisterTTL      time.Duration
 	ClientRPChandler ClientRPCHandler
 	ServerRPCHandler ServerRPCHandler
-	JudgeGuest       JudgeGuest
+
 }
 
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
@@ -135,8 +135,8 @@ func SetServerRPCHandler(t ServerRPCHandler) Option {
 	}
 }
 
-func SetJudgeGuest(t JudgeGuest) Option {
+func Parse(t bool) Option {
 	return func(o *Options) {
-		o.JudgeGuest = t
+		o.Parse = t
 	}
 }

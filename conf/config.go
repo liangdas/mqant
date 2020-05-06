@@ -35,6 +35,9 @@ func LoadConfig(Path string) {
 	if err := readFileInto(Path); err != nil {
 		panic(err)
 	}
+	if Conf.Rpc.RpcExpired == 0 {
+		Conf.Rpc.RpcExpired = 3
+	}
 	if Conf.Rpc.MaxCoroutine == 0 {
 		Conf.Rpc.MaxCoroutine = 100
 	}

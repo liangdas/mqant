@@ -37,11 +37,16 @@ type CallInfo struct {
 }
 type RPCListener interface {
 	/**
+	NoFoundFunction 当未找到请求的handler时会触发该方法
+	*FunctionInfo  选择可执行的handler
+	return error
+	*/
+	NoFoundFunction(fn string) (*FunctionInfo, error)
+	/**
 	BeforeHandle会对请求做一些前置处理，如：检查当前玩家是否已登录，打印统计日志等。
 	@session  可能为nil
 	return error  当error不为nil时将直接返回改错误信息而不会再执行后续调用
 	*/
-	NoFoundFunction(fn string) (*FunctionInfo, error)
 	BeforeHandle(fn string, callInfo *CallInfo) error
 	OnTimeOut(fn string, Expired int64)
 	OnError(fn string, callInfo *CallInfo, err error)

@@ -21,6 +21,7 @@ import (
 
 var RPC_PARAM_SESSION_TYPE = "SESSION"
 var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
+var JudgeGuest  func(session Session) bool;
 
 /**
 net代理服务 处理器

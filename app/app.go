@@ -55,13 +55,8 @@ func (this *protocolMarshalImp) GetData() []byte {
 }
 
 func newOptions(opts ...module.Option) module.Options {
-	wdPath := flag.String("wd", "", "Server work directory")
-	confPath := flag.String("conf", "", "Server configuration file path")
-	ProcessID := flag.String("pid", "development", "Server ProcessID?")
-	Logdir := flag.String("log", "", "Log file directory?")
-	BIdir := flag.String("bi", "", "bi file directory?")
-	flag.Parse() //解析输入的参数
-
+	var wdPath,confPath,Logdir,BIdir string
+	var ProcessID="development"
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -69,11 +64,22 @@ func newOptions(opts ...module.Option) module.Options {
 		RegisterTTL:      time.Second * time.Duration(20),
 		KillWaitTTL:      time.Second * time.Duration(60),
 		Debug:            true,
+		Parse:			  true,
 	}
 
 	for _, o := range opts {
 		o(&opt)
 	}
+
+	if opt.Parse{
+		wdPath = *flag.String("wd", "", "Server work directory")
+		confPath = *flag.String("conf", "", "Server configuration file path")
+		ProcessID = *flag.String("pid", "development", "Server ProcessID?")
+		Logdir = *flag.String("log", "", "Log file directory?")
+		BIdir = *flag.String("bi", "", "bi file directory?")
+		flag.Parse() //解析输入的参数
+	}
+
 	if opt.Nats == nil {
 		nc, err := nats.Connect(nats.DefaultURL)
 		if err != nil {
@@ -84,18 +90,18 @@ func newOptions(opts ...module.Option) module.Options {
 	}
 
 	if opt.WorkDir == "" {
-		opt.WorkDir = *wdPath
+		opt.WorkDir = wdPath
 	}
 	if opt.ProcessID == "" {
-		opt.ProcessID = *ProcessID
+		opt.ProcessID = ProcessID
 	}
 	ApplicationDir := ""
-	if *wdPath != "" {
-		_, err := os.Open(*wdPath)
+	if opt.WorkDir != "" {
+		_, err := os.Open(opt.WorkDir)
 		if err != nil {
 			panic(err)
 		}
-		os.Chdir(*wdPath)
+		os.Chdir(opt.WorkDir)
 		ApplicationDir, err = os.Getwd()
 	} else {
 		var err error
@@ -108,31 +114,31 @@ func newOptions(opts ...module.Option) module.Options {
 
 	}
 	opt.WorkDir = ApplicationDir
-	defaultConfPath := fmt.Sprintf("/%s/bin/conf/server.json", ApplicationDir)
+	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
 	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
 	if opt.ConfPath == "" {
-		if *confPath == "" {
+		if confPath == "" {
 			opt.ConfPath = defaultConfPath
 		} else {
-			opt.ConfPath = *confPath
+			opt.ConfPath = confPath
 		}
 	}
 
 	if opt.LogDir == "" {
-		if *Logdir == "" {
+		if Logdir == "" {
 			opt.LogDir = defaultLogPath
 		} else {
-			opt.LogDir = *Logdir
+			opt.LogDir = Logdir
 		}
 	}
 
 	if opt.BIDir == "" {
-		if *BIdir == "" {
+		if BIdir == "" {
 			opt.BIDir = defaultBIPath
 		} else {
-			opt.BIDir = *BIdir
+			opt.BIDir = BIdir
 		}
 	}
 

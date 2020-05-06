@@ -177,7 +177,6 @@ func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
 
 		switch v2 := param.(type) { //多选语句switch
 		case log.TraceSpan:
-			//如果参数是这个需要拷贝一份新的再传
 			span = v2
 		}
 	}

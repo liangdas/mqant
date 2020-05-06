@@ -179,7 +179,7 @@ func Bytes2Args(app module.App, argsType string, args []byte) (interface{}, erro
 		if err != nil {
 			return nil, err
 		}
-		return trace, nil
+		return trace.ExtractSpan(), nil
 	default:
 		for _, v := range app.GetRPCSerialize() {
 			vk, err := v.Deserialize(argsType, args)

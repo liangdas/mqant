@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -111,7 +112,12 @@ func (server *WSServer) Start() {
 			}
 			config.Origin, _ = url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
 			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
-			config.Protocol = []string{offeredProtocol}
+			ptls:=strings.Split(offeredProtocol,",")
+			if len(ptls)>0{
+				config.Protocol = []string{ptls[0]}
+			}else{
+				config.Protocol = []string{"mqtt"}
+			}
 			return nil
 		},
 	}

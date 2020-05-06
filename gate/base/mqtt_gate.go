@@ -33,18 +33,6 @@ type Gate struct {
 	//module.RPCSerialize
 	basemodule.BaseModule
 	opts gate.Options
-	// websocket
-	WSAddr      string
-	HTTPTimeout time.Duration
-
-	// tcp
-	TCPAddr string
-
-	//tls
-	Tls      bool
-	CertFile string
-	KeyFile  string
-	//
 	judgeGuest func(session gate.Session) bool
 
 	createAgent func() gate.Agent
@@ -158,7 +146,7 @@ func (this *Gate) Deserialize(ptype string, b []byte) (param interface{}, err er
 		if errs != nil {
 			return nil, errs
 		}
-		return mps, nil
+		return mps.Clone(), nil
 	case RPC_PARAM_ProtocolMarshal_TYPE:
 		return this.App.NewProtocolMarshal(b), nil
 	default:
@@ -177,30 +165,42 @@ func (this *Gate) OnAppConfigurationLoaded(app module.App) {
 		log.Warning("Adding session structures failed to serialize interfaces %s", err.Error())
 	}
 }
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
-	this.BaseModule.OnInit(subclass, app, settings) //这是必须的
+func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings,opts ...gate.Option) {
 	this.opts = gate.NewOptions(opts...)
-	if WSAddr, ok := settings.Settings["WSAddr"]; ok {
-		this.WSAddr = WSAddr.(string)
+	this.BaseModule.OnInit(subclass, app, settings,this.opts.Opts...) //这是必须的
+	if this.opts.WsAddr==""{
+		if WSAddr, ok := settings.Settings["WSAddr"]; ok {
+			this.opts.WsAddr = WSAddr.(string)
+		}
 	}
-	this.HTTPTimeout = time.Second * time.Duration(settings.Settings["HTTPTimeout"].(float64))
-	if TCPAddr, ok := settings.Settings["TCPAddr"]; ok {
-		this.TCPAddr = TCPAddr.(string)
+	if this.opts.TcpAddr==""{
+		if TCPAddr, ok := settings.Settings["TCPAddr"]; ok {
+			this.opts.TcpAddr = TCPAddr.(string)
+		}
 	}
-	if Tls, ok := settings.Settings["Tls"]; ok {
-		this.Tls = Tls.(bool)
-	} else {
-		this.Tls = false
+
+	if this.opts.Tls==false{
+		if Tls, ok := settings.Settings["Tls"]; ok {
+			this.opts.Tls = Tls.(bool)
+		} else {
+			this.opts.Tls = false
+		}
 	}
-	if CertFile, ok := settings.Settings["CertFile"]; ok {
-		this.CertFile = CertFile.(string)
-	} else {
-		this.CertFile = ""
+
+	if this.opts.CertFile==""{
+		if CertFile, ok := settings.Settings["CertFile"]; ok {
+			this.opts.CertFile = CertFile.(string)
+		} else {
+			this.opts.CertFile = ""
+		}
 	}
-	if KeyFile, ok := settings.Settings["KeyFile"]; ok {
-		this.KeyFile = KeyFile.(string)
-	} else {
-		this.KeyFile = ""
+
+	if this.opts.KeyFile==""{
+		if KeyFile, ok := settings.Settings["KeyFile"]; ok {
+			this.opts.KeyFile = KeyFile.(string)
+		} else {
+			this.opts.KeyFile = ""
+		}
 	}
 
 	handler := NewGateHandler(this)
@@ -222,13 +222,13 @@ func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *co
 
 func (this *Gate) Run(closeSig chan bool) {
 	var wsServer *network.WSServer
-	if this.WSAddr != "" {
+	if this.opts.WsAddr != "" {
 		wsServer = new(network.WSServer)
-		wsServer.Addr = this.WSAddr
-		wsServer.HTTPTimeout = this.HTTPTimeout
-		wsServer.Tls = this.Tls
-		wsServer.CertFile = this.CertFile
-		wsServer.KeyFile = this.KeyFile
+		wsServer.Addr = this.opts.WsAddr
+		wsServer.HTTPTimeout = 30*time.Second
+		wsServer.Tls = this.opts.Tls
+		wsServer.CertFile = this.opts.CertFile
+		wsServer.KeyFile = this.opts.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
 			if this.createAgent == nil {
 				this.createAgent = this.defaultCreateAgentd
@@ -240,12 +240,12 @@ func (this *Gate) Run(closeSig chan bool) {
 	}
 
 	var tcpServer *network.TCPServer
-	if this.TCPAddr != "" {
+	if this.opts.TcpAddr != "" {
 		tcpServer = new(network.TCPServer)
-		tcpServer.Addr = this.TCPAddr
-		tcpServer.Tls = this.Tls
-		tcpServer.CertFile = this.CertFile
-		tcpServer.KeyFile = this.KeyFile
+		tcpServer.Addr = this.opts.TcpAddr
+		tcpServer.Tls = this.opts.Tls
+		tcpServer.CertFile = this.opts.CertFile
+		tcpServer.KeyFile = this.opts.KeyFile
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
 			if this.createAgent == nil {
 				this.createAgent = this.defaultCreateAgentd

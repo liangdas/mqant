@@ -13,7 +13,10 @@
 // limitations under the License.
 package gate
 
-import "time"
+import (
+	"github.com/liangdas/mqant/server"
+	"time"
+)
 
 type Option func(*Options)
 
@@ -21,6 +24,11 @@ type Options struct {
 	ConcurrentTasks int
 	BufSize         int
 	MaxPackSize     int
+	Tls				bool
+	TcpAddr			string
+	WsAddr			string
+	CertFile		string
+	KeyFile			string
 	Heartbeat       time.Duration
 	OverTime        time.Duration
 	RouteHandler    RouteHandler
@@ -29,15 +37,18 @@ type Options struct {
 	SessionLearner  SessionLearner
 	GateHandler     GateHandler
 	SendMessageHook SendMessageHook
+	Opts			[]server.Option
 }
 
 func NewOptions(opts ...Option) Options {
 	opt := Options{
+		Opts:[]server.Option{},
 		ConcurrentTasks: 20,
 		BufSize:         2048,
 		MaxPackSize:     65535,
 		Heartbeat:       time.Minute,
 		OverTime:        time.Second * 10,
+		Tls:false,
 	}
 
 	for _, o := range opts {
@@ -104,5 +115,41 @@ func SetSessionLearner(s SessionLearner) Option {
 func SetSendMessageHook(s SendMessageHook) Option {
 	return func(o *Options) {
 		o.SendMessageHook = s
+	}
+}
+
+func Tls(s bool) Option {
+	return func(o *Options) {
+		o.Tls = s
+	}
+}
+
+func TcpAddr(s string) Option {
+	return func(o *Options) {
+		o.TcpAddr = s
+	}
+}
+
+func WsAddr(s string) Option {
+	return func(o *Options) {
+		o.WsAddr = s
+	}
+}
+
+func CertFile(s string) Option {
+	return func(o *Options) {
+		o.CertFile = s
+	}
+}
+
+func KeyFile(s string) Option {
+	return func(o *Options) {
+		o.KeyFile = s
+	}
+}
+
+func ServerOpts(s []server.Option) Option {
+	return func(o *Options) {
+		o.Opts = s
 	}
 }
