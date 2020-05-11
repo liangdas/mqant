@@ -45,6 +45,6 @@ func (this *TraceSpanImp) SpanId() string {
 func (this *TraceSpanImp) ExtractSpan() TraceSpan {
 	return &TraceSpanImp{
 		Trace: this.Trace,
-		Span:  utils.GenerateID().String(),
+		Span:  mqant_tools.GenerateID().String(),
 	}
 }

@@ -1,4 +1,4 @@
-package utils
+package mqant_tools
 
 import (
 	"crypto/aes"

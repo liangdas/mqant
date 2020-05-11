@@ -40,8 +40,8 @@ func BiBeego() *beegolog.BeeLogger {
 
 func CreateRootTrace() TraceSpan {
 	return &TraceSpanImp{
-		Trace: utils.GenerateID().String(),
-		Span:  utils.GenerateID().String(),
+		Trace: mqant_tools.GenerateID().String(),
+		Span:  mqant_tools.GenerateID().String(),
 	}
 }
 

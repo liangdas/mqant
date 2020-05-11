@@ -516,7 +516,7 @@ func (this *sessionagent) Clone() gate.Session {
 		SessionId: this.session.SessionId,
 		ServerId:  this.session.ServerId,
 		TraceId:   this.session.TraceId,
-		SpanId:    utils.GenerateID().String(),
+		SpanId:    mqant_tools.GenerateID().String(),
 		Settings:  tmp,
 	}
 	agent.session = se
@@ -525,8 +525,8 @@ func (this *sessionagent) Clone() gate.Session {
 }
 
 func (this *sessionagent) CreateTrace() {
-	this.session.TraceId = utils.GenerateID().String()
-	this.session.SpanId = utils.GenerateID().String()
+	this.session.TraceId = mqant_tools.GenerateID().String()
+	this.session.SpanId = mqant_tools.GenerateID().String()
 }
 
 func (this *sessionagent) TraceId() string {
@@ -550,7 +550,7 @@ func (this *sessionagent) ExtractSpan() log.TraceSpan {
 		SessionId: this.session.SessionId,
 		ServerId:  this.session.ServerId,
 		TraceId:   this.session.TraceId,
-		SpanId:    utils.GenerateID().String(),
+		SpanId:    mqant_tools.GenerateID().String(),
 		Settings:  this.session.Settings,
 	}
 	agent.session = se

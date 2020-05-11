@@ -152,7 +152,7 @@ func (a *agent) Run() (err error) {
 	a.client = c
 	addr := a.conn.RemoteAddr()
 	a.session, err = NewSessionByMap(a.module.GetApp(), map[string]interface{}{
-		"Sessionid": utils.GenerateID().String(),
+		"Sessionid": mqant_tools.GenerateID().String(),
 		"Network":   addr.Network(),
 		"IP":        addr.String(),
 		"Serverid":  a.module.GetServerId(),

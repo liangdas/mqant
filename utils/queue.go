@@ -4,7 +4,7 @@ Using this instead of other, simpler, queue implementations (slice+append or lin
 substantial memory and time benefits, and fewer GC pauses.
 The queue implemented here is as fast as it is for an additional reason: it is *not* thread-safe.
 */
-package utils
+package mqant_tools
 
 // minQueueLen is smallest capacity that queue may have.
 // Must be power of 2 for bitwise modulus: x % n == x & (n - 1).

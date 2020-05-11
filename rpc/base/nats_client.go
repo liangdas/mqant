@@ -29,7 +29,7 @@ import (
 
 type NatsClient struct {
 	//callinfos map[string]*ClinetCallInfo
-	callinfos         *utils.BeeMap
+	callinfos         *mqant_tools.BeeMap
 	cmutex            sync.Mutex //操作callinfos的锁
 	callbackqueueName string
 	app               module.App
@@ -42,7 +42,7 @@ func NewNatsClient(app module.App, session module.ServerSession) (client *NatsCl
 	client = new(NatsClient)
 	client.session = session
 	client.app = app
-	client.callinfos = utils.NewBeeMap()
+	client.callinfos = mqant_tools.NewBeeMap()
 	client.callbackqueueName = nats.NewInbox()
 	client.done = make(chan error)
 	client.isClose = false

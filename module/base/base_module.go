@@ -119,7 +119,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	}
 
 	if len(opts.Id) == 0 {
-		opt = append(opt, server.Id(utils.GenerateID().String()))
+		opt = append(opt, server.Id(mqant_tools.GenerateID().String()))
 	}
 
 	if len(opts.Version) == 0 {
