@@ -55,8 +55,8 @@ func (this *protocolMarshalImp) GetData() []byte {
 }
 
 func newOptions(opts ...module.Option) module.Options {
-	var wdPath, confPath, Logdir, BIdir string
-	var ProcessID = "development"
+	var wdPath, confPath, Logdir, BIdir *string
+	var ProcessID  *string
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -72,11 +72,11 @@ func newOptions(opts ...module.Option) module.Options {
 	}
 
 	if opt.Parse {
-		wdPath = *flag.String("wd", "", "Server work directory")
-		confPath = *flag.String("conf", "", "Server configuration file path")
-		ProcessID = *flag.String("pid", "development", "Server ProcessID?")
-		Logdir = *flag.String("log", "", "Log file directory?")
-		BIdir = *flag.String("bi", "", "bi file directory?")
+		wdPath = flag.String("wd", "", "Server work directory")
+		confPath = flag.String("conf", "", "Server configuration file path")
+		ProcessID = flag.String("pid", "development", "Server ProcessID?")
+		Logdir = flag.String("log", "", "Log file directory?")
+		BIdir = flag.String("bi", "", "bi file directory?")
 		flag.Parse() //解析输入的参数
 	}
 
@@ -90,10 +90,13 @@ func newOptions(opts ...module.Option) module.Options {
 	}
 
 	if opt.WorkDir == "" {
-		opt.WorkDir = wdPath
+		opt.WorkDir = *wdPath
 	}
 	if opt.ProcessID == "" {
-		opt.ProcessID = ProcessID
+		opt.ProcessID = *ProcessID
+		if opt.ProcessID==""{
+			opt.ProcessID="development"
+		}
 	}
 	ApplicationDir := ""
 	if opt.WorkDir != "" {
@@ -119,26 +122,26 @@ func newOptions(opts ...module.Option) module.Options {
 	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
 
 	if opt.ConfPath == "" {
-		if confPath == "" {
+		if *confPath == "" {
 			opt.ConfPath = defaultConfPath
 		} else {
-			opt.ConfPath = confPath
+			opt.ConfPath = *confPath
 		}
 	}
 
 	if opt.LogDir == "" {
-		if Logdir == "" {
+		if *Logdir == "" {
 			opt.LogDir = defaultLogPath
 		} else {
-			opt.LogDir = Logdir
+			opt.LogDir = *Logdir
 		}
 	}
 
 	if opt.BIDir == "" {
-		if BIdir == "" {
+		if *BIdir == "" {
 			opt.BIDir = defaultBIPath
 		} else {
-			opt.BIDir = BIdir
+			opt.BIDir = *BIdir
 		}
 	}
 

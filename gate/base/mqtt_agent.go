@@ -245,7 +245,6 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 		a.rev_num = a.rev_num + 1
 		a.lock.Unlock()
 		pub := pack.GetVariable().(*mqtt.Publish)
-		topics := strings.Split(*pub.GetTopic(), "/")
 		if a.gate.GetRouteHandler() != nil {
 			needreturn, result, err := a.gate.GetRouteHandler().OnRoute(a.GetSession(), *pub.GetTopic(), pub.GetMsg())
 			if err != nil {
@@ -259,6 +258,7 @@ func (a *agent) recoverworker(pack *mqtt.Pack) {
 				}
 			}
 		} else {
+			topics := strings.Split(*pub.GetTopic(), "/")
 			var msgid string
 			if len(topics) < 2 {
 				errorstr := "Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
