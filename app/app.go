@@ -56,7 +56,7 @@ func (this *protocolMarshalImp) GetData() []byte {
 
 func newOptions(opts ...module.Option) module.Options {
 	var wdPath, confPath, Logdir, BIdir *string
-	var ProcessID  *string
+	var ProcessID *string
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -94,8 +94,8 @@ func newOptions(opts ...module.Option) module.Options {
 	}
 	if opt.ProcessID == "" {
 		opt.ProcessID = *ProcessID
-		if opt.ProcessID==""{
-			opt.ProcessID="development"
+		if opt.ProcessID == "" {
+			opt.ProcessID = "development"
 		}
 	}
 	ApplicationDir := ""

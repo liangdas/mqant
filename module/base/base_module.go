@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
@@ -55,14 +56,15 @@ func LoadStatisticalMethod(j string) map[string]*StatisticalMethod {
 
 type BaseModule struct {
 	context.Context
-	exit        context.CancelFunc
-	App         module.App
-	subclass    module.RPCModule
-	settings    *conf.ModuleSettings
-	service     service.Service
-	listener    mqrpc.RPCListener
-	statistical map[string]*StatisticalMethod //统计
-	rwmutex     sync.RWMutex
+	service_stoped chan bool
+	exit           context.CancelFunc
+	App            module.App
+	subclass       module.RPCModule
+	settings       *conf.ModuleSettings
+	service        service.Service
+	listener       mqrpc.RPCListener
+	statistical    map[string]*StatisticalMethod //统计
+	rwmutex        sync.RWMutex
 }
 
 func (m *BaseModule) GetServerId() string {
@@ -126,12 +128,16 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 		opt = append(opt, server.Version(subclass.Version()))
 	}
 	server := server.NewServer(opt...)
-	server.OnInit(subclass, app, settings)
+	err := server.OnInit(subclass, app, settings)
+	if err != nil {
+		log.Warning("server OnInit fail id(%s) error(%s)", m.GetServerId(), err)
+	}
 	hostname, _ := os.Hostname()
 	server.Options().Metadata["hostname"] = hostname
 	server.Options().Metadata["pid"] = fmt.Sprintf("%v", os.Getpid())
 	ctx, cancel := context.WithCancel(context.Background())
 	m.exit = cancel
+	m.service_stoped = make(chan bool)
 	m.service = service.NewService(
 		service.Server(server),
 		service.RegisterTTL(app.Options().RegisterTTL),
@@ -139,7 +145,13 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 		service.Context(ctx),
 	)
 
-	go m.service.Run()
+	go func() {
+		err := m.service.Run()
+		if err != nil {
+			log.Warning("service close fail id(%s) error(%s)", m.GetServerId(), err)
+		}
+		close(m.service_stoped)
+	}()
 	m.GetServer().SetListener(m)
 }
 
@@ -147,7 +159,11 @@ func (m *BaseModule) OnDestroy() {
 	//注销模块
 	//一定别忘了关闭RPC
 	m.exit()
-	m.GetServer().OnDestroy()
+	select {
+	case <-m.service_stoped:
+		//等待注册中心注销完成
+	}
+	_ = m.GetServer().OnDestroy()
 }
 func (m *BaseModule) SetListener(listener mqrpc.RPCListener) {
 	m.listener = listener

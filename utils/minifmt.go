@@ -11,7 +11,7 @@ var (
 	regField  = regexp.MustCompile(`[\{\}]`)
 )
 
-func Sprintf(format string,extra map[string]string) (string) {
+func Sprintf(format string, extra map[string]string) string {
 	fields := regFields.FindAllString(format, -1)
 	ret := format
 	for _, fieldName := range fields {
