@@ -74,80 +74,80 @@ func BiReport(msg string) {
 // Debug Debug
 func Debug(format string, a ...interface{}) {
 	//gLogger.doPrintf(debugLevel, printDebugLevel, format, a...)
-	logBeego().Debug(nil, format, a...)
+	LogBeego().Debug(nil, format, a...)
 }
 
 // Info Info
 func Info(format string, a ...interface{}) {
 	//gLogger.doPrintf(releaseLevel, printReleaseLevel, format, a...)
-	logBeego().Info(nil, format, a...)
+	LogBeego().Info(nil, format, a...)
 }
 
 // Error Error
 func Error(format string, a ...interface{}) {
 	//gLogger.doPrintf(errorLevel, printErrorLevel, format, a...)
-	logBeego().Error(nil, format, a...)
+	LogBeego().Error(nil, format, a...)
 }
 
 // Warning Warning
 func Warning(format string, a ...interface{}) {
 	//gLogger.doPrintf(fatalLevel, printFatalLevel, format, a...)
-	logBeego().Warning(nil, format, a...)
+	LogBeego().Warning(nil, format, a...)
 }
 
 // TDebug TDebug
 func TDebug(span TraceSpan, format string, a ...interface{}) {
 	if span != nil {
-		logBeego().Debug(
+		LogBeego().Debug(
 			&beegolog.BeegoTraceSpan{
 				Trace: span.TraceId(),
 				Span:  span.SpanId(),
 			}, format, a...)
 	} else {
-		logBeego().Debug(nil, format, a...)
+		LogBeego().Debug(nil, format, a...)
 	}
 }
 
 // TInfo TInfo
 func TInfo(span TraceSpan, format string, a ...interface{}) {
 	if span != nil {
-		logBeego().Info(
+		LogBeego().Info(
 			&beegolog.BeegoTraceSpan{
 				Trace: span.TraceId(),
 				Span:  span.SpanId(),
 			}, format, a...)
 	} else {
-		logBeego().Info(nil, format, a...)
+		LogBeego().Info(nil, format, a...)
 	}
 }
 
 // TError TError
 func TError(span TraceSpan, format string, a ...interface{}) {
 	if span != nil {
-		logBeego().Error(
+		LogBeego().Error(
 			&beegolog.BeegoTraceSpan{
 				Trace: span.TraceId(),
 				Span:  span.SpanId(),
 			}, format, a...)
 	} else {
-		logBeego().Error(nil, format, a...)
+		LogBeego().Error(nil, format, a...)
 	}
 }
 
 // TWarning TWarning
 func TWarning(span TraceSpan, format string, a ...interface{}) {
 	if span != nil {
-		logBeego().Warning(
+		LogBeego().Warning(
 			&beegolog.BeegoTraceSpan{
 				Trace: span.TraceId(),
 				Span:  span.SpanId(),
 			}, format, a...)
 	} else {
-		logBeego().Warning(nil, format, a...)
+		LogBeego().Warning(nil, format, a...)
 	}
 }
 
 // Close Close
 func Close() {
-	logBeego().Close()
+	LogBeego().Close()
 }
