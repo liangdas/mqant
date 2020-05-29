@@ -33,8 +33,8 @@ func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]int
 	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings)
 }
 
-// logBeego logBeego
-func logBeego() *beegolog.BeeLogger {
+// LogBeego LogBeego
+func LogBeego() *beegolog.BeeLogger {
 	if beego == nil {
 		beego = beegolog.NewLogger()
 	}
