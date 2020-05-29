@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package basemodule 服务节点实例定义
 package basemodule
 
 import (
@@ -21,6 +23,7 @@ import (
 	"github.com/liangdas/mqant/rpc/base"
 )
 
+// NewServerSession 创建一个节点实例
 func NewServerSession(app module.App, name string, node *registry.Node) (module.ServerSession, error) {
 	session := &serverSession{
 		name: name,
@@ -31,25 +34,35 @@ func NewServerSession(app module.App, name string, node *registry.Node) (module.
 	if err != nil {
 		return nil, err
 	}
-	session.Rpc = rpc
+	session.rpc = rpc
 	return session, err
 }
 
 type serverSession struct {
 	node *registry.Node
 	name string
-	Rpc  mqrpc.RPCClient
+	rpc  mqrpc.RPCClient
 	app  module.App
 }
 
+func (c *serverSession) GetID() string {
+	return c.node.Id
+}
+
+// Deprecated: 因为命名规范问题函数将废弃,请用GetID代替
 func (c *serverSession) GetId() string {
 	return c.node.Id
 }
 func (c *serverSession) GetName() string {
 	return c.name
 }
+func (c *serverSession) GetRPC() mqrpc.RPCClient {
+	return c.rpc
+}
+
+// Deprecated: 因为命名规范问题函数将废弃,请用GetRPC代替
 func (c *serverSession) GetRpc() mqrpc.RPCClient {
-	return c.Rpc
+	return c.rpc
 }
 
 func (c *serverSession) GetApp() module.App {
@@ -68,26 +81,26 @@ func (c *serverSession) SetNode(node *registry.Node) (err error) {
 消息请求 需要回复
 */
 func (c *serverSession) Call(ctx context.Context, _func string, params ...interface{}) (interface{}, string) {
-	return c.Rpc.Call(ctx, _func, params...)
+	return c.rpc.Call(ctx, _func, params...)
 }
 
 /**
 消息请求 不需要回复
 */
 func (c *serverSession) CallNR(_func string, params ...interface{}) (err error) {
-	return c.Rpc.CallNR(_func, params...)
+	return c.rpc.CallNR(_func, params...)
 }
 
 /**
 消息请求 需要回复
 */
 func (c *serverSession) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (interface{}, string) {
-	return c.Rpc.CallArgs(ctx, _func, ArgsType, args)
+	return c.rpc.CallArgs(ctx, _func, ArgsType, args)
 }
 
 /**
 消息请求 不需要回复
 */
 func (c *serverSession) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
-	return c.Rpc.CallNRArgs(_func, ArgsType, args)
+	return c.rpc.CallNRArgs(_func, ArgsType, args)
 }

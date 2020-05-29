@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package network tcp服务器
 package network
 
 import (
@@ -21,9 +23,10 @@ import (
 	"time"
 )
 
+// TCPServer tcp服务器
 type TCPServer struct {
 	Addr       string
-	Tls        bool //是否支持tls
+	TLS        bool //是否支持tls
 	CertFile   string
 	KeyFile    string
 	MaxConnNum int
@@ -34,6 +37,7 @@ type TCPServer struct {
 	wgConns    sync.WaitGroup
 }
 
+// Start 开始tcp监听
 func (server *TCPServer) Start() {
 	server.init()
 	log.Info("TCP Listen :%s", server.Addr)
@@ -49,7 +53,7 @@ func (server *TCPServer) init() {
 	if server.NewAgent == nil {
 		log.Warning("NewAgent must not be nil")
 	}
-	if server.Tls {
+	if server.TLS {
 		tlsConf := new(tls.Config)
 		tlsConf.Certificates = make([]tls.Certificate, 1)
 		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)
@@ -102,6 +106,7 @@ func (server *TCPServer) run() {
 	}
 }
 
+// Close 关闭TCP监听
 func (server *TCPServer) Close() {
 	server.ln.Close()
 	server.wgLn.Wait()

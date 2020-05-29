@@ -11,9 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package app mqant默认应用实现
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -23,7 +26,11 @@ import (
 	"github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
 	"github.com/liangdas/mqant/registry"
+	"github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
 	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -32,12 +39,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	//"github.com/liangdas/mqant/registry/etcdv3"
-	"context"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
-	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -50,8 +51,8 @@ type protocolMarshalImp struct {
 	data []byte
 }
 
-func (this *protocolMarshalImp) GetData() []byte {
-	return this.data
+func (p *protocolMarshalImp) GetData() []byte {
+	return p.data
 }
 
 func newOptions(opts ...module.Option) module.Options {
@@ -170,6 +171,7 @@ func newOptions(opts ...module.Option) module.Options {
 	return opt
 }
 
+// NewApp 创建app
 func NewApp(opts ...module.Option) module.App {
 	options := newOptions(opts...)
 	app := new(DefaultApp)
@@ -179,6 +181,7 @@ func NewApp(opts ...module.Option) module.App {
 	return app
 }
 
+// DefaultApp 默认应用
 type DefaultApp struct {
 	//module.App
 	version       string
@@ -195,6 +198,7 @@ type DefaultApp struct {
 	protocolMarshal     func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)
 }
 
+// Run 运行应用
 func (app *DefaultApp) Run(mods ...module.Module) error {
 	f, err := os.Open(app.opts.ConfPath)
 	if err != nil {
@@ -249,11 +253,13 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	return nil
 }
 
+// SetMapRoute 设置路由器
 func (app *DefaultApp) SetMapRoute(fn func(app module.App, route string) string) error {
 	app.mapRoute = fn
 	return nil
 }
 
+// AddRPCSerialize AddRPCSerialize
 func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerialize) error {
 	if _, ok := app.rpcserializes[name]; ok {
 		return fmt.Errorf("The name(%s) has been occupied", name)
@@ -262,21 +268,27 @@ func (app *DefaultApp) AddRPCSerialize(name string, Interface module.RPCSerializ
 	return nil
 }
 
+// Options 应用配置
 func (app *DefaultApp) Options() module.Options {
 	return app.opts
 }
 
+// Transport Transport
 func (app *DefaultApp) Transport() *nats.Conn {
 	return app.opts.Nats
 }
+
+// Registry Registry
 func (app *DefaultApp) Registry() registry.Registry {
 	return app.opts.Registry
 }
 
+// GetRPCSerialize GetRPCSerialize
 func (app *DefaultApp) GetRPCSerialize() map[string]module.RPCSerialize {
 	return app.rpcserializes
 }
 
+// Watcher Watcher
 func (app *DefaultApp) Watcher(node *registry.Node) {
 	//把注销的服务ServerSession删除掉
 	session, ok := app.serverList.Load(node.Id)
@@ -286,45 +298,54 @@ func (app *DefaultApp) Watcher(node *registry.Node) {
 	}
 }
 
+// Configure 重设应用配置
 func (app *DefaultApp) Configure(settings conf.Config) error {
 	app.settings = settings
 	return nil
 }
 
-/**
- */
+// OnInit 初始化
 func (app *DefaultApp) OnInit(settings conf.Config) error {
 
 	return nil
 }
 
+// OnDestroy 应用退出
 func (app *DefaultApp) OnDestroy() error {
 
 	return nil
 }
 
-func (app *DefaultApp) GetServerById(serverId string) (module.ServerSession, error) {
-	session, ok := app.serverList.Load(serverId)
+// GetServerByID 通过服务ID获取服务实例
+func (app *DefaultApp) GetServerByID(serverID string) (module.ServerSession, error) {
+	session, ok := app.serverList.Load(serverID)
 	if !ok {
-		serviceName := serverId
-		s := strings.Split(serverId, "@")
+		serviceName := serverID
+		s := strings.Split(serverID, "@")
 		if len(s) == 2 {
 			serviceName = s[0]
 		} else {
-			return nil, errors.Errorf("serverId is error %v", serverId)
+			return nil, errors.Errorf("serverID is error %v", serverID)
 		}
 		sessions := app.GetServersByType(serviceName)
 		for _, s := range sessions {
-			if s.GetNode().Id == serverId {
+			if s.GetNode().Id == serverID {
 				return s, nil
 			}
 		}
 	} else {
 		return session.(module.ServerSession), nil
 	}
-	return nil, errors.Errorf("nofound %v", serverId)
+	return nil, errors.Errorf("nofound %v", serverID)
 }
 
+// GetServerById 通过服务ID获取服务实例
+// Deprecated: 因为命名规范问题函数将废弃,请用GetServerById代替
+func (app *DefaultApp) GetServerById(serverID string) (module.ServerSession, error) {
+	return app.GetServerByID(serverID)
+}
+
+// GetServerBySelector 获取服务实例,可设置选择器
 func (app *DefaultApp) GetServerBySelector(serviceName string, opts ...selector.SelectOption) (module.ServerSession, error) {
 	next, err := app.opts.Selector.Select(serviceName, opts...)
 	if err != nil {
@@ -348,6 +369,7 @@ func (app *DefaultApp) GetServerBySelector(serviceName string, opts ...selector.
 
 }
 
+// GetServersByType 通过服务类型获取服务实例列表
 func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSession {
 	sessions := make([]module.ServerSession, 0)
 	services, err := app.opts.Selector.GetService(serviceName)
@@ -376,6 +398,7 @@ func (app *DefaultApp) GetServersByType(serviceName string) []module.ServerSessi
 	return sessions
 }
 
+// GetRouteServer 通过选择器过滤服务实例
 func (app *DefaultApp) GetRouteServer(filter string, opts ...selector.SelectOption) (s module.ServerSession, err error) {
 	if app.mapRoute != nil {
 		//进行一次路由转换
@@ -392,16 +415,23 @@ func (app *DefaultApp) GetRouteServer(filter string, opts ...selector.SelectOpti
 	return app.GetServerBySelector(moduleType, opts...)
 }
 
+// GetSettings 获取配置
 func (app *DefaultApp) GetSettings() conf.Config {
 	return app.settings
 }
+
+// GetProcessID 获取应用分组ID
 func (app *DefaultApp) GetProcessID() string {
 	return app.opts.ProcessID
 }
+
+// WorkDir 获取进程工作目录
 func (app *DefaultApp) WorkDir() string {
 	return app.opts.WorkDir
 }
-func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
+
+// Invoke Invoke
+func (app *DefaultApp) Invoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
 	server, e := app.GetRouteServer(moduleType)
 	if e != nil {
 		err = e.Error()
@@ -410,7 +440,14 @@ func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _fu
 	return server.Call(nil, _func, params...)
 }
 
-func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
+// RpcInvoke RpcInvoke
+// Deprecated: 因为命名规范问题函数将废弃,请用Invoke代替
+func (app *DefaultApp) RpcInvoke(module module.RPCModule, moduleType string, _func string, params ...interface{}) (result interface{}, err string) {
+	return app.Invoke(module, moduleType, _func, params...)
+}
+
+// InvokeNR InvokeNR
+func (app *DefaultApp) InvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
 	server, err := app.GetRouteServer(moduleType)
 	if err != nil {
 		return
@@ -418,24 +455,31 @@ func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _
 	return server.CallNR(_func, params...)
 }
 
-func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
-	server, e := app.GetRouteServer(moduleType)
-	if e != nil {
-		err = e.Error()
-		return
-	}
-	return server.CallArgs(nil, _func, ArgsType, args)
+// RpcInvokeNR RpcInvokeNR
+// Deprecated: 因为命名规范问题函数将废弃,请用InvokeNR代替
+func (app *DefaultApp) RpcInvokeNR(module module.RPCModule, moduleType string, _func string, params ...interface{}) (err error) {
+	return app.InvokeNR(module, moduleType, _func, params...)
 }
 
-func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
-	server, err := app.GetRouteServer(moduleType)
-	if err != nil {
-		return
-	}
-	return server.CallNRArgs(_func, ArgsType, args)
-}
+//func (app *DefaultApp) RpcInvokeArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (result interface{}, err string) {
+//	server, e := app.GetRouteServer(moduleType)
+//	if e != nil {
+//		err = e.Error()
+//		return
+//	}
+//	return server.CallArgs(nil, _func, ArgsType, args)
+//}
+//
+//func (app *DefaultApp) RpcInvokeNRArgs(module module.RPCModule, moduleType string, _func string, ArgsType []string, args [][]byte) (err error) {
+//	server, err := app.GetRouteServer(moduleType)
+//	if err != nil {
+//		return
+//	}
+//	return server.CallNRArgs(_func, ArgsType, args)
+//}
 
-func (app *DefaultApp) RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (result interface{}, errstr string) {
+// Call Call
+func (app *DefaultApp) Call(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (result interface{}, errstr string) {
 	server, err := app.GetRouteServer(moduleType, opts...)
 	if err != nil {
 		errstr = err.Error()
@@ -444,30 +488,42 @@ func (app *DefaultApp) RpcCall(ctx context.Context, moduleType, _func string, pa
 	return server.Call(ctx, _func, param()...)
 }
 
+// RpcCall RpcCall
+// Deprecated: 因为命名规范问题函数将废弃,请用Call代替
+func (app *DefaultApp) RpcCall(ctx context.Context, moduleType, _func string, param mqrpc.ParamOption, opts ...selector.SelectOption) (result interface{}, errstr string) {
+	return app.Call(ctx, moduleType, _func, param, opts...)
+}
+
+// GetModuleInited GetModuleInited
 func (app *DefaultApp) GetModuleInited() func(app module.App, module module.Module) {
 	return app.moduleInited
 }
 
+// OnConfigurationLoaded 设置配置初始化完成后回调
 func (app *DefaultApp) OnConfigurationLoaded(_func func(app module.App)) error {
 	app.configurationLoaded = _func
 	return nil
 }
 
+// OnModuleInited 设置模块初始化完成后回调
 func (app *DefaultApp) OnModuleInited(_func func(app module.App, module module.Module)) error {
 	app.moduleInited = _func
 	return nil
 }
 
+// OnStartup 设置应用启动完成后回调
 func (app *DefaultApp) OnStartup(_func func(app module.App)) error {
 	app.startup = _func
 	return nil
 }
 
+// SetProtocolMarshal 设置RPC数据包装器
 func (app *DefaultApp) SetProtocolMarshal(protocolMarshal func(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string)) error {
 	app.protocolMarshal = protocolMarshal
 	return nil
 }
 
+// ProtocolMarshal RPC数据包装器
 func (app *DefaultApp) ProtocolMarshal(Trace string, Result interface{}, Error string) (module.ProtocolMarshal, string) {
 	if app.protocolMarshal != nil {
 		return app.protocolMarshal(Trace, Result, Error)
@@ -480,11 +536,11 @@ func (app *DefaultApp) ProtocolMarshal(Trace string, Result interface{}, Error s
 	b, err := json.Marshal(r)
 	if err == nil {
 		return app.NewProtocolMarshal(b), ""
-	} else {
-		return nil, err.Error()
 	}
+	return nil, err.Error()
 }
 
+// NewProtocolMarshal 创建RPC数据包装器
 func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,

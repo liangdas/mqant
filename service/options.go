@@ -8,6 +8,7 @@ import (
 	"github.com/liangdas/mqant/server"
 )
 
+// Service Service
 type Service interface {
 	Init(...Option)
 	Options() Options
@@ -16,8 +17,10 @@ type Service interface {
 	String() string
 }
 
+// Option Option
 type Option func(*Options)
 
+// Options Options
 type Options struct {
 	Server   server.Server
 	Registry registry.Registry
@@ -58,6 +61,7 @@ func Context(ctx context.Context) Option {
 	}
 }
 
+// Server Server
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
@@ -116,26 +120,28 @@ func RegisterInterval(t time.Duration) Option {
 	}
 }
 
-// Before and Afters
-
+// BeforeStart Before and Afters
 func BeforeStart(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStart = append(o.BeforeStart, fn)
 	}
 }
 
+// BeforeStop Before and Afters
 func BeforeStop(fn func() error) Option {
 	return func(o *Options) {
 		o.BeforeStop = append(o.BeforeStop, fn)
 	}
 }
 
+// AfterStart Before and Afters
 func AfterStart(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStart = append(o.AfterStart, fn)
 	}
 }
 
+// AfterStop Before and Afters
 func AfterStop(fn func() error) Option {
 	return func(o *Options) {
 		o.AfterStop = append(o.AfterStop, fn)

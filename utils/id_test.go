@@ -1,4 +1,4 @@
-package mqant_tools
+package mqanttools
 
 import (
 	"bytes"

@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// The registry provides an interface for service discovery
+// Registry The registry provides an interface for service discovery
 // and an abstraction over varying implementations
 // {consul, etcd, zookeeper, ...}
 type Registry interface {
@@ -19,18 +19,23 @@ type Registry interface {
 	String() string
 }
 
+// Option Option
 type Option func(*Options)
 
+// RegisterOption RegisterOption
 type RegisterOption func(*RegisterOptions)
 
+// WatchOption WatchOption
 type WatchOption func(*WatchOptions)
 
 var (
+	// DefaultRegistry 默认注册中心
 	DefaultRegistry = newConsulRegistry()
-
+	// ErrNotFound ErrNotFound
 	ErrNotFound = errors.New("not found")
 )
 
+// NewRegistry 新建注册中心
 func NewRegistry(opts ...Option) Registry {
 	return newConsulRegistry(opts...)
 }
@@ -45,12 +50,12 @@ func Deregister(s *Service) error {
 	return DefaultRegistry.Deregister(s)
 }
 
-// Retrieve a service. A slice is returned since we separate Name/Version.
+// GetService Retrieve a service. A slice is returned since we separate Name/Version.
 func GetService(name string) ([]*Service, error) {
 	return DefaultRegistry.GetService(name)
 }
 
-// List the services. Only returns service names
+// ListServices List the services. Only returns service names
 func ListServices() ([]*Service, error) {
 	return DefaultRegistry.ListServices()
 }
@@ -60,6 +65,7 @@ func Watch(opts ...WatchOption) (Watcher, error) {
 	return DefaultRegistry.Watch(opts...)
 }
 
+// String String
 func String() string {
 	return DefaultRegistry.String()
 }

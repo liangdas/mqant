@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+//Package httpgateway 网关配置
 package httpgateway
 
 import (
@@ -34,6 +36,7 @@ type Service struct {
 	SrvSession module.ServerSession
 }
 
+// DefaultRoute 默认路由规则
 var DefaultRoute = func(app module.App, r *http.Request) (*Service, error) {
 	if r.URL.Path == "" {
 		return nil, errors.New("path is nil")
@@ -76,15 +79,19 @@ var DefaultRoute = func(app module.App, r *http.Request) (*Service, error) {
 	return &Service{SrvSession: session, Hander: r.URL.Path}, err
 }
 
+// Route 路由器定义
 type Route func(app module.App, r *http.Request) (*Service, error)
 
+// Option 配置
 type Option func(*Options)
 
+// Options 网关配置项
 type Options struct {
 	TimeOut time.Duration
 	Route   Route
 }
 
+// NewOptions 创建配置
 func NewOptions(opts ...Option) Options {
 	opt := Options{
 		Route:   DefaultRoute,
@@ -98,12 +105,14 @@ func NewOptions(opts ...Option) Options {
 	return opt
 }
 
+// SetRoute 设置路由器
 func SetRoute(s Route) Option {
 	return func(o *Options) {
 		o.Route = s
 	}
 }
 
+// TimeOut 设置网关超时时间
 func TimeOut(s time.Duration) Option {
 	return func(o *Options) {
 		o.TimeOut = s

@@ -9,8 +9,10 @@ import (
 	"time"
 )
 
+// Option 配置项
 type Option func(*Options)
 
+// Options 应用级别配置项
 type Options struct {
 	Nats        *nats.Conn
 	Version     string
@@ -31,53 +33,62 @@ type Options struct {
 	ServerRPCHandler ServerRPCHandler
 }
 
+// ClientRPCHandler 调用方RPC监控
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
 
+// ServerRPCHandler 服务方RPC监控
 type ServerRPCHandler func(app App, module Module, callInfo mqrpc.CallInfo)
 
+// Version 应用版本
 func Version(v string) Option {
 	return func(o *Options) {
 		o.Version = v
 	}
 }
 
-//只有是在调试模式下才会在控制台打印日志, 非调试模式下只在日志文件中输出日志
+// Debug 只有是在调试模式下才会在控制台打印日志, 非调试模式下只在日志文件中输出日志
 func Debug(t bool) Option {
 	return func(o *Options) {
 		o.Debug = t
 	}
 }
 
+// WorkDir 进程工作目录
 func WorkDir(v string) Option {
 	return func(o *Options) {
 		o.WorkDir = v
 	}
 }
 
+// Configure 配置路径
 func Configure(v string) Option {
 	return func(o *Options) {
 		o.ConfPath = v
 	}
 }
 
+// LogDir 日志存储路径
 func LogDir(v string) Option {
 	return func(o *Options) {
 		o.LogDir = v
 	}
 }
 
+// ProcessID 进程分组ID
 func ProcessID(v string) Option {
 	return func(o *Options) {
 		o.ProcessID = v
 	}
 }
 
+// BILogDir  BI日志路径
 func BILogDir(v string) Option {
 	return func(o *Options) {
 		o.BIDir = v
 	}
 }
 
+// Nats  nats配置
 func Nats(nc *nats.Conn) Option {
 	return func(o *Options) {
 		o.Nats = nc
@@ -93,6 +104,7 @@ func Registry(r registry.Registry) Option {
 	}
 }
 
+// Selector 路由选择器
 func Selector(r selector.Selector) Option {
 	return func(o *Options) {
 		o.Selector = r
@@ -113,25 +125,28 @@ func RegisterInterval(t time.Duration) Option {
 	}
 }
 
-// RegisterInterval specifies the interval on which to re-register
+// KillWaitTTL specifies the interval on which to re-register
 func KillWaitTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.KillWaitTTL = t
 	}
 }
 
+// SetClientRPChandler 配置调用者监控器
 func SetClientRPChandler(t ClientRPCHandler) Option {
 	return func(o *Options) {
 		o.ClientRPChandler = t
 	}
 }
 
+// SetServerRPCHandler 配置服务方监控器
 func SetServerRPCHandler(t ServerRPCHandler) Option {
 	return func(o *Options) {
 		o.ServerRPCHandler = t
 	}
 }
 
+// Parse mqant框架是否解析环境参数
 func Parse(t bool) Option {
 	return func(o *Options) {
 		o.Parse = t

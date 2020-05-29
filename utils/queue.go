@@ -1,10 +1,9 @@
-/*
-Package queue provides a fast, ring-buffer queue based on the version suggested by Dariusz Górecki.
-Using this instead of other, simpler, queue implementations (slice+append or linked list) provides
-substantial memory and time benefits, and fewer GC pauses.
-The queue implemented here is as fast as it is for an additional reason: it is *not* thread-safe.
-*/
-package mqant_tools
+// Package queue provides a fast, ring-buffer queue based on the version suggested by Dariusz Górecki.
+// Using this instead of other, simpler, queue implementations (slice+append or linked list) provides
+// substantial memory and time benefits, and fewer GC pauses.
+// The queue implemented here is as fast as it is for an additional reason: it is *not* thread-safe.
+
+package mqanttools
 
 // minQueueLen is smallest capacity that queue may have.
 // Must be power of 2 for bitwise modulus: x % n == x & (n - 1).
@@ -16,7 +15,7 @@ type Queue struct {
 	head, tail, count int
 }
 
-// New constructs and returns a new Queue.
+// NewQueue New constructs and returns a new Queue.
 func NewQueue() *Queue {
 	return &Queue{
 		buf: make([]interface{}, minQueueLen),

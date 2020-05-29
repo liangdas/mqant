@@ -26,8 +26,8 @@ import (
 	"github.com/liangdas/mqant/network"
 )
 
-var RPC_PARAM_SESSION_TYPE = gate.RPC_PARAM_SESSION_TYPE
-var RPC_PARAM_ProtocolMarshal_TYPE = gate.RPC_PARAM_ProtocolMarshal_TYPE
+var RPCParamSessionType = gate.RPCParamSessionType
+var RPCParamProtocolMarshalType = gate.RPCParamProtocolMarshalType
 
 type Gate struct {
 	//module.RPCSerialize
@@ -38,87 +38,87 @@ type Gate struct {
 	createAgent func() gate.Agent
 }
 
-func (this *Gate) defaultCreateAgentd() gate.Agent {
-	a := NewMqttAgent(this.GetModule())
+func (gt *Gate) defaultCreateAgentd() gate.Agent {
+	a := NewMqttAgent(gt.GetModule())
 	return a
 }
 
-func (this *Gate) SetJudgeGuest(judgeGuest func(session gate.Session) bool) error {
-	this.judgeGuest = judgeGuest
+func (gt *Gate) SetJudgeGuest(judgeGuest func(session gate.Session) bool) error {
+	gt.judgeGuest = judgeGuest
 	return nil
 }
 
 /**
 设置Session信息持久化接口
 */
-func (this *Gate) SetRouteHandler(router gate.RouteHandler) error {
-	this.opts.RouteHandler = router
+func (gt *Gate) SetRouteHandler(router gate.RouteHandler) error {
+	gt.opts.RouteHandler = router
 	return nil
 }
 
 /**
 设置Session信息持久化接口
 */
-func (this *Gate) SetStorageHandler(storage gate.StorageHandler) error {
-	this.opts.StorageHandler = storage
+func (gt *Gate) SetStorageHandler(storage gate.StorageHandler) error {
+	gt.opts.StorageHandler = storage
 	return nil
 }
 
 /**
 设置客户端连接和断开的监听器
 */
-func (this *Gate) SetSessionLearner(sessionLearner gate.SessionLearner) error {
-	this.opts.SessionLearner = sessionLearner
+func (gt *Gate) SetSessionLearner(sessionLearner gate.SessionLearner) error {
+	gt.opts.SessionLearner = sessionLearner
 	return nil
 }
 
 /**
 设置创建客户端Agent的函数
 */
-func (this *Gate) SetCreateAgent(cfunc func() gate.Agent) error {
-	this.createAgent = cfunc
+func (gt *Gate) SetCreateAgent(cfunc func() gate.Agent) error {
+	gt.createAgent = cfunc
 	return nil
 }
-func (this *Gate) Options() gate.Options {
-	return this.opts
+func (gt *Gate) Options() gate.Options {
+	return gt.opts
 }
-func (this *Gate) GetStorageHandler() (storage gate.StorageHandler) {
-	return this.opts.StorageHandler
+func (gt *Gate) GetStorageHandler() (storage gate.StorageHandler) {
+	return gt.opts.StorageHandler
 }
-func (this *Gate) GetGateHandler() gate.GateHandler {
-	return this.opts.GateHandler
+func (gt *Gate) GetGateHandler() gate.GateHandler {
+	return gt.opts.GateHandler
 }
-func (this *Gate) GetAgentLearner() gate.AgentLearner {
-	return this.opts.AgentLearner
+func (gt *Gate) GetAgentLearner() gate.AgentLearner {
+	return gt.opts.AgentLearner
 }
-func (this *Gate) GetSessionLearner() gate.SessionLearner {
-	return this.opts.SessionLearner
+func (gt *Gate) GetSessionLearner() gate.SessionLearner {
+	return gt.opts.SessionLearner
 }
-func (this *Gate) GetRouteHandler() gate.RouteHandler {
-	return this.opts.RouteHandler
+func (gt *Gate) GetRouteHandler() gate.RouteHandler {
+	return gt.opts.RouteHandler
 }
-func (this *Gate) GetJudgeGuest() func(session gate.Session) bool {
-	return this.judgeGuest
+func (gt *Gate) GetJudgeGuest() func(session gate.Session) bool {
+	return gt.judgeGuest
 }
-func (this *Gate) GetModule() module.RPCModule {
-	return this.GetSubclass()
-}
-
-func (this *Gate) NewSession(data []byte) (gate.Session, error) {
-	return NewSession(this.App, data)
-}
-func (this *Gate) NewSessionByMap(data map[string]interface{}) (gate.Session, error) {
-	return NewSessionByMap(this.App, data)
+func (gt *Gate) GetModule() module.RPCModule {
+	return gt.GetSubclass()
 }
 
-func (this *Gate) OnConfChanged(settings *conf.ModuleSettings) {
+func (gt *Gate) NewSession(data []byte) (gate.Session, error) {
+	return NewSession(gt.App, data)
+}
+func (gt *Gate) NewSessionByMap(data map[string]interface{}) (gate.Session, error) {
+	return NewSessionByMap(gt.App, data)
+}
+
+func (gt *Gate) OnConfChanged(settings *conf.ModuleSettings) {
 
 }
 
 /**
 自定义rpc参数序列化反序列化  Session
 */
-func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err error) {
+func (gt *Gate) Serialize(param interface{}) (ptype string, p []byte, err error) {
 	rv := reflect.ValueOf(param)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		//不是指针
@@ -128,130 +128,130 @@ func (this *Gate) Serialize(param interface{}) (ptype string, p []byte, err erro
 	case gate.Session:
 		bytes, err := v2.Serializable()
 		if err != nil {
-			return RPC_PARAM_SESSION_TYPE, nil, err
+			return RPCParamSessionType, nil, err
 		}
-		return RPC_PARAM_SESSION_TYPE, bytes, nil
+		return RPCParamSessionType, bytes, nil
 	case module.ProtocolMarshal:
 		bytes := v2.GetData()
-		return RPC_PARAM_ProtocolMarshal_TYPE, bytes, nil
+		return RPCParamProtocolMarshalType, bytes, nil
 	default:
 		return "", nil, fmt.Errorf("args [%s] Types not allowed", reflect.TypeOf(param))
 	}
 }
 
-func (this *Gate) Deserialize(ptype string, b []byte) (param interface{}, err error) {
+func (gt *Gate) Deserialize(ptype string, b []byte) (param interface{}, err error) {
 	switch ptype {
-	case RPC_PARAM_SESSION_TYPE:
-		mps, errs := NewSession(this.App, b)
+	case RPCParamSessionType:
+		mps, errs := NewSession(gt.App, b)
 		if errs != nil {
 			return nil, errs
 		}
 		return mps.Clone(), nil
-	case RPC_PARAM_ProtocolMarshal_TYPE:
-		return this.App.NewProtocolMarshal(b), nil
+	case RPCParamProtocolMarshalType:
+		return gt.App.NewProtocolMarshal(b), nil
 	default:
 		return nil, fmt.Errorf("args [%s] Types not allowed", ptype)
 	}
 }
 
-func (this *Gate) GetTypes() []string {
-	return []string{RPC_PARAM_SESSION_TYPE}
+func (gt *Gate) GetTypes() []string {
+	return []string{RPCParamSessionType}
 }
-func (this *Gate) OnAppConfigurationLoaded(app module.App) {
+func (gt *Gate) OnAppConfigurationLoaded(app module.App) {
 	//添加Session结构体的序列化操作类
-	this.BaseModule.OnAppConfigurationLoaded(app) //这是必须的
-	err := app.AddRPCSerialize("gate", this)
+	gt.BaseModule.OnAppConfigurationLoaded(app) //这是必须的
+	err := app.AddRPCSerialize("gate", gt)
 	if err != nil {
 		log.Warning("Adding session structures failed to serialize interfaces %s", err.Error())
 	}
 }
-func (this *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
-	this.opts = gate.NewOptions(opts...)
-	this.BaseModule.OnInit(subclass, app, settings, this.opts.Opts...) //这是必须的
-	if this.opts.WsAddr == "" {
+func (gt *Gate) OnInit(subclass module.RPCModule, app module.App, settings *conf.ModuleSettings, opts ...gate.Option) {
+	gt.opts = gate.NewOptions(opts...)
+	gt.BaseModule.OnInit(subclass, app, settings, gt.opts.Opts...) //这是必须的
+	if gt.opts.WsAddr == "" {
 		if WSAddr, ok := settings.Settings["WSAddr"]; ok {
-			this.opts.WsAddr = WSAddr.(string)
+			gt.opts.WsAddr = WSAddr.(string)
 		}
 	}
-	if this.opts.TcpAddr == "" {
+	if gt.opts.TCPAddr == "" {
 		if TCPAddr, ok := settings.Settings["TCPAddr"]; ok {
-			this.opts.TcpAddr = TCPAddr.(string)
+			gt.opts.TCPAddr = TCPAddr.(string)
 		}
 	}
 
-	if this.opts.Tls == false {
-		if Tls, ok := settings.Settings["Tls"]; ok {
-			this.opts.Tls = Tls.(bool)
+	if gt.opts.TLS == false {
+		if tls, ok := settings.Settings["TLS"]; ok {
+			gt.opts.TLS = tls.(bool)
 		} else {
-			this.opts.Tls = false
+			gt.opts.TLS = false
 		}
 	}
 
-	if this.opts.CertFile == "" {
+	if gt.opts.CertFile == "" {
 		if CertFile, ok := settings.Settings["CertFile"]; ok {
-			this.opts.CertFile = CertFile.(string)
+			gt.opts.CertFile = CertFile.(string)
 		} else {
-			this.opts.CertFile = ""
+			gt.opts.CertFile = ""
 		}
 	}
 
-	if this.opts.KeyFile == "" {
+	if gt.opts.KeyFile == "" {
 		if KeyFile, ok := settings.Settings["KeyFile"]; ok {
-			this.opts.KeyFile = KeyFile.(string)
+			gt.opts.KeyFile = KeyFile.(string)
 		} else {
-			this.opts.KeyFile = ""
+			gt.opts.KeyFile = ""
 		}
 	}
 
-	handler := NewGateHandler(this)
+	handler := NewGateHandler(gt)
 
-	this.opts.AgentLearner = handler
-	this.opts.GateHandler = handler
-	this.GetServer().RegisterGO("Update", this.opts.GateHandler.Update)
-	this.GetServer().RegisterGO("Bind", this.opts.GateHandler.Bind)
-	this.GetServer().RegisterGO("UnBind", this.opts.GateHandler.UnBind)
-	this.GetServer().RegisterGO("Push", this.opts.GateHandler.Push)
-	this.GetServer().RegisterGO("Set", this.opts.GateHandler.Set)
-	this.GetServer().RegisterGO("Remove", this.opts.GateHandler.Remove)
-	this.GetServer().RegisterGO("Send", this.opts.GateHandler.Send)
-	this.GetServer().RegisterGO("SendBatch", this.opts.GateHandler.SendBatch)
-	this.GetServer().RegisterGO("BroadCast", this.opts.GateHandler.BroadCast)
-	this.GetServer().RegisterGO("IsConnect", this.opts.GateHandler.IsConnect)
-	this.GetServer().RegisterGO("Close", this.opts.GateHandler.Close)
+	gt.opts.AgentLearner = handler
+	gt.opts.GateHandler = handler
+	gt.GetServer().RegisterGO("Update", gt.opts.GateHandler.Update)
+	gt.GetServer().RegisterGO("Bind", gt.opts.GateHandler.Bind)
+	gt.GetServer().RegisterGO("UnBind", gt.opts.GateHandler.UnBind)
+	gt.GetServer().RegisterGO("Push", gt.opts.GateHandler.Push)
+	gt.GetServer().RegisterGO("Set", gt.opts.GateHandler.Set)
+	gt.GetServer().RegisterGO("Remove", gt.opts.GateHandler.Remove)
+	gt.GetServer().RegisterGO("Send", gt.opts.GateHandler.Send)
+	gt.GetServer().RegisterGO("SendBatch", gt.opts.GateHandler.SendBatch)
+	gt.GetServer().RegisterGO("BroadCast", gt.opts.GateHandler.BroadCast)
+	gt.GetServer().RegisterGO("IsConnect", gt.opts.GateHandler.IsConnect)
+	gt.GetServer().RegisterGO("Close", gt.opts.GateHandler.Close)
 }
 
-func (this *Gate) Run(closeSig chan bool) {
+func (gt *Gate) Run(closeSig chan bool) {
 	var wsServer *network.WSServer
-	if this.opts.WsAddr != "" {
+	if gt.opts.WsAddr != "" {
 		wsServer = new(network.WSServer)
-		wsServer.Addr = this.opts.WsAddr
+		wsServer.Addr = gt.opts.WsAddr
 		wsServer.HTTPTimeout = 30 * time.Second
-		wsServer.Tls = this.opts.Tls
-		wsServer.CertFile = this.opts.CertFile
-		wsServer.KeyFile = this.opts.KeyFile
+		wsServer.TLS = gt.opts.TLS
+		wsServer.CertFile = gt.opts.CertFile
+		wsServer.KeyFile = gt.opts.KeyFile
 		wsServer.NewAgent = func(conn *network.WSConn) network.Agent {
-			if this.createAgent == nil {
-				this.createAgent = this.defaultCreateAgentd
+			if gt.createAgent == nil {
+				gt.createAgent = gt.defaultCreateAgentd
 			}
-			agent := this.createAgent()
-			agent.OnInit(this, conn)
+			agent := gt.createAgent()
+			agent.OnInit(gt, conn)
 			return agent
 		}
 	}
 
 	var tcpServer *network.TCPServer
-	if this.opts.TcpAddr != "" {
+	if gt.opts.TCPAddr != "" {
 		tcpServer = new(network.TCPServer)
-		tcpServer.Addr = this.opts.TcpAddr
-		tcpServer.Tls = this.opts.Tls
-		tcpServer.CertFile = this.opts.CertFile
-		tcpServer.KeyFile = this.opts.KeyFile
+		tcpServer.Addr = gt.opts.TCPAddr
+		tcpServer.TLS = gt.opts.TLS
+		tcpServer.CertFile = gt.opts.CertFile
+		tcpServer.KeyFile = gt.opts.KeyFile
 		tcpServer.NewAgent = func(conn *network.TCPConn) network.Agent {
-			if this.createAgent == nil {
-				this.createAgent = this.defaultCreateAgentd
+			if gt.createAgent == nil {
+				gt.createAgent = gt.defaultCreateAgentd
 			}
-			agent := this.createAgent()
-			agent.OnInit(this, conn)
+			agent := gt.createAgent()
+			agent.OnInit(gt, conn)
 			return agent
 		}
 	}
@@ -263,8 +263,8 @@ func (this *Gate) Run(closeSig chan bool) {
 		tcpServer.Start()
 	}
 	<-closeSig
-	if this.opts.GateHandler != nil {
-		this.opts.GateHandler.OnDestroy()
+	if gt.opts.GateHandler != nil {
+		gt.opts.GateHandler.OnDestroy()
 	}
 	if wsServer != nil {
 		wsServer.Close()
@@ -274,6 +274,6 @@ func (this *Gate) Run(closeSig chan bool) {
 	}
 }
 
-func (this *Gate) OnDestroy() {
-	this.BaseModule.OnDestroy() //这是必须的
+func (gt *Gate) OnDestroy() {
+	gt.BaseModule.OnDestroy() //这是必须的
 }

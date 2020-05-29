@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package network websocket连接器
 package network
 
 import (
@@ -21,6 +23,7 @@ import (
 	"time"
 )
 
+// WSConn websocket连接
 type WSConn struct {
 	io.Reader //Read(p []byte) (n int, err error)
 	io.Writer //Write(p []byte) (n int, err error)
@@ -42,6 +45,7 @@ func (wsConn *WSConn) doDestroy() {
 	}
 }
 
+// Destroy 注销连接
 func (wsConn *WSConn) Destroy() {
 	//wsConn.Lock()
 	//defer wsConn.Unlock()
@@ -49,6 +53,7 @@ func (wsConn *WSConn) Destroy() {
 	wsConn.doDestroy()
 }
 
+// Close 关闭连接
 func (wsConn *WSConn) Close() error {
 	//wsConn.Lock()
 	//defer wsConn.Unlock()
@@ -59,24 +64,27 @@ func (wsConn *WSConn) Close() error {
 	return wsConn.conn.Close()
 }
 
+// Write Write
 func (wsConn *WSConn) Write(p []byte) (int, error) {
 	return wsConn.conn.Write(p)
 }
 
-// goroutine not safe
+// Read goroutine not safe
 func (wsConn *WSConn) Read(p []byte) (n int, err error) {
 	return wsConn.conn.Read(p)
 }
 
+// LocalAddr 获取本地socket地址
 func (wsConn *WSConn) LocalAddr() net.Addr {
 	return wsConn.conn.LocalAddr()
 }
 
+// RemoteAddr 获取远程socket地址
 func (wsConn *WSConn) RemoteAddr() net.Addr {
 	return wsConn.conn.RemoteAddr()
 }
 
-// A zero value for t means I/O operations will not time out.
+// SetDeadline A zero value for t means I/O operations will not time out.
 func (wsConn *WSConn) SetDeadline(t time.Time) error {
 	err := wsConn.conn.SetReadDeadline(t)
 	if err != nil {

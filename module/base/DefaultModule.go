@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package basemodule 模块管理
 package basemodule
 
 import (
@@ -21,6 +23,7 @@ import (
 	"sync"
 )
 
+// DefaultModule 模块结构
 type DefaultModule struct {
 	mi       module.Module
 	settings *conf.ModuleSettings

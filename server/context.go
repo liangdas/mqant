@@ -17,11 +17,13 @@ func wait(ctx context.Context) bool {
 	return wait
 }
 
+// FromContext FromContext
 func FromContext(ctx context.Context) (Server, bool) {
 	c, ok := ctx.Value(serverKey{}).(Server)
 	return c, ok
 }
 
+// NewContext NewContext
 func NewContext(ctx context.Context, s Server) context.Context {
 	return context.WithValue(ctx, serverKey{}, s)
 }

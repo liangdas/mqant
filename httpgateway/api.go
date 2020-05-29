@@ -1,4 +1,4 @@
-// Package api provides an http-rpc handler which provides the entire http request over rpc
+// Package httpgateway provides an http-rpc handler which provides the entire http request over rpc
 package httpgateway
 
 import (
@@ -11,17 +11,14 @@ import (
 	"net/http"
 )
 
-type ApiHandler struct {
+//APIHandler 网关handler
+type APIHandler struct {
 	Opts Options
 	App  module.App
 }
 
-const (
-	Handler = "api"
-)
-
 // API handler is the default handler which takes api.Request and returns api.Response
-func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (a *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	request, err := httpgatewayapi.RequestToProto(r)
 	if err != nil {
 		er := errors.InternalServerError("httpgateway", err.Error())
@@ -71,9 +68,10 @@ func (a *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(rsp.Body))
 }
 
+// NewHandler 创建网关
 func NewHandler(app module.App, opts ...Option) http.Handler {
 	options := NewOptions(opts...)
-	return &ApiHandler{
+	return &APIHandler{
 		Opts: options,
 		App:  app,
 	}

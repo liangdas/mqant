@@ -6,13 +6,14 @@ import (
 	"time"
 )
 
+// Options Options
 type Options struct {
 	Registry  registry.Registry
 	Metadata  map[string]string
 	Name      string
 	Address   string
 	Advertise string
-	Id        string
+	ID        string
 	Version   string
 
 	RegisterInterval time.Duration
@@ -44,8 +45,8 @@ func newOptions(opt ...Option) Options {
 		opts.Name = DefaultName
 	}
 
-	if len(opts.Id) == 0 {
-		opts.Id = DefaultId
+	if len(opts.ID) == 0 {
+		opts.ID = DefaultID
 	}
 
 	if len(opts.Version) == 0 {
@@ -55,17 +56,25 @@ func newOptions(opt ...Option) Options {
 	return opts
 }
 
-// Server name
+// Name Server name
 func Name(n string) Option {
 	return func(o *Options) {
 		o.Name = n
 	}
 }
 
-// Unique server id
+// Id Unique server id
+// Deprecated: 因为命名规范问题函数将废弃,请用ID代替
 func Id(id string) Option {
 	return func(o *Options) {
-		o.Id = id
+		o.ID = id
+	}
+}
+
+// ID Unique server id
+func ID(id string) Option {
+	return func(o *Options) {
+		o.ID = id
 	}
 }
 
@@ -83,7 +92,7 @@ func Address(a string) Option {
 	}
 }
 
-// The address to advertise for discovery - host:port
+// Advertise The address to advertise for discovery - host:port
 func Advertise(a string) Option {
 	return func(o *Options) {
 		o.Advertise = a
@@ -104,7 +113,7 @@ func Metadata(md map[string]string) Option {
 	}
 }
 
-// Register the service with a TTL
+// RegisterTTL Register the service with a TTL
 func RegisterTTL(t time.Duration) Option {
 	return func(o *Options) {
 		o.RegisterTTL = t

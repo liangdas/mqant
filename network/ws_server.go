@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package network websocket服务器
 package network
 
 //
@@ -25,7 +27,7 @@ package network
 //
 //type WSServer struct {
 //	Addr        string
-//	Tls         bool //是否支持tls
+//	TLS         bool //是否支持tls
 //	CertFile    string
 //	KeyFile     string
 //	MaxConnNum  int
@@ -84,7 +86,7 @@ package network
 //	if server.NewAgent == nil {
 //		log.Warning("NewAgent must not be nil")
 //	}
-//	if server.Tls {
+//	if server.TLS {
 //		tlsConf := new(tls.Config)
 //		tlsConf.Certificates = make([]tls.Certificate, 1)
 //		tlsConf.Certificates[0], err = tls.LoadX509KeyPair(server.CertFile, server.KeyFile)

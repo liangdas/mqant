@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mqant_tools
+package mqanttools
 
 import (
 	"sync"
@@ -78,9 +78,10 @@ func (m *BeeMap) Delete(k interface{}) {
 	m.lock.Unlock()
 }
 
+// DeleteAll DeleteAll
 func (m *BeeMap) DeleteAll() {
 	m.lock.Lock()
-	for k, _ := range m.bm {
+	for k := range m.bm {
 		delete(m.bm, k)
 	}
 

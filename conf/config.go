@@ -18,140 +18,64 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 )
 
 var (
+	// LenStackBuf 异常堆栈信息
 	LenStackBuf = 1024
-
+	// Conf 配置结构体
 	Conf = Config{}
 )
 
+// LoadConfig 加载配置
 func LoadConfig(Path string) {
 	// Read config.
 	if err := readFileInto(Path); err != nil {
 		panic(err)
 	}
-	if Conf.Rpc.RpcExpired == 0 {
-		Conf.Rpc.RpcExpired = 3
+	if Conf.RPC.RPCExpired == 0 {
+		Conf.RPC.RPCExpired = 3
 	}
-	if Conf.Rpc.MaxCoroutine == 0 {
-		Conf.Rpc.MaxCoroutine = 100
+	if Conf.RPC.MaxCoroutine == 0 {
+		Conf.RPC.MaxCoroutine = 100
 	}
-	if Conf.Rpc.UDPMaxPacketSize == 0 {
-		Conf.Rpc.UDPMaxPacketSize = 4096
-	}
-	for _, module := range Conf.Module {
-		for _, ModuleSettings := range module {
-			if ModuleSettings.UDP != nil {
-				ModuleSettings.UDP.UDPMaxPacketSize = Conf.Rpc.UDPMaxPacketSize
-			}
-		}
-	}
-
 }
 
+// Config 配置结构体
 type Config struct {
 	Log      map[string]interface{}
 	BI       map[string]interface{}
 	OP       map[string]interface{}
-	Rpc      Rpc
+	RPC      RPC `json:"rpc"`
 	Module   map[string][]*ModuleSettings
 	Mqtt     Mqtt
-	Master   Master
 	Settings map[string]interface{}
 }
 
-type Rpc struct {
-	UDPMaxPacketSize int  //udp rpc 每一个包最大数据量 默认 4096
-	MaxCoroutine     int  //模块同时可以创建的最大协程数量默认是100
-	RpcExpired       int  //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
-	Log              bool //是否打印RPC的日志
+// rpc 进程间通信配置
+type RPC struct {
+	MaxCoroutine int  //模块同时可以创建的最大协程数量默认是100
+	RPCExpired   int  `json:"RpcExpired"` //远程访问最后期限值 单位秒[默认5秒] 这个值指定了在客户端可以等待服务端多长时间来应答
+	Log          bool //是否打印RPC的日志
 }
 
-type Rabbitmq struct {
-	Uri          string
-	Exchange     string
-	ExchangeType string
-	Queue        string
-	BindingKey   string //
-	ConsumerTag  string //消费者TAG
-}
-
-type Redis struct {
-	Uri   string //redis://:[password]@[ip]:[port]/[db]
-	Queue string
-}
-
-type UDP struct {
-	Uri              string //udp服务端监听ip		0.0.0.0:8080
-	Port             int    //端口
-	UDPMaxPacketSize int
-}
-
+// ModuleSettings 模块配置
 type ModuleSettings struct {
-	Id        string
+	ID        string `json:"ID"`
 	Host      string
 	ProcessID string
 	Settings  map[string]interface{}
-	Rabbitmq  *Rabbitmq
-	Redis     *Redis
-	UDP       *UDP
 }
 
+// Mqtt mqtt协议配置
 type Mqtt struct {
 	WirteLoopChanNum int // Should > 1 	    // 最大写入包队列缓存
 	ReadPackLoop     int // 最大读取包队列缓存
 	ReadTimeout      int // 读取超时
 	WriteTimeout     int // 写入超时
-}
-
-type SSH struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-}
-
-/**
-host:port
-*/
-func (s *SSH) GetSSHHost() string {
-	return fmt.Sprintf("%s:%d", s.Host, s.Port)
-}
-
-type Process struct {
-	ProcessID string
-	Host      string
-	//执行文件
-	Execfile string
-	//日志文件目录
-	//pid.nohup.log
-	//pid.access.log
-	//pid.error.log
-	LogDir string
-	//自定义的参数
-	Args map[string]interface{}
-}
-
-type Master struct {
-	Enable  bool
-	WebRoot string
-	WebHost string
-	SSH     []*SSH
-	Process []*Process
-}
-
-func (m *Master) GetSSH(host string) *SSH {
-	for _, ssh := range m.SSH {
-		if ssh.Host == host {
-			return ssh
-		}
-	}
-	return nil
 }
 
 func readFileInto(path string) error {

@@ -26,7 +26,7 @@ type rpcServer struct {
 	wg sync.WaitGroup
 }
 
-func newRpcServer(opts ...Option) Server {
+func newRPCServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
 		opts: options,
@@ -111,7 +111,7 @@ func (s *rpcServer) ServiceRegister() error {
 
 	// register service
 	node := &registry.Node{
-		Id:       config.Name + "@" + config.Id,
+		Id:       config.Name + "@" + config.ID,
 		Address:  addr,
 		Port:     port,
 		Metadata: config.Metadata,
@@ -190,7 +190,7 @@ func (s *rpcServer) ServiceDeregister() error {
 	}
 
 	node := &registry.Node{
-		Id:      config.Name + "@" + config.Id,
+		Id:      config.Name + "@" + config.ID,
 		Address: addr,
 		Port:    port,
 	}
@@ -249,7 +249,13 @@ func (s *rpcServer) OnDestroy() error {
 	return s.Stop()
 }
 
+// Id Id
+// Deprecated: 因为命名规范问题函数将废弃,请用ID代替
 func (s *rpcServer) Id() string {
+	return s.id
+}
+
+func (s *rpcServer) ID() string {
 	return s.id
 }
 

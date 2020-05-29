@@ -1,4 +1,4 @@
-package mqant_tools
+package mqanttools
 
 import (
 	"crypto/aes"
@@ -50,7 +50,7 @@ func ParseID(s string) (ID, error) {
 	return ID(i), nil
 }
 
-// generateID returns a randomly-generated 64-bit ID. This function is
+// GenerateID returns a randomly-generated 64-bit ID. This function is
 // thread-safe.  IDs are produced by consuming an AES-CTR-128 keystream in
 // 64-bit chunks. The AES key is randomly generated on initialization, as is the
 // counter's initial state. On machines with AES-NI support, ID generation takes

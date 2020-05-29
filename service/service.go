@@ -8,6 +8,7 @@ import (
 	"github.com/liangdas/mqant/server"
 )
 
+// NewService NewService
 func NewService(opts ...Option) Service {
 	return newService(opts...)
 }

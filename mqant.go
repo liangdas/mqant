@@ -1,4 +1,4 @@
-// Copyright 2014 mqant Author. All Rights Reserved.
+// Copyright 2017 mqant Author. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+//Package mqant mqant
 package mqant
 
 import (
@@ -18,6 +20,7 @@ import (
 	"github.com/liangdas/mqant/module"
 )
 
+//CreateApp 创建mqant的app实例
 func CreateApp(opts ...module.Option) module.App {
 	opts = append(opts, module.Version(version))
 	return app.NewApp(opts...)

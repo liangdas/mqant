@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Options Options
 type Options struct {
 	Addrs     []string
 	Timeout   time.Duration
@@ -17,6 +18,7 @@ type Options struct {
 	Context context.Context
 }
 
+// RegisterOptions RegisterOptions
 type RegisterOptions struct {
 	TTL time.Duration
 	// Other options for implementations of the interface
@@ -24,6 +26,7 @@ type RegisterOptions struct {
 	Context context.Context
 }
 
+// WatchOptions WatchOptions
 type WatchOptions struct {
 	// Specify a service to watch
 	// If blank, the watch is for all services
@@ -40,6 +43,7 @@ func Addrs(addrs ...string) Option {
 	}
 }
 
+// Timeout Timeout
 func Timeout(t time.Duration) Option {
 	return func(o *Options) {
 		o.Timeout = t
@@ -53,20 +57,21 @@ func Secure(b bool) Option {
 	}
 }
 
-// Specify TLS Config
+// TLSConfig TLS Config
 func TLSConfig(t *tls.Config) Option {
 	return func(o *Options) {
 		o.TLSConfig = t
 	}
 }
 
+// RegisterTTL ttl
 func RegisterTTL(t time.Duration) RegisterOption {
 	return func(o *RegisterOptions) {
 		o.TTL = t
 	}
 }
 
-// Watch a service
+// WatchService a service
 func WatchService(name string) WatchOption {
 	return func(o *WatchOptions) {
 		o.Service = name

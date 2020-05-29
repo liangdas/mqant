@@ -67,7 +67,7 @@ func (m *Pair) GetValues() []string {
 	return nil
 }
 
-// A HTTP request as RPC
+// A HTTP request as rpc
 // Forward by the api handler
 type Request struct {
 	Method               string           `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
@@ -156,7 +156,7 @@ func (m *Request) GetUrl() string {
 	return ""
 }
 
-// A HTTP response as RPC
+// A HTTP response as rpc
 // Expected response for the api handler
 type Response struct {
 	StatusCode           int32            `protobuf:"varint,1,opt,name=statusCode,proto3" json:"statusCode,omitempty"`
@@ -213,7 +213,7 @@ func (m *Response) GetBody() string {
 	return ""
 }
 
-// A HTTP event as RPC
+// A HTTP event as rpc
 // Forwarded by the event handler
 type Event struct {
 	// e.g login

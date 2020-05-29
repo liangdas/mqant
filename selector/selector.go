@@ -39,12 +39,15 @@ type Filter func([]*registry.Service) []*registry.Service
 type Strategy func([]*registry.Service) Next
 
 var (
+	// DefaultSelector 默认选择器
 	DefaultSelector = newDefaultSelector()
-
-	ErrNotFound      = errors.New("not found")
+	// ErrNotFound ErrNotFound
+	ErrNotFound = errors.New("not found")
+	// ErrNoneAvailable ErrNoneAvailable
 	ErrNoneAvailable = errors.New("none available")
 )
 
+// NewSelector NewSelector
 func NewSelector(opts ...Option) Selector {
 	return newDefaultSelector(opts...)
 }

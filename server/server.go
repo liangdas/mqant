@@ -9,6 +9,7 @@ import (
 	"github.com/pborman/uuid"
 )
 
+// Server Server
 type Server interface {
 	Options() Options
 	OnInit(module module.Module, app module.App, settings *conf.ModuleSettings) error
@@ -22,15 +23,19 @@ type Server interface {
 	Stop() error
 	OnDestroy() error
 	String() string
+	ID() string
+	// Deprecated: 因为命名规范问题函数将废弃,请用ID代替
 	Id() string
 }
 
+// Message RPC消息头
 type Message interface {
 	Topic() string
 	Payload() interface{}
 	ContentType() string
 }
 
+// Request Request
 type Request interface {
 	Service() string
 	Method() string
@@ -53,16 +58,21 @@ type Stream interface {
 	Close() error
 }
 
+// Option Option
 type Option func(*Options)
 
 var (
+	// DefaultAddress DefaultAddress
 	DefaultAddress = ":0"
-	DefaultName    = "go-server"
+	// DefaultName DefaultName
+	DefaultName = "go-server"
+	// DefaultVersion DefaultVersion
 	DefaultVersion = "1.0.0"
-	DefaultId      = uuid.NewUUID().String()
+	// DefaultID DefaultID
+	DefaultID = uuid.NewUUID().String()
 )
 
 // NewServer returns a new server with options passed in
 func NewServer(opt ...Option) Server {
-	return newRpcServer(opt...)
+	return newRPCServer(opt...)
 }

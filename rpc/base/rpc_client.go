@@ -58,7 +58,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
 		Reply:    *proto.Bool(true),
-		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)).UnixNano()) / 1000000),
+		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().RPC.RPCExpired)).UnixNano()) / 1000000),
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
@@ -71,7 +71,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		}
 	}()
 	callInfo := &mqrpc.CallInfo{
-		RpcInfo: *rpcInfo,
+		RPCInfo: *rpcInfo,
 	}
 	callback := make(chan rpcpb.ResultInfo, 1)
 	var err error
@@ -84,7 +84,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		return nil, err.Error()
 	}
 	if ctx == nil {
-		ctx, _ = context.WithTimeout(context.TODO(), time.Second*time.Duration(c.app.GetSettings().Rpc.RpcExpired))
+		ctx, _ = context.WithTimeout(context.TODO(), time.Second*time.Duration(c.app.GetSettings().RPC.RPCExpired))
 	}
 	select {
 	case resultInfo, ok := <-callback:
@@ -100,7 +100,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		c.close_callback_chan(callback)
 		c.nats_client.Delete(rpcInfo.Cid)
 		return nil, "deadline exceeded"
-		//case <-time.After(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)):
+		//case <-time.After(time.Second * time.Duration(c.app.GetSettings().rpc.RPCExpired)):
 		//	close(callback)
 		//	c.nats_client.Delete(rpcInfo.Cid)
 		//	return nil, "deadline exceeded"
@@ -120,13 +120,13 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
 		Reply:    *proto.Bool(false),
-		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().Rpc.RpcExpired)).UnixNano()) / 1000000),
+		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().RPC.RPCExpired)).UnixNano()) / 1000000),
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
 	}
 	callInfo := &mqrpc.CallInfo{
-		RpcInfo: *rpcInfo,
+		RPCInfo: *rpcInfo,
 	}
 	//优先使用本地rpc
 	//if c.local_client != nil {
@@ -156,8 +156,8 @@ func (c *RPCClient) Call(ctx context.Context, _func string, params ...interface{
 	}
 	start := time.Now()
 	r, errstr := c.CallArgs(ctx, _func, ArgsType, args)
-	if c.app.GetSettings().Rpc.Log {
-		log.TInfo(span, "RPC Call ServerId = %v Func = %v Elapsed = %v Result = %v ERROR = %v", c.nats_client.session.GetId(), _func, time.Since(start), r, errstr)
+	if c.app.GetSettings().RPC.Log {
+		log.TInfo(span, "rpc Call ServerId = %v Func = %v Elapsed = %v Result = %v ERROR = %v", c.nats_client.session.GetId(), _func, time.Since(start), r, errstr)
 	}
 	return r, errstr
 }
@@ -182,8 +182,8 @@ func (c *RPCClient) CallNR(_func string, params ...interface{}) (err error) {
 	}
 	start := time.Now()
 	err = c.CallNRArgs(_func, ArgsType, args)
-	if c.app.GetSettings().Rpc.Log {
-		log.TInfo(span, "RPC CallNR ServerId = %v Func = %v Elapsed = %v ERROR = %v", c.nats_client.session.GetId(), _func, time.Since(start), err)
+	if c.app.GetSettings().RPC.Log {
+		log.TInfo(span, "rpc CallNR ServerId = %v Func = %v Elapsed = %v ERROR = %v", c.nats_client.session.GetId(), _func, time.Since(start), err)
 	}
 	return err
 }

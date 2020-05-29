@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package basegate gate.Session
 package basegate
 
 import (
@@ -34,6 +36,7 @@ type sessionagent struct {
 	judgeGuest func(session gate.Session) bool
 }
 
+// NewSession NewSession
 func NewSession(app module.App, data []byte) (gate.Session, error) {
 	agent := &sessionagent{
 		app:  app,
@@ -54,6 +57,7 @@ func NewSession(app module.App, data []byte) (gate.Session, error) {
 	return agent, nil
 }
 
+// NewSessionByMap NewSessionByMap
 func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session, error) {
 	agent := &sessionagent{
 		app:     app,
@@ -73,274 +77,299 @@ func NewSessionByMap(app module.App, data map[string]interface{}) (gate.Session,
 	return agent, nil
 }
 
-func (this *sessionagent) GetIP() string {
-	return this.session.GetIP()
+func (sesid *sessionagent) GetIP() string {
+	return sesid.session.GetIP()
 }
 
-func (this *sessionagent) GetTopic() string {
-	return this.session.GetTopic()
+func (sesid *sessionagent) GetTopic() string {
+	return sesid.session.GetTopic()
 }
 
-func (this *sessionagent) GetNetwork() string {
-	return this.session.GetNetwork()
+func (sesid *sessionagent) GetNetwork() string {
+	return sesid.session.GetNetwork()
 }
 
-func (this *sessionagent) GetUserId() string {
-	return this.session.GetUserId()
+func (sesid *sessionagent) GetUserId() string {
+	return sesid.GetUserID()
 }
 
-func (this *sessionagent) GetUserIdInt64() int64 {
-	uid64, err := strconv.ParseInt(this.session.GetUserId(), 10, 64)
+func (sesid *sessionagent) GetUserID() string {
+	return sesid.session.GetUserId()
+}
+
+func (sesid *sessionagent) GetUserIDInt64() int64 {
+	uid64, err := strconv.ParseInt(sesid.session.GetUserId(), 10, 64)
 	if err != nil {
 		return -1
 	}
 	return uid64
 }
 
-func (this *sessionagent) GetSessionId() string {
-	return this.session.GetSessionId()
+func (sesid *sessionagent) GetUserIdInt64() int64 {
+	return sesid.GetUserIDInt64()
 }
 
-func (this *sessionagent) GetServerId() string {
-	return this.session.GetServerId()
+func (sesid *sessionagent) GetSessionID() string {
+	return sesid.session.GetSessionId()
 }
 
-func (this *sessionagent) GetSettings() map[string]string {
-	return this.session.GetSettings()
+func (sesid *sessionagent) GetSessionId() string {
+	return sesid.GetSessionID()
 }
 
-func (this *sessionagent) LocalUserData() interface{} {
-	return this.userdata
+func (sesid *sessionagent) GetServerID() string {
+	return sesid.session.GetServerId()
 }
 
-func (this *sessionagent) SetIP(ip string) {
-	this.session.IP = ip
+func (sesid *sessionagent) GetServerId() string {
+	return sesid.GetServerID()
 }
-func (this *sessionagent) SetTopic(topic string) {
-	this.session.Topic = topic
+
+func (sesid *sessionagent) GetSettings() map[string]string {
+	return sesid.session.GetSettings()
 }
-func (this *sessionagent) SetNetwork(network string) {
-	this.session.Network = network
+
+func (sesid *sessionagent) LocalUserData() interface{} {
+	return sesid.userdata
 }
-func (this *sessionagent) SetUserId(userid string) {
-	this.lock.Lock()
-	this.session.UserId = userid
-	this.lock.Unlock()
+
+func (sesid *sessionagent) SetIP(ip string) {
+	sesid.session.IP = ip
 }
-func (this *sessionagent) SetSessionId(sessionid string) {
-	this.session.SessionId = sessionid
+func (sesid *sessionagent) SetTopic(topic string) {
+	sesid.session.Topic = topic
 }
-func (this *sessionagent) SetServerId(serverid string) {
-	this.session.ServerId = serverid
+func (sesid *sessionagent) SetNetwork(network string) {
+	sesid.session.Network = network
 }
-func (this *sessionagent) SetSettings(settings map[string]string) {
-	this.lock.Lock()
-	this.session.Settings = settings
-	this.lock.Unlock()
+func (sesid *sessionagent) SetUserID(userid string) {
+	sesid.lock.Lock()
+	sesid.session.UserId = userid
+	sesid.lock.Unlock()
 }
-func (this *sessionagent) SetLocalKV(key, value string) error {
-	this.lock.Lock()
-	this.session.GetSettings()[key] = value
-	this.lock.Unlock()
+func (sesid *sessionagent) SetUserId(userid string) {
+	sesid.SetUserID(userid)
+}
+func (sesid *sessionagent) SetSessionID(sessionid string) {
+	sesid.session.SessionId = sessionid
+}
+func (sesid *sessionagent) SetSessionId(sessionid string) {
+	sesid.SetSessionID(sessionid)
+}
+func (sesid *sessionagent) SetServerID(serverid string) {
+	sesid.session.ServerId = serverid
+}
+func (sesid *sessionagent) SetServerId(serverid string) {
+	sesid.SetServerID(serverid)
+}
+func (sesid *sessionagent) SetSettings(settings map[string]string) {
+	sesid.lock.Lock()
+	sesid.session.Settings = settings
+	sesid.lock.Unlock()
+}
+func (sesid *sessionagent) SetLocalKV(key, value string) error {
+	sesid.lock.Lock()
+	sesid.session.GetSettings()[key] = value
+	sesid.lock.Unlock()
 	return nil
 }
-func (this *sessionagent) RemoveLocalKV(key string) error {
-	this.lock.Lock()
-	delete(this.session.GetSettings(), key)
-	this.lock.Unlock()
+func (sesid *sessionagent) RemoveLocalKV(key string) error {
+	sesid.lock.Lock()
+	delete(sesid.session.GetSettings(), key)
+	sesid.lock.Unlock()
 	return nil
 }
-func (this *sessionagent) SetLocalUserData(data interface{}) error {
-	this.userdata = data
+func (sesid *sessionagent) SetLocalUserData(data interface{}) error {
+	sesid.userdata = data
 	return nil
 }
 
-func (this *sessionagent) updateMap(s map[string]interface{}) error {
+func (sesid *sessionagent) updateMap(s map[string]interface{}) error {
 	Userid := s["Userid"]
 	if Userid != nil {
-		this.session.UserId = Userid.(string)
+		sesid.session.UserId = Userid.(string)
 	}
 	IP := s["IP"]
 	if IP != nil {
-		this.session.IP = IP.(string)
+		sesid.session.IP = IP.(string)
 	}
 	if topic, ok := s["Topic"]; ok {
-		this.session.Topic = topic.(string)
+		sesid.session.Topic = topic.(string)
 	}
 	Network := s["Network"]
 	if Network != nil {
-		this.session.Network = Network.(string)
+		sesid.session.Network = Network.(string)
 	}
 	Sessionid := s["Sessionid"]
 	if Sessionid != nil {
-		this.session.SessionId = Sessionid.(string)
+		sesid.session.SessionId = Sessionid.(string)
 	}
 	Serverid := s["Serverid"]
 	if Serverid != nil {
-		this.session.ServerId = Serverid.(string)
+		sesid.session.ServerId = Serverid.(string)
 	}
 	Settings := s["Settings"]
 	if Settings != nil {
-		this.lock.Lock()
-		this.session.Settings = Settings.(map[string]string)
-		this.lock.Unlock()
+		sesid.lock.Lock()
+		sesid.session.Settings = Settings.(map[string]string)
+		sesid.lock.Unlock()
 	}
 	return nil
 }
 
-func (this *sessionagent) update(s gate.Session) error {
-	Userid := s.GetUserId()
-	this.session.UserId = Userid
+func (sesid *sessionagent) update(s gate.Session) error {
+	Userid := s.GetUserID()
+	sesid.session.UserId = Userid
 	IP := s.GetIP()
-	this.session.IP = IP
-	this.session.Topic = s.GetTopic()
+	sesid.session.IP = IP
+	sesid.session.Topic = s.GetTopic()
 	Network := s.GetNetwork()
-	this.session.Network = Network
-	Sessionid := s.GetSessionId()
-	this.session.SessionId = Sessionid
-	Serverid := s.GetServerId()
-	this.session.ServerId = Serverid
+	sesid.session.Network = Network
+	Sessionid := s.GetSessionID()
+	sesid.session.SessionId = Sessionid
+	Serverid := s.GetServerID()
+	sesid.session.ServerId = Serverid
 	Settings := s.GetSettings()
-	this.lock.Lock()
-	this.session.Settings = Settings
-	this.lock.Unlock()
+	sesid.lock.Lock()
+	sesid.session.Settings = Settings
+	sesid.lock.Unlock()
 	return nil
 }
 
-func (this *sessionagent) Serializable() ([]byte, error) {
-	this.lock.RLock()
-	data, err := proto.Marshal(this.session)
-	this.lock.RUnlock()
+func (sesid *sessionagent) Serializable() ([]byte, error) {
+	sesid.lock.RLock()
+	data, err := proto.Marshal(sesid.session)
+	sesid.lock.RUnlock()
 	if err != nil {
 		return nil, err
 	} // 进行解码
 	return data, nil
 }
 
-func (this *sessionagent) Marshal() ([]byte, error) {
-	this.lock.RLock()
-	data, err := proto.Marshal(this.session)
-	this.lock.RUnlock()
+func (sesid *sessionagent) Marshal() ([]byte, error) {
+	sesid.lock.RLock()
+	data, err := proto.Marshal(sesid.session)
+	sesid.lock.RUnlock()
 	if err != nil {
 		return nil, err
 	} // 进行解码
 	return data, nil
 }
-func (this *sessionagent) Unmarshal(data []byte) error {
+func (sesid *sessionagent) Unmarshal(data []byte) error {
 	se := &SessionImp{}
 	err := proto.Unmarshal(data, se)
 	if err != nil {
 		return err
 	} // 测试结果
-	this.session = se
-	if this.session.GetSettings() == nil {
-		this.lock.Lock()
-		this.session.Settings = make(map[string]string)
-		this.lock.Unlock()
+	sesid.session = se
+	if sesid.session.GetSettings() == nil {
+		sesid.lock.Lock()
+		sesid.session.Settings = make(map[string]string)
+		sesid.lock.Unlock()
 	}
 	return nil
 }
-func (this *sessionagent) String() string {
+func (sesid *sessionagent) String() string {
 	return "gate.Session"
 }
 
-func (this *sessionagent) Update() (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) Update() (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	result, err := server.Call(nil, "Update", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	result, err := server.Call(nil, "Update", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
 
-func (this *sessionagent) Bind(Userid string) (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) Bind(Userid string) (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	result, err := server.Call(nil, "Bind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, Userid)
+	result, err := server.Call(nil, "Bind", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, Userid)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
 
-func (this *sessionagent) UnBind() (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) UnBind() (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	result, err := server.Call(nil, "UnBind", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	result, err := server.Call(nil, "UnBind", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
 
-func (this *sessionagent) Push() (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) Push() (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	this.lock.Lock()
+	sesid.lock.Lock()
 	tmp := map[string]string{}
-	for k, v := range this.session.Settings {
+	for k, v := range sesid.session.Settings {
 		tmp[k] = v
 	}
-	this.lock.Unlock()
-	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, tmp)
+	sesid.lock.Unlock()
+	result, err := server.Call(nil, "Push", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, tmp)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
 
-func (this *sessionagent) Set(key string, value string) (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) Set(key string, value string) (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	result, err := this.app.RpcCall(nil,
-		this.session.ServerId,
+	result, err := sesid.app.Call(nil,
+		sesid.session.ServerId,
 		"Set",
 		mqrpc.Param(
-			log.CreateTrace(this.TraceId(), this.SpanId()),
-			this.session.SessionId,
+			log.CreateTrace(sesid.TraceId(), sesid.SpanId()),
+			sesid.session.SessionId,
 			key,
 			value,
 		),
@@ -348,130 +377,130 @@ func (this *sessionagent) Set(key string, value string) (err string) {
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
-func (this *sessionagent) SetPush(key string, value string) (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) SetPush(key string, value string) (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	if this.session.Settings == nil {
-		this.session.Settings = map[string]string{}
+	if sesid.session.Settings == nil {
+		sesid.session.Settings = map[string]string{}
 	}
-	this.lock.Lock()
-	this.session.Settings[key] = value
-	this.lock.Unlock()
-	return this.Push()
+	sesid.lock.Lock()
+	sesid.session.Settings[key] = value
+	sesid.lock.Unlock()
+	return sesid.Push()
 }
-func (this *sessionagent) SetBatch(settings map[string]string) (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) SetBatch(settings map[string]string) (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	result, err := server.Call(nil, "Push", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, settings)
+	result, err := server.Call(nil, "Push", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, settings)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
-func (this *sessionagent) Get(key string) (result string) {
-	if this.session.Settings == nil {
+func (sesid *sessionagent) Get(key string) (result string) {
+	if sesid.session.Settings == nil {
 		return
 	}
-	this.lock.RLock()
-	result = this.session.Settings[key]
-	this.lock.RUnlock()
+	sesid.lock.RLock()
+	result = sesid.session.Settings[key]
+	sesid.lock.RUnlock()
 	return
 }
 
-func (this *sessionagent) Remove(key string) (errStr string) {
-	if this.app == nil {
+func (sesid *sessionagent) Remove(key string) (errStr string) {
+	if sesid.app == nil {
 		errStr = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	result, err := this.app.RpcCall(nil,
-		this.session.ServerId,
+	result, err := sesid.app.Call(nil,
+		sesid.session.ServerId,
 		"Remove",
 		mqrpc.Param(
-			log.CreateTrace(this.TraceId(), this.SpanId()),
-			this.session.SessionId,
+			log.CreateTrace(sesid.TraceId(), sesid.SpanId()),
+			sesid.session.SessionId,
 			key,
 		),
 	)
 	if err == "" {
 		if result != nil {
 			//绑定成功,重新更新当前Session
-			this.update(result.(gate.Session))
+			sesid.update(result.(gate.Session))
 		}
 	}
 	return
 }
-func (this *sessionagent) Send(topic string, body []byte) string {
-	if this.app == nil {
+func (sesid *sessionagent) Send(topic string, body []byte) string {
+	if sesid.app == nil {
 		return fmt.Sprintf("Module.App is nil")
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		return fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		return fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 	}
-	_, err := server.Call(nil, "Send", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, topic, body)
+	_, err := server.Call(nil, "Send", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, topic, body)
 	return err
 }
 
-func (this *sessionagent) SendBatch(Sessionids string, topic string, body []byte) (int64, string) {
-	if this.app == nil {
+func (sesid *sessionagent) SendBatch(Sessionids string, topic string, body []byte) (int64, string) {
+	if sesid.app == nil {
 		return 0, fmt.Sprintf("Module.App is nil")
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		return 0, fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		return 0, fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 	}
-	count, err := server.Call(nil, "SendBatch", log.CreateTrace(this.TraceId(), this.SpanId()), Sessionids, topic, body)
+	count, err := server.Call(nil, "SendBatch", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), Sessionids, topic, body)
 	if err != "" {
 		return 0, err
 	}
 	return count.(int64), err
 }
 
-func (this *sessionagent) IsConnect(userId string) (bool, string) {
-	if this.app == nil {
+func (sesid *sessionagent) IsConnect(userId string) (bool, string) {
+	if sesid.app == nil {
 		return false, fmt.Sprintf("Module.App is nil")
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		return false, fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		return false, fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 	}
-	result, err := server.Call(nil, "IsConnect", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, userId)
+	result, err := server.Call(nil, "IsConnect", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, userId)
 	if err != "" {
 		return false, err
 	}
 	return result.(bool), err
 }
 
-func (this *sessionagent) SendNR(topic string, body []byte) string {
-	if this.app == nil {
+func (sesid *sessionagent) SendNR(topic string, body []byte) string {
+	if sesid.app == nil {
 		return fmt.Sprintf("Module.App is nil")
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		return fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		return fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 	}
-	e = server.CallNR("Send", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId, topic, body)
+	e = server.CallNR("Send", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId, topic, body)
 	if e != nil {
 		return e.Error()
 	}
-	//span:=this.ExtractSpan(topic)
+	//span:=sesid.ExtractSpan(topic)
 	//if span!=nil{
 	//	span.LogEventWithPayload("SendToClient",map[string]string{
 	//		"topic":topic,
@@ -481,95 +510,102 @@ func (this *sessionagent) SendNR(topic string, body []byte) string {
 	return ""
 }
 
-func (this *sessionagent) Close() (err string) {
-	if this.app == nil {
+func (sesid *sessionagent) Close() (err string) {
+	if sesid.app == nil {
 		err = fmt.Sprintf("Module.App is nil")
 		return
 	}
-	server, e := this.app.GetServerById(this.session.ServerId)
+	server, e := sesid.app.GetServerByID(sesid.session.ServerId)
 	if e != nil {
-		err = fmt.Sprintf("Service not found id(%s)", this.session.ServerId)
+		err = fmt.Sprintf("Service not found id(%s)", sesid.session.ServerId)
 		return
 	}
-	_, err = server.Call(nil, "Close", log.CreateTrace(this.TraceId(), this.SpanId()), this.session.SessionId)
+	_, err = server.Call(nil, "Close", log.CreateTrace(sesid.TraceId(), sesid.SpanId()), sesid.session.SessionId)
 	return
 }
 
 /**
 每次rpc调用都拷贝一份新的Session进行传输
 */
-func (this *sessionagent) Clone() gate.Session {
-	this.lock.Lock()
+func (sesid *sessionagent) Clone() gate.Session {
+	sesid.lock.Lock()
 	tmp := map[string]string{}
-	for k, v := range this.session.Settings {
+	for k, v := range sesid.session.Settings {
 		tmp[k] = v
 	}
 	agent := &sessionagent{
-		app:      this.app,
-		userdata: this.userdata,
+		app:      sesid.app,
+		userdata: sesid.userdata,
 		lock:     new(sync.RWMutex),
 	}
 	se := &SessionImp{
-		IP:        this.session.IP,
-		Network:   this.session.Network,
-		UserId:    this.session.UserId,
-		SessionId: this.session.SessionId,
-		ServerId:  this.session.ServerId,
-		TraceId:   this.session.TraceId,
-		SpanId:    mqant_tools.GenerateID().String(),
+		IP:        sesid.session.IP,
+		Network:   sesid.session.Network,
+		UserId:    sesid.session.UserId,
+		SessionId: sesid.session.SessionId,
+		ServerId:  sesid.session.ServerId,
+		TraceId:   sesid.session.TraceId,
+		SpanId:    mqanttools.GenerateID().String(),
 		Settings:  tmp,
 	}
 	agent.session = se
-	this.lock.Unlock()
+	sesid.lock.Unlock()
 	return agent
 }
 
-func (this *sessionagent) CreateTrace() {
-	this.session.TraceId = mqant_tools.GenerateID().String()
-	this.session.SpanId = mqant_tools.GenerateID().String()
+func (sesid *sessionagent) CreateTrace() {
+	sesid.session.TraceId = mqanttools.GenerateID().String()
+	sesid.session.SpanId = mqanttools.GenerateID().String()
 }
 
-func (this *sessionagent) TraceId() string {
-	return this.session.TraceId
+func (sesid *sessionagent) TraceID() string {
+	return sesid.session.TraceId
 }
 
-func (this *sessionagent) SpanId() string {
-	return this.session.SpanId
+func (sesid *sessionagent) TraceId() string {
+	return sesid.TraceID()
 }
 
-func (this *sessionagent) ExtractSpan() log.TraceSpan {
+func (sesid *sessionagent) SpanID() string {
+	return sesid.session.SpanId
+}
+
+func (sesid *sessionagent) SpanId() string {
+	return sesid.SpanID()
+}
+
+func (sesid *sessionagent) ExtractSpan() log.TraceSpan {
 	agent := &sessionagent{
-		app:      this.app,
-		userdata: this.userdata,
+		app:      sesid.app,
+		userdata: sesid.userdata,
 		lock:     new(sync.RWMutex),
 	}
 	se := &SessionImp{
-		IP:        this.session.IP,
-		Network:   this.session.Network,
-		UserId:    this.session.UserId,
-		SessionId: this.session.SessionId,
-		ServerId:  this.session.ServerId,
-		TraceId:   this.session.TraceId,
-		SpanId:    mqant_tools.GenerateID().String(),
-		Settings:  this.session.Settings,
+		IP:        sesid.session.IP,
+		Network:   sesid.session.Network,
+		UserId:    sesid.session.UserId,
+		SessionId: sesid.session.SessionId,
+		ServerId:  sesid.session.ServerId,
+		TraceId:   sesid.session.TraceId,
+		SpanId:    mqanttools.GenerateID().String(),
+		Settings:  sesid.session.Settings,
 	}
 	agent.session = se
 	return agent
 }
 
 //是否是访客(未登录) ,默认判断规则为 userId==""代表访客
-func (this *sessionagent) IsGuest() bool {
-	if this.judgeGuest != nil {
-		return this.judgeGuest(this)
+func (sesid *sessionagent) IsGuest() bool {
+	if sesid.judgeGuest != nil {
+		return sesid.judgeGuest(sesid)
 	}
-	if this.GetUserId() == "" {
+	if sesid.GetUserId() == "" {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 //设置自动的访客判断函数,记得一定要在gate模块设置这个值,以免部分模块因为未设置这个判断函数造成错误的判断
-func (this *sessionagent) JudgeGuest(judgeGuest func(session gate.Session) bool) {
-	this.judgeGuest = judgeGuest
+func (sesid *sessionagent) JudgeGuest(judgeGuest func(session gate.Session) bool) {
+	sesid.judgeGuest = judgeGuest
 }

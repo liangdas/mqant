@@ -11,12 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package network 网络代理器
 package network
 
 import (
 	"net"
 )
 
+// Conn 网络代理接口
 type Conn interface {
 	net.Conn
 	Destroy()

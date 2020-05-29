@@ -11,10 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package mqant_tools
+
+// Package mqanttools 随机数生成
+package mqanttools
 
 import "math/rand"
 
+// RandInt64 生成一个min->max的随机数
 func RandInt64(min, max int64) int64 {
 	if min >= max {
 		return max

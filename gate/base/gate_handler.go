@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package basegate handler
 package basegate
 
 import (
@@ -32,6 +34,7 @@ type handler struct {
 	agentNum int
 }
 
+// NewGateHandler NewGateHandler
 func NewGateHandler(gate gate.Gate) *handler {
 	handler := &handler{
 		gate: gate,
@@ -49,7 +52,7 @@ func (h *handler) Connect(a gate.Agent) {
 		}
 	}()
 	if a.GetSession() != nil {
-		h.sessions.Store(a.GetSession().GetSessionId(), a)
+		h.sessions.Store(a.GetSession().GetSessionID(), a)
 		h.agentNum++
 	}
 	if h.gate.GetSessionLearner() != nil {
@@ -68,7 +71,7 @@ func (h *handler) DisConnect(a gate.Agent) {
 			log.Error("handler DisConnect panic(%v)\n info:%s", err, string(buff))
 		}
 		if a.GetSession() != nil {
-			h.sessions.Delete(a.GetSession().GetSessionId())
+			h.sessions.Delete(a.GetSession().GetSessionID())
 			h.agentNum--
 		}
 	}()
@@ -125,9 +128,9 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 		err = "No Sesssion found"
 		return
 	}
-	agent.(gate.Agent).GetSession().SetUserId(Userid)
+	agent.(gate.Agent).GetSession().SetUserID(Userid)
 
-	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserID() != "" {
 		//可以持久化
 		data, err := h.gate.GetStorageHandler().Query(Userid)
 		if err == nil && data != nil {
@@ -169,7 +172,7 @@ func (h *handler) IsConnect(span log.TraceSpan, Sessionid string, Userid string)
 	isconnect := false
 	found := false
 	h.sessions.Range(func(key, agent interface{}) bool {
-		if agent.(gate.Agent).GetSession().GetUserId() == Userid {
+		if agent.(gate.Agent).GetSession().GetUserID() == Userid {
 			isconnect = !agent.(gate.Agent).IsClosed()
 			found = true
 			return false
@@ -178,9 +181,8 @@ func (h *handler) IsConnect(span log.TraceSpan, Sessionid string, Userid string)
 	})
 	if !found {
 		return false, fmt.Sprintf("The gateway did not find the corresponding userId 【%s】", Userid)
-	} else {
-		return isconnect, ""
 	}
+	return isconnect, ""
 }
 
 /**
@@ -192,7 +194,7 @@ func (h *handler) UnBind(span log.TraceSpan, Sessionid string) (result gate.Sess
 		err = "No Sesssion found"
 		return
 	}
-	agent.(gate.Agent).GetSession().SetUserId("")
+	agent.(gate.Agent).GetSession().SetUserID("")
 	result = agent.(gate.Agent).GetSession()
 	return
 }
@@ -211,7 +213,7 @@ func (h *handler) Push(span log.TraceSpan, Sessionid string, Settings map[string
 		_ = agent.(gate.Agent).GetSession().SetLocalKV(key, value)
 	}
 	result = agent.(gate.Agent).GetSession()
-	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserID() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Warning("gate session storage failure : %s", err.Error())
@@ -233,7 +235,7 @@ func (h *handler) Set(span log.TraceSpan, Sessionid string, key string, value st
 	_ = agent.(gate.Agent).GetSession().SetLocalKV(key, value)
 	result = agent.(gate.Agent).GetSession()
 
-	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserID() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Error("gate session storage failure : %s", err.Error())
@@ -255,7 +257,7 @@ func (h *handler) Remove(span log.TraceSpan, Sessionid string, key string) (resu
 	_ = agent.(gate.Agent).GetSession().RemoveLocalKV(key)
 	result = agent.(gate.Agent).GetSession()
 
-	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserId() != "" {
+	if h.gate.GetStorageHandler() != nil && agent.(gate.Agent).GetSession().GetUserID() != "" {
 		err := h.gate.GetStorageHandler().Storage(agent.(gate.Agent).GetSession())
 		if err != nil {
 			log.Error("gate session storage failure :%s", err.Error())

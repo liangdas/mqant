@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package gate 长连接网关定义
 package gate
 
 import (
@@ -19,13 +21,16 @@ import (
 	"time"
 )
 
-var RPC_PARAM_SESSION_TYPE = "SESSION"
-var RPC_PARAM_ProtocolMarshal_TYPE = "ProtocolMarshal"
+// RPCParamSessionType gate.session 类型
+var RPCParamSessionType = "SESSION"
+
+// RPCParamProtocolMarshalType ProtocolMarshal类型
+var RPCParamProtocolMarshalType = "ProtocolMarshal"
+
+// JudgeGuest 判断是否为游客
 var JudgeGuest func(session Session) bool
 
-/**
-net代理服务 处理器
-*/
+// GateHandler net代理服务处理器
 type GateHandler interface {
 	GetAgent(Sessionid string) (Agent, error)
 	GetAgentNum() int
@@ -44,24 +49,38 @@ type GateHandler interface {
 	OnDestroy()                                                                  //退出事件,主动关闭所有的连接
 }
 
-//不是线程安全的
+//Session session代表一个客户端连接,不是线程安全的
 type Session interface {
 	GetIP() string
 	GetTopic() string
 	GetNetwork() string
+	// Deprecated: 因为命名规范问题函数将废弃,请用GetUserID代替
 	GetUserId() string
+	GetUserID() string
 	GetUserIdInt64() int64
+	// Deprecated: 因为命名规范问题函数将废弃,请用GetUserIDInt64代替
+	GetUserIDInt64() int64
+	// Deprecated: 因为命名规范问题函数将废弃,请用GetSessionID代替
 	GetSessionId() string
+	GetSessionID() string
+	// Deprecated: 因为命名规范问题函数将废弃,请用GetServerID代替
 	GetServerId() string
+	GetServerID() string
 	GetSettings() map[string]string
 	//网关本地的额外数据,不会再rpc中传递
 	LocalUserData() interface{}
 	SetIP(ip string)
 	SetTopic(topic string)
 	SetNetwork(network string)
+	// Deprecated: 因为命名规范问题函数将废弃,请用SetUserID代替
 	SetUserId(userid string)
+	SetUserID(userid string)
 	SetSessionId(sessionid string)
+	// Deprecated: 因为命名规范问题函数将废弃,请用SetSessionID代替
+	SetSessionID(sessionid string)
+	// Deprecated: 因为命名规范问题函数将废弃,请用SetServerId代替
 	SetServerId(serverid string)
+	SetServerID(serverid string)
 	SetSettings(settings map[string]string)
 	SetLocalKV(key, value string) error
 	RemoveLocalKV(key string) error
@@ -69,7 +88,7 @@ type Session interface {
 	SetLocalUserData(data interface{}) error
 	Serializable() ([]byte, error)
 	Update() (err string)
-	Bind(UserId string) (err string)
+	Bind(UserID string) (err string)
 	UnBind() (err string)
 	Push() (err string)
 	Set(key string, value string) (err string)
@@ -90,19 +109,20 @@ type Session interface {
 	Clone() Session
 
 	CreateTrace()
-
+	// Deprecated: 因为命名规范问题函数将废弃,请用TraceID代替
 	TraceId() string
+	TraceID() string
 
 	// Span is an ID that probabilistically uniquely identifies this
 	// span.
+	// Deprecated: 因为命名规范问题函数将废弃,请用SpanID代替
 	SpanId() string
+	SpanID() string
 
 	ExtractSpan() log.TraceSpan
 }
 
-/**
-Session信息持久化
-*/
+// StorageHandler Session信息持久化
 type StorageHandler interface {
 	/**
 	存储用户的Session信息
@@ -125,6 +145,7 @@ type StorageHandler interface {
 	Heartbeat(session Session)
 }
 
+// RouteHandler 路由器
 type RouteHandler interface {
 	/**
 	是否需要对本次客户端请求转发规则进行hook
@@ -132,21 +153,22 @@ type RouteHandler interface {
 	OnRoute(session Session, topic string, msg []byte) (bool, interface{}, error)
 }
 
-/**
-给客户端下发消息
-*/
+// SendMessageHook 给客户端下发消息拦截器
 type SendMessageHook func(session Session, topic string, msg []byte) ([]byte, error)
 
+// AgentLearner 连接代理
 type AgentLearner interface {
 	Connect(a Agent)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Agent) //当连接关闭	或者客户端主动发送MQTT DisConnect命令
 }
 
+// SessionLearner 客户端代理
 type SessionLearner interface {
 	Connect(a Session)    //当连接建立  并且MQTT协议握手成功
 	DisConnect(a Session) //当连接关闭	或者客户端主动发送MQTT DisConnect命令
 }
 
+// Agent 客户端代理定义
 type Agent interface {
 	OnInit(gate Gate, conn network.Conn) error
 	WriteMsg(topic string, body []byte) error
@@ -161,6 +183,7 @@ type Agent interface {
 	GetSession() Session
 }
 
+// Gate 网关代理定义
 type Gate interface {
 	Options() Options
 	GetGateHandler() GateHandler

@@ -11,8 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package network 网络代理
 package network
 
+// Agent 代理
 type Agent interface {
 	Run() error
 	OnClose() error

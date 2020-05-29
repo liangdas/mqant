@@ -6,6 +6,7 @@ import (
 	"github.com/liangdas/mqant/registry"
 )
 
+// Options Options
 type Options struct {
 	Watcher  Watcher
 	Registry registry.Registry
@@ -16,6 +17,7 @@ type Options struct {
 	Context context.Context
 }
 
+// SelectOptions SelectOptions
 type SelectOptions struct {
 	Filters  []Filter
 	Strategy Strategy
@@ -26,6 +28,7 @@ type SelectOptions struct {
 	Context context.Context
 }
 
+// Watcher Watcher
 type Watcher func(node *registry.Node)
 
 // Option used to initialise the selector
@@ -48,7 +51,7 @@ func SetStrategy(fn Strategy) Option {
 	}
 }
 
-// SetStrategy sets the default strategy for the selector
+// SetWatcher sets the default strategy for the selector
 func SetWatcher(fn Watcher) Option {
 	return func(o *Options) {
 		o.Watcher = fn
@@ -63,7 +66,7 @@ func WithFilter(fn ...Filter) SelectOption {
 	}
 }
 
-// Strategy sets the selector strategy
+// WithStrategy sets the selector strategy
 func WithStrategy(fn Strategy) SelectOption {
 	return func(o *SelectOptions) {
 		o.Strategy = fn

@@ -11,11 +11,13 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package log 日志结构定义
 package log
 
 import "github.com/liangdas/mqant/utils"
 
-// A SpanID refers to a single span.
+// TraceSpan A SpanID refers to a single span.
 type TraceSpan interface {
 
 	// Trace is the root ID of the tree that contains all of the spans
@@ -29,22 +31,38 @@ type TraceSpan interface {
 	ExtractSpan() TraceSpan
 }
 
+// TraceSpanImp TraceSpanImp
 type TraceSpanImp struct {
 	Trace string `json:"Trace"`
 	Span  string `json:"Span"`
 }
 
-func (this *TraceSpanImp) TraceId() string {
-	return this.Trace
+// TraceId TraceId
+// Deprecated: 因为命名规范问题函数将废弃,请用TraceID代替
+func (t *TraceSpanImp) TraceId() string {
+	return t.Trace
 }
 
-func (this *TraceSpanImp) SpanId() string {
-	return this.Span
+// TraceID TraceID
+func (t *TraceSpanImp) TraceID() string {
+	return t.Trace
 }
 
-func (this *TraceSpanImp) ExtractSpan() TraceSpan {
+// SpanId SpanId
+// Deprecated: 因为命名规范问题函数将废弃,请用SpanID代替
+func (t *TraceSpanImp) SpanId() string {
+	return t.Span
+}
+
+// SpanID SpanID
+func (t *TraceSpanImp) SpanID() string {
+	return t.Span
+}
+
+// ExtractSpan ExtractSpan
+func (t *TraceSpanImp) ExtractSpan() TraceSpan {
 	return &TraceSpanImp{
-		Trace: this.Trace,
-		Span:  mqant_tools.GenerateID().String(),
+		Trace: t.Trace,
+		Span:  mqanttools.GenerateID().String(),
 	}
 }

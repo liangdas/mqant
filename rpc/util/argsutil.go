@@ -55,25 +55,25 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 	case string:
 		return STRING, []byte(v2), nil
 	case bool:
-		return BOOL, mqant_tools.BoolToBytes(v2), nil
+		return BOOL, mqanttools.BoolToBytes(v2), nil
 	case int32:
-		return INT, mqant_tools.Int32ToBytes(v2), nil
+		return INT, mqanttools.Int32ToBytes(v2), nil
 	case int64:
-		return LONG, mqant_tools.Int64ToBytes(v2), nil
+		return LONG, mqanttools.Int64ToBytes(v2), nil
 	case float32:
-		return FLOAT, mqant_tools.Float32ToBytes(v2), nil
+		return FLOAT, mqanttools.Float32ToBytes(v2), nil
 	case float64:
-		return DOUBLE, mqant_tools.Float64ToBytes(v2), nil
+		return DOUBLE, mqanttools.Float64ToBytes(v2), nil
 	case []byte:
 		return BYTES, v2, nil
 	case map[string]interface{}:
-		bytes, err := mqant_tools.MapToBytes(v2)
+		bytes, err := mqanttools.MapToBytes(v2)
 		if err != nil {
 			return MAP, nil, err
 		}
 		return MAP, bytes, nil
 	case map[string]string:
-		bytes, err := mqant_tools.MapToBytesString(v2)
+		bytes, err := mqanttools.MapToBytesString(v2)
 		if err != nil {
 			return MAPSTR, nil, err
 		}
@@ -150,25 +150,25 @@ func Bytes2Args(app module.App, argsType string, args []byte) (interface{}, erro
 	case STRING:
 		return string(args), nil
 	case BOOL:
-		return mqant_tools.BytesToBool(args), nil
+		return mqanttools.BytesToBool(args), nil
 	case INT:
-		return mqant_tools.BytesToInt32(args), nil
+		return mqanttools.BytesToInt32(args), nil
 	case LONG:
-		return mqant_tools.BytesToInt64(args), nil
+		return mqanttools.BytesToInt64(args), nil
 	case FLOAT:
-		return mqant_tools.BytesToFloat32(args), nil
+		return mqanttools.BytesToFloat32(args), nil
 	case DOUBLE:
-		return mqant_tools.BytesToFloat64(args), nil
+		return mqanttools.BytesToFloat64(args), nil
 	case BYTES:
 		return args, nil
 	case MAP:
-		mps, errs := mqant_tools.BytesToMap(args)
+		mps, errs := mqanttools.BytesToMap(args)
 		if errs != nil {
 			return nil, errs
 		}
 		return mps, nil
 	case MAPSTR:
-		mps, errs := mqant_tools.BytesToMapString(args)
+		mps, errs := mqanttools.BytesToMapString(args)
 		if errs != nil {
 			return nil, errs
 		}

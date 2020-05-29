@@ -11,6 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package log beego日志
 package log
 
 import (
@@ -19,6 +21,7 @@ import (
 	"github.com/liangdas/mqant/log/beego"
 )
 
+//NewBeegoLogger beego
 func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) *logs.BeeLogger {
 	log := logs.NewLogger()
 	log.ProcessID = ProcessID
