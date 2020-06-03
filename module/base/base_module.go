@@ -47,13 +47,19 @@ type BaseModule struct {
 // Deprecated: 因为命名规范问题函数将废弃,请用GetServerID代替
 func (m *BaseModule) GetServerId() string {
 	//很关键,需要与配置文件中的Module配置对应
-	return m.service.Server().ID()
+	if m.service!=nil&&m.service.Server()!=nil{
+		return m.service.Server().ID()
+	}
+	return "no server"
 }
 
 // GetServerID 节点ID
 func (m *BaseModule) GetServerID() string {
 	//很关键,需要与配置文件中的Module配置对应
-	return m.service.Server().ID()
+	if m.service!=nil&&m.service.Server()!=nil{
+		return m.service.Server().ID()
+	}
+	return "no server"
 }
 
 // GetApp module.App
@@ -122,7 +128,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	server := server.NewServer(opt...)
 	err := server.OnInit(subclass, app, settings)
 	if err != nil {
-		log.Warning("server OnInit fail id(%s) error(%s)", m.GetServerId(), err)
+		log.Warning("server OnInit fail id(%s) error(%s)", m.GetServerID(), err)
 	}
 	hostname, _ := os.Hostname()
 	server.Options().Metadata["hostname"] = hostname
@@ -140,7 +146,7 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	go func() {
 		err := m.service.Run()
 		if err != nil {
-			log.Warning("service close fail id(%s) error(%s)", m.GetServerId(), err)
+			log.Warning("service run fail id(%s) error(%s)", m.GetServerID(), err)
 		}
 		close(m.serviceStopeds)
 	}()
