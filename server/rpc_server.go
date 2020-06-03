@@ -231,7 +231,6 @@ func (s *rpcServer) Start() error {
 }
 
 func (s *rpcServer) Stop() error {
-	s.ServiceDeregister()
 	if s.server != nil {
 		log.Info("RPCServer closeing id(%s)", s.id)
 		err := s.server.Done()
