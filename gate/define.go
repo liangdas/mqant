@@ -75,8 +75,8 @@ type Session interface {
 	// Deprecated: 因为命名规范问题函数将废弃,请用SetUserID代替
 	SetUserId(userid string)
 	SetUserID(userid string)
-	SetSessionId(sessionid string)
 	// Deprecated: 因为命名规范问题函数将废弃,请用SetSessionID代替
+	SetSessionId(sessionid string)
 	SetSessionID(sessionid string)
 	// Deprecated: 因为命名规范问题函数将废弃,请用SetServerId代替
 	SetServerId(serverid string)
