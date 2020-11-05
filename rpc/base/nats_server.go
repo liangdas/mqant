@@ -32,7 +32,7 @@ type NatsServer struct {
 	app       module.App
 	server    *RPCServer
 	done      chan bool
-	stopeds chan bool
+	stopeds   chan bool
 	isClose   bool
 }
 
@@ -80,6 +80,7 @@ func safeClose(ch chan bool) {
 
 	close(ch) // panic if ch is closed
 }
+
 /**
 注销消息队列
 */

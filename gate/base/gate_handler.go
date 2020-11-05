@@ -29,7 +29,7 @@ import (
 type handler struct {
 	//gate.AgentLearner
 	//gate.GateHandler
-	lock       *sync.RWMutex
+	lock     *sync.RWMutex
 	gate     gate.Gate
 	sessions sync.Map //连接列表
 	agentNum int
@@ -97,9 +97,9 @@ func (h *handler) OnDestroy() {
 }
 
 func (h *handler) GetAgentNum() int {
-	num:=0
+	num := 0
 	h.lock.RLock()
-	num=h.agentNum
+	num = h.agentNum
 	h.lock.RUnlock()
 	return num
 }

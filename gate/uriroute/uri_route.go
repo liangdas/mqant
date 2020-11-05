@@ -92,7 +92,7 @@ func (u *URIRoute) OnRoute(session gate.Session, topic string, msg []byte) (bool
 	session.SetTopic(topic)
 	var serverSession module.ServerSession
 	if u.Selector != nil {
-		ss, err := u.Selector(session,topic, uu)
+		ss, err := u.Selector(session, topic, uu)
 		if err != nil {
 			return needreturn, nil, err
 		}
