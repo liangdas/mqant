@@ -29,7 +29,7 @@ import (
 type handler struct {
 	//gate.AgentLearner
 	//gate.GateHandler
-	lock     *sync.RWMutex
+	lock     sync.RWMutex
 	gate     gate.Gate
 	sessions sync.Map //连接列表
 	agentNum int
