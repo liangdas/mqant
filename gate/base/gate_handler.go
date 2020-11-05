@@ -29,6 +29,7 @@ import (
 type handler struct {
 	//gate.AgentLearner
 	//gate.GateHandler
+	lock       *sync.RWMutex
 	gate     gate.Gate
 	sessions sync.Map //连接列表
 	agentNum int
@@ -53,7 +54,9 @@ func (h *handler) Connect(a gate.Agent) {
 	}()
 	if a.GetSession() != nil {
 		h.sessions.Store(a.GetSession().GetSessionID(), a)
+		h.lock.Lock()
 		h.agentNum++
+		h.lock.Unlock()
 	}
 	if h.gate.GetSessionLearner() != nil {
 		go func() {
@@ -72,7 +75,9 @@ func (h *handler) DisConnect(a gate.Agent) {
 		}
 		if a.GetSession() != nil {
 			h.sessions.Delete(a.GetSession().GetSessionID())
+			h.lock.Lock()
 			h.agentNum--
+			h.lock.Unlock()
 		}
 	}()
 	if h.gate.GetSessionLearner() != nil {
@@ -92,7 +97,11 @@ func (h *handler) OnDestroy() {
 }
 
 func (h *handler) GetAgentNum() int {
-	return h.agentNum
+	num:=0
+	h.lock.RLock()
+	num=h.agentNum
+	h.lock.RUnlock()
+	return num
 }
 
 /**
