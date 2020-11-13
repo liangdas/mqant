@@ -24,6 +24,8 @@ import (
 // FunctionInfo handler接口信息
 type FunctionInfo struct {
 	Function  reflect.Value
+	FuncType  reflect.Type
+	InType    []reflect.Type
 	Goroutine bool
 }
 

@@ -84,11 +84,19 @@ func (s *RPCServer) Register(id string, f interface{}) {
 	if _, ok := s.functions[id]; ok {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
-
-	s.functions[id] = &mqrpc.FunctionInfo{
+	finfo:=&mqrpc.FunctionInfo{
 		Function:  reflect.ValueOf(f),
+		FuncType:  reflect.ValueOf(f).Type(),
 		Goroutine: false,
 	}
+
+	finfo.InType=[]reflect.Type{}
+	for i:=0;i<finfo.FuncType.NumIn();i++  {
+		rv := finfo.FuncType.In(i)
+		finfo.InType=append(finfo.InType,rv)
+	}
+	s.functions[id] = finfo
+
 }
 
 // you must call the function before calling Open and Go
@@ -98,10 +106,18 @@ func (s *RPCServer) RegisterGO(id string, f interface{}) {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
 
-	s.functions[id] = &mqrpc.FunctionInfo{
+	finfo:=&mqrpc.FunctionInfo{
 		Function:  reflect.ValueOf(f),
+		FuncType:  reflect.ValueOf(f).Type(),
 		Goroutine: true,
 	}
+
+	finfo.InType=[]reflect.Type{}
+	for i:=0;i<finfo.FuncType.NumIn();i++  {
+		rv := finfo.FuncType.In(i)
+		finfo.InType=append(finfo.InType,rv)
+	}
+	s.functions[id] = finfo
 }
 
 func (s *RPCServer) Done() (err error) {
@@ -235,9 +251,11 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		}
 	}
 	f := functionInfo.Function
+	fType := functionInfo.FuncType
+	fInType := functionInfo.InType
 	params := callInfo.RPCInfo.Args
 	ArgsType := callInfo.RPCInfo.ArgsType
-	if len(params) != f.Type().NumIn() {
+	if len(params) != fType.NumIn() {
 		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
 		_errorCallback(callInfo.RPCInfo.Cid, fmt.Sprintf("The number of params %v is not adapted.%v", params, f.String()))
 		return
@@ -285,7 +303,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 		if len(ArgsType) > 0 {
 			in = make([]reflect.Value, len(params))
 			for k, v := range ArgsType {
-				rv := f.Type().In(k)
+				rv := fInType[k]
 				var elemp reflect.Value
 				if rv.Kind() == reflect.Ptr {
 					//如果是指针类型就得取到指针所代表的具体类型
@@ -301,7 +319,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						return
 					}
 					if pb == nil { //多选语句switch
-						in[k] = reflect.Zero(f.Type().In(k))
+						in[k] = reflect.Zero(rv)
 					}
 					if rv.Kind() == reflect.Ptr {
 						//接收指针变量的参数
@@ -317,7 +335,7 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 						return
 					}
 					if pb == nil { //多选语句switch
-						in[k] = reflect.Zero(f.Type().In(k))
+						in[k] = reflect.Zero(rv)
 					}
 					if rv.Kind() == reflect.Ptr {
 						//接收指针变量的参数
@@ -335,16 +353,16 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 					}
 					switch v2 := ty.(type) { //多选语句switch
 					case nil:
-						in[k] = reflect.Zero(f.Type().In(k))
+						in[k] = reflect.Zero(rv)
 					case []uint8:
-						if reflect.TypeOf(ty).AssignableTo(f.Type().In(k)) {
+						if reflect.TypeOf(ty).AssignableTo(rv) {
 							//如果ty "继承" 于接受参数类型
 							in[k] = reflect.ValueOf(ty)
 						} else {
-							elemp := reflect.New(f.Type().In(k))
+							elemp := reflect.New(rv)
 							err := json.Unmarshal(v2, elemp.Interface())
 							if err != nil {
-								log.Error("%v []uint8--> %v error with='%v'", callInfo.RPCInfo.Fn, f.Type().In(k), err)
+								log.Error("%v []uint8--> %v error with='%v'", callInfo.RPCInfo.Fn, rv, err)
 								in[k] = reflect.ValueOf(ty)
 							} else {
 								in[k] = elemp.Elem()
