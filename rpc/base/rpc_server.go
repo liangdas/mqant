@@ -84,16 +84,16 @@ func (s *RPCServer) Register(id string, f interface{}) {
 	if _, ok := s.functions[id]; ok {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
-	finfo:=&mqrpc.FunctionInfo{
+	finfo := &mqrpc.FunctionInfo{
 		Function:  reflect.ValueOf(f),
 		FuncType:  reflect.ValueOf(f).Type(),
 		Goroutine: false,
 	}
 
-	finfo.InType=[]reflect.Type{}
-	for i:=0;i<finfo.FuncType.NumIn();i++  {
+	finfo.InType = []reflect.Type{}
+	for i := 0; i < finfo.FuncType.NumIn(); i++ {
 		rv := finfo.FuncType.In(i)
-		finfo.InType=append(finfo.InType,rv)
+		finfo.InType = append(finfo.InType, rv)
 	}
 	s.functions[id] = finfo
 
@@ -106,16 +106,16 @@ func (s *RPCServer) RegisterGO(id string, f interface{}) {
 		panic(fmt.Sprintf("function id %v: already registered", id))
 	}
 
-	finfo:=&mqrpc.FunctionInfo{
+	finfo := &mqrpc.FunctionInfo{
 		Function:  reflect.ValueOf(f),
 		FuncType:  reflect.ValueOf(f).Type(),
 		Goroutine: true,
 	}
 
-	finfo.InType=[]reflect.Type{}
-	for i:=0;i<finfo.FuncType.NumIn();i++  {
+	finfo.InType = []reflect.Type{}
+	for i := 0; i < finfo.FuncType.NumIn(); i++ {
 		rv := finfo.FuncType.In(i)
-		finfo.InType=append(finfo.InType,rv)
+		finfo.InType = append(finfo.InType, rv)
 	}
 	s.functions[id] = finfo
 }

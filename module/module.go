@@ -49,6 +49,7 @@ type ServerSession interface {
 
 //App mqant应用定义
 type App interface {
+	UpdateOptions(opts ...Option) error
 	Run(mods ...Module) error
 	SetMapRoute(fn func(app App, route string) string) error
 	Configure(settings conf.Config) error

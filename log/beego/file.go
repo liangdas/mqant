@@ -231,7 +231,7 @@ func (w *fileLogWriter) initFd() error {
 	if w.Daily {
 		go w.dailyRotate(w.dailyOpenTime)
 	}
-	if fInfo.Size() > 0 && w.MaxLines>0{
+	if fInfo.Size() > 0 && w.MaxLines > 0 {
 		//TODO 大文件读取行数非常耗时，建议不要开启
 		count, err := w.lines()
 		if err != nil {

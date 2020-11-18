@@ -253,6 +253,13 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	return nil
 }
 
+func (app *DefaultApp) UpdateOptions(opts ...module.Option) error {
+	for _, o := range opts {
+		o(&app.opts)
+	}
+	return nil
+}
+
 // SetMapRoute 设置路由器
 func (app *DefaultApp) SetMapRoute(fn func(app module.App, route string) string) error {
 	app.mapRoute = fn
