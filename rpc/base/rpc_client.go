@@ -58,7 +58,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
 		Reply:    *proto.Bool(true),
-		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().RPC.RPCExpired)).UnixNano()) / 1000000),
+		Expired:  *proto.Int64((time.Now().UTC().Add(c.app.Options().RPCExpired).UnixNano()) / 1000000),
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
@@ -84,7 +84,7 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		return nil, err.Error()
 	}
 	if ctx == nil {
-		ctx, _ = context.WithTimeout(context.TODO(), time.Second*time.Duration(c.app.GetSettings().RPC.RPCExpired))
+		ctx, _ = context.WithTimeout(context.TODO(), c.app.Options().RPCExpired)
 	}
 	select {
 	case resultInfo, ok := <-callback:
@@ -120,7 +120,7 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
 		Reply:    *proto.Bool(false),
-		Expired:  *proto.Int64((time.Now().UTC().Add(time.Second * time.Duration(c.app.GetSettings().RPC.RPCExpired)).UnixNano()) / 1000000),
+		Expired:  *proto.Int64((time.Now().UTC().Add(c.app.Options().RPCExpired).UnixNano()) / 1000000),
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,

@@ -92,10 +92,10 @@ type Options struct {
 }
 
 // NewOptions 创建配置
-func NewOptions(opts ...Option) Options {
+func NewOptions(app module.App, opts ...Option) Options {
 	opt := Options{
 		Route:   DefaultRoute,
-		TimeOut: 3 * time.Second,
+		TimeOut: app.Options().RPCExpired,
 	}
 
 	for _, o := range opts {

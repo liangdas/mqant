@@ -70,7 +70,7 @@ func (a *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // NewHandler 创建网关
 func NewHandler(app module.App, opts ...Option) http.Handler {
-	options := NewOptions(opts...)
+	options := NewOptions(app, opts...)
 	return &APIHandler{
 		Opts: options,
 		App:  app,

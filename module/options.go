@@ -31,6 +31,8 @@ type Options struct {
 	RegisterTTL      time.Duration
 	ClientRPChandler ClientRPCHandler
 	ServerRPCHandler ServerRPCHandler
+	RPCExpired       time.Duration
+	RPCMaxCoroutine  int
 }
 
 // ClientRPCHandler 调用方RPC监控
@@ -150,5 +152,19 @@ func SetServerRPCHandler(t ServerRPCHandler) Option {
 func Parse(t bool) Option {
 	return func(o *Options) {
 		o.Parse = t
+	}
+}
+
+//RPC超时时间
+func RPCExpired(t time.Duration) Option {
+	return func(o *Options) {
+		o.RPCExpired = t
+	}
+}
+
+//单个节点RPC同时并发协程数
+func RPCMaxCoroutine(t int) Option {
+	return func(o *Options) {
+		o.RPCMaxCoroutine = t
 	}
 }

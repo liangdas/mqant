@@ -64,6 +64,8 @@ func newOptions(opts ...module.Option) module.Options {
 		RegisterInterval: time.Second * time.Duration(10),
 		RegisterTTL:      time.Second * time.Duration(20),
 		KillWaitTTL:      time.Second * time.Duration(60),
+		RPCExpired:       time.Second * time.Duration(10),
+		RPCMaxCoroutine:  0, //不限制
 		Debug:            true,
 		Parse:            true,
 	}
