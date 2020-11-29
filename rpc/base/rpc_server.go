@@ -133,7 +133,7 @@ func (s *RPCServer) Done() (err error) {
 	return
 }
 
-func (s *RPCServer) Call(callInfo mqrpc.CallInfo) error {
+func (s *RPCServer) Call(callInfo *mqrpc.CallInfo) error {
 	s.runFunc(callInfo)
 	//if callInfo.RPCInfo.Expired < (time.Now().UnixNano() / 1000000) {
 	//	//请求超时了,无需再处理
@@ -154,35 +154,7 @@ func (s *RPCServer) Call(callInfo mqrpc.CallInfo) error {
 	return nil
 }
 
-/**
-接收请求信息
-*/
-func (s *RPCServer) on_call_handle(calls <-chan mqrpc.CallInfo, done chan error) {
-	for {
-		select {
-		case callInfo, ok := <-calls:
-			if !ok {
-				goto ForEnd
-			} else {
-				if callInfo.RPCInfo.Expired < (time.Now().UnixNano() / 1000000) {
-					//请求超时了,无需再处理
-					if s.listener != nil {
-						s.listener.OnTimeOut(callInfo.RPCInfo.Fn, callInfo.RPCInfo.Expired)
-					} else {
-						log.Warning("timeout: This is Call", s.module.GetType(), callInfo.RPCInfo.Fn, callInfo.RPCInfo.Expired, time.Now().UnixNano()/1000000)
-					}
-				} else {
-					s.runFunc(callInfo)
-				}
-			}
-		case <-done:
-			goto ForEnd
-		}
-	}
-ForEnd:
-}
-
-func (s *RPCServer) doCallback(callInfo mqrpc.CallInfo) {
+func (s *RPCServer) doCallback(callInfo *mqrpc.CallInfo) {
 	if callInfo.RPCInfo.Reply {
 		//需要回复的才回复
 		err := callInfo.Agent.(mqrpc.MQServer).Callback(callInfo)
@@ -210,20 +182,194 @@ func (s *RPCServer) doCallback(callInfo mqrpc.CallInfo) {
 	}
 }
 
-//---------------------------------if _func is not a function or para num and type not match,it will cause panic
-func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
-	start := time.Now()
-	_errorCallback := func(Cid string, Error string) {
-		//异常日志都应该打印
-		//log.TError(span, "rpc Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RPCInfo.Fn, time.Since(start), Error)
-		resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
-		callInfo.Result = *resultInfo
-		callInfo.ExecTime = time.Since(start).Nanoseconds()
-		s.doCallback(callInfo)
-		if s.listener != nil {
-			s.listener.OnError(callInfo.RPCInfo.Fn, &callInfo, fmt.Errorf(Error))
+func (s *RPCServer) _errorCallback(start time.Time, callInfo *mqrpc.CallInfo, Cid string, Error string) {
+	//异常日志都应该打印
+	//log.TError(span, "rpc Exec ModuleType = %v Func = %v Elapsed = %v ERROR:\n%v", s.module.GetType(), callInfo.RPCInfo.Fn, time.Since(start), Error)
+	resultInfo := rpcpb.NewResultInfo(Cid, Error, argsutil.NULL, nil)
+	callInfo.Result = resultInfo
+	callInfo.ExecTime = time.Since(start).Nanoseconds()
+	s.doCallback(callInfo)
+	if s.listener != nil {
+		s.listener.OnError(callInfo.RPCInfo.Fn, callInfo, fmt.Errorf(Error))
+	}
+}
+
+func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, callInfo *mqrpc.CallInfo) {
+	f := functionInfo.Function
+	fType := functionInfo.FuncType
+	fInType := functionInfo.InType
+	params := callInfo.RPCInfo.Args
+	ArgsType := callInfo.RPCInfo.ArgsType
+	if len(params) != fType.NumIn() {
+		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
+		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, fmt.Sprintf("The number of params %v is not adapted.%v", params, f.String()))
+		return
+	}
+
+	s.wg.Add(1)
+	s.executing++
+	defer func() {
+		s.wg.Add(-1)
+		s.executing--
+		if s.control != nil {
+			s.control.Finish()
+		}
+		if r := recover(); r != nil {
+			var rn = ""
+			switch r.(type) {
+
+			case string:
+				rn = r.(string)
+			case error:
+				rn = r.(error).Error()
+			}
+			buf := make([]byte, 1024)
+			l := runtime.Stack(buf, false)
+			errstr := string(buf[:l])
+			allError := fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s", s.module.GetType(), callInfo.RPCInfo.Fn, rn, errstr)
+			log.Error(allError)
+			s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, allError)
+		}
+	}()
+
+	//t:=RandInt64(2,3)
+	//time.Sleep(time.Second*time.Duration(t))
+	// f 为函数地址
+	var in []reflect.Value
+
+	if len(ArgsType) > 0 {
+		in = make([]reflect.Value, len(params))
+		for k, v := range ArgsType {
+			rv := fInType[k]
+			var elemp reflect.Value
+			if rv.Kind() == reflect.Ptr {
+				//如果是指针类型就得取到指针所代表的具体类型
+				elemp = reflect.New(rv.Elem())
+			} else {
+				elemp = reflect.New(rv)
+			}
+
+			if pb, ok := elemp.Interface().(mqrpc.Marshaler); ok {
+				err := pb.Unmarshal(params[k])
+				if err != nil {
+					s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())
+					return
+				}
+				if pb == nil { //多选语句switch
+					in[k] = reflect.Zero(rv)
+				}
+				if rv.Kind() == reflect.Ptr {
+					//接收指针变量的参数
+					in[k] = reflect.ValueOf(elemp.Interface())
+				} else {
+					//接收值变量
+					in[k] = elemp.Elem()
+				}
+			} else if pb, ok := elemp.Interface().(proto.Message); ok {
+				err := proto.Unmarshal(params[k], pb)
+				if err != nil {
+					s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())
+					return
+				}
+				if pb == nil { //多选语句switch
+					in[k] = reflect.Zero(rv)
+				}
+				if rv.Kind() == reflect.Ptr {
+					//接收指针变量的参数
+					in[k] = reflect.ValueOf(elemp.Interface())
+				} else {
+					//接收值变量
+					in[k] = elemp.Elem()
+				}
+			} else {
+				//不是Marshaler 才尝试用 argsutil 解析
+				ty, err := argsutil.Bytes2Args(s.app, v, params[k])
+				if err != nil {
+					s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())
+					return
+				}
+				switch v2 := ty.(type) { //多选语句switch
+				case nil:
+					in[k] = reflect.Zero(rv)
+				case []uint8:
+					if reflect.TypeOf(ty).AssignableTo(rv) {
+						//如果ty "继承" 于接受参数类型
+						in[k] = reflect.ValueOf(ty)
+					} else {
+						elemp := reflect.New(rv)
+						err := json.Unmarshal(v2, elemp.Interface())
+						if err != nil {
+							log.Error("%v []uint8--> %v error with='%v'", callInfo.RPCInfo.Fn, rv, err)
+							in[k] = reflect.ValueOf(ty)
+						} else {
+							in[k] = elemp.Elem()
+						}
+					}
+				default:
+					in[k] = reflect.ValueOf(ty)
+				}
+			}
 		}
 	}
+
+	if s.listener != nil {
+		errs := s.listener.BeforeHandle(callInfo.RPCInfo.Fn, callInfo)
+		if errs != nil {
+			s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, errs.Error())
+			return
+		}
+	}
+
+	out := f.Call(in)
+	var rs []interface{}
+	if len(out) != 2 {
+		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RPCInfo.Fn, "func(....)(result interface{}, err error)"))
+		return
+	}
+	if len(out) > 0 { //prepare out paras
+		rs = make([]interface{}, len(out), len(out))
+		for i, v := range out {
+			rs[i] = v.Interface()
+		}
+	}
+	var rerr string
+	switch e := rs[1].(type) {
+	case string:
+		rerr = e
+		break
+	case error:
+		rerr = e.Error()
+	case nil:
+		rerr = ""
+	default:
+		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RPCInfo.Fn, "func(....)(result interface{}, err error)"))
+		return
+	}
+	argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
+	if err != nil {
+		s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())
+		return
+	}
+	resultInfo := rpcpb.NewResultInfo(
+		callInfo.RPCInfo.Cid,
+		rerr,
+		argsType,
+		args,
+	)
+	callInfo.Result = resultInfo
+	callInfo.ExecTime = time.Since(start).Nanoseconds()
+	s.doCallback(callInfo)
+	if s.app.GetSettings().RPC.Log {
+		log.TInfo(nil, "rpc Exec ModuleType = %v Func = %v Elapsed = %v", s.module.GetType(), callInfo.RPCInfo.Fn, time.Since(start))
+	}
+	if s.listener != nil {
+		s.listener.OnComplete(callInfo.RPCInfo.Fn, callInfo, resultInfo, time.Since(start).Nanoseconds())
+	}
+}
+
+//---------------------------------if _func is not a function or para num and type not match,it will cause panic
+func (s *RPCServer) runFunc(callInfo *mqrpc.CallInfo) {
+	start := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -235,207 +381,28 @@ func (s *RPCServer) runFunc(callInfo mqrpc.CallInfo) {
 				rn = r.(error).Error()
 			}
 			log.Error("recover", rn)
-			_errorCallback(callInfo.RPCInfo.Cid, rn)
+			s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, rn)
 		}
 	}()
 
+	if s.control != nil {
+		//协程数量达到最大限制
+		s.control.Wait()
+	}
 	functionInfo, ok := s.functions[callInfo.RPCInfo.Fn]
 	if !ok {
 		if s.listener != nil {
 			fInfo, err := s.listener.NoFoundFunction(callInfo.RPCInfo.Fn)
 			if err != nil {
-				_errorCallback(callInfo.RPCInfo.Cid, err.Error())
+				s._errorCallback(start, callInfo, callInfo.RPCInfo.Cid, err.Error())
 				return
 			}
 			functionInfo = fInfo
 		}
 	}
-	f := functionInfo.Function
-	fType := functionInfo.FuncType
-	fInType := functionInfo.InType
-	params := callInfo.RPCInfo.Args
-	ArgsType := callInfo.RPCInfo.ArgsType
-	if len(params) != fType.NumIn() {
-		//因为在调研的 _func的时候还会额外传递一个回调函数 cb
-		_errorCallback(callInfo.RPCInfo.Cid, fmt.Sprintf("The number of params %v is not adapted.%v", params, f.String()))
-		return
-	}
-	//if len(params) != len(callInfo.RPCInfo.ArgsType) {
-	//	//因为在调研的 _func的时候还会额外传递一个回调函数 cb
-	//	_errorCallback(callInfo.RPCInfo.Cid,fmt.Sprintf("The number of params %s is not adapted ArgsType .%s", params, callInfo.RPCInfo.ArgsType))
-	//	return
-	//}
-
-	//typ := reflect.TypeOf(_func)
-
-	_runFunc := func() {
-		s.wg.Add(1)
-		s.executing++
-		defer func() {
-			s.wg.Add(-1)
-			s.executing--
-			if s.control != nil {
-				s.control.Finish()
-			}
-			if r := recover(); r != nil {
-				var rn = ""
-				switch r.(type) {
-
-				case string:
-					rn = r.(string)
-				case error:
-					rn = r.(error).Error()
-				}
-				buf := make([]byte, 1024)
-				l := runtime.Stack(buf, false)
-				errstr := string(buf[:l])
-				allError := fmt.Sprintf("%s rpc func(%s) error %s\n ----Stack----\n%s", s.module.GetType(), callInfo.RPCInfo.Fn, rn, errstr)
-				log.Error(allError)
-				_errorCallback(callInfo.RPCInfo.Cid, allError)
-			}
-		}()
-
-		//t:=RandInt64(2,3)
-		//time.Sleep(time.Second*time.Duration(t))
-		// f 为函数地址
-		var in []reflect.Value
-
-		if len(ArgsType) > 0 {
-			in = make([]reflect.Value, len(params))
-			for k, v := range ArgsType {
-				rv := fInType[k]
-				var elemp reflect.Value
-				if rv.Kind() == reflect.Ptr {
-					//如果是指针类型就得取到指针所代表的具体类型
-					elemp = reflect.New(rv.Elem())
-				} else {
-					elemp = reflect.New(rv)
-				}
-
-				if pb, ok := elemp.Interface().(mqrpc.Marshaler); ok {
-					err := pb.Unmarshal(params[k])
-					if err != nil {
-						_errorCallback(callInfo.RPCInfo.Cid, err.Error())
-						return
-					}
-					if pb == nil { //多选语句switch
-						in[k] = reflect.Zero(rv)
-					}
-					if rv.Kind() == reflect.Ptr {
-						//接收指针变量的参数
-						in[k] = reflect.ValueOf(elemp.Interface())
-					} else {
-						//接收值变量
-						in[k] = elemp.Elem()
-					}
-				} else if pb, ok := elemp.Interface().(proto.Message); ok {
-					err := proto.Unmarshal(params[k], pb)
-					if err != nil {
-						_errorCallback(callInfo.RPCInfo.Cid, err.Error())
-						return
-					}
-					if pb == nil { //多选语句switch
-						in[k] = reflect.Zero(rv)
-					}
-					if rv.Kind() == reflect.Ptr {
-						//接收指针变量的参数
-						in[k] = reflect.ValueOf(elemp.Interface())
-					} else {
-						//接收值变量
-						in[k] = elemp.Elem()
-					}
-				} else {
-					//不是Marshaler 才尝试用 argsutil 解析
-					ty, err := argsutil.Bytes2Args(s.app, v, params[k])
-					if err != nil {
-						_errorCallback(callInfo.RPCInfo.Cid, err.Error())
-						return
-					}
-					switch v2 := ty.(type) { //多选语句switch
-					case nil:
-						in[k] = reflect.Zero(rv)
-					case []uint8:
-						if reflect.TypeOf(ty).AssignableTo(rv) {
-							//如果ty "继承" 于接受参数类型
-							in[k] = reflect.ValueOf(ty)
-						} else {
-							elemp := reflect.New(rv)
-							err := json.Unmarshal(v2, elemp.Interface())
-							if err != nil {
-								log.Error("%v []uint8--> %v error with='%v'", callInfo.RPCInfo.Fn, rv, err)
-								in[k] = reflect.ValueOf(ty)
-							} else {
-								in[k] = elemp.Elem()
-							}
-						}
-					default:
-						in[k] = reflect.ValueOf(ty)
-					}
-				}
-			}
-		}
-
-		if s.listener != nil {
-			errs := s.listener.BeforeHandle(callInfo.RPCInfo.Fn, &callInfo)
-			if errs != nil {
-				_errorCallback(callInfo.RPCInfo.Cid, errs.Error())
-				return
-			}
-		}
-
-		out := f.Call(in)
-		var rs []interface{}
-		if len(out) != 2 {
-			_errorCallback(callInfo.RPCInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RPCInfo.Fn, "func(....)(result interface{}, err error)"))
-			return
-		}
-		if len(out) > 0 { //prepare out paras
-			rs = make([]interface{}, len(out), len(out))
-			for i, v := range out {
-				rs[i] = v.Interface()
-			}
-		}
-		var rerr string
-		switch e := rs[1].(type) {
-		case string:
-			rerr = e
-			break
-		case error:
-			rerr = e.Error()
-		case nil:
-			rerr = ""
-		default:
-			_errorCallback(callInfo.RPCInfo.Cid, fmt.Sprintf("%s rpc func(%s) return error %s\n", s.module.GetType(), callInfo.RPCInfo.Fn, "func(....)(result interface{}, err error)"))
-			return
-		}
-		argsType, args, err := argsutil.ArgsTypeAnd2Bytes(s.app, rs[0])
-		if err != nil {
-			_errorCallback(callInfo.RPCInfo.Cid, err.Error())
-			return
-		}
-		resultInfo := rpcpb.NewResultInfo(
-			callInfo.RPCInfo.Cid,
-			rerr,
-			argsType,
-			args,
-		)
-		callInfo.Result = *resultInfo
-		callInfo.ExecTime = time.Since(start).Nanoseconds()
-		s.doCallback(callInfo)
-		if s.app.GetSettings().RPC.Log {
-			log.TInfo(nil, "rpc Exec ModuleType = %v Func = %v Elapsed = %v", s.module.GetType(), callInfo.RPCInfo.Fn, time.Since(start))
-		}
-		if s.listener != nil {
-			s.listener.OnComplete(callInfo.RPCInfo.Fn, &callInfo, resultInfo, time.Since(start).Nanoseconds())
-		}
-	}
-	if s.control != nil {
-		//协程数量达到最大限制
-		s.control.Wait()
-	}
 	if functionInfo.Goroutine {
-		go _runFunc()
+		go s._runFunc(start, functionInfo, callInfo)
 	} else {
-		_runFunc()
+		s._runFunc(start, functionInfo, callInfo)
 	}
 }

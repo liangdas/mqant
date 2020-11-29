@@ -1,8 +1,8 @@
 package logs
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/json-iterator/go"
 	"net/http"
 	"net/url"
 	"time"
@@ -25,6 +25,7 @@ func newJLWriter() Logger {
 
 // Init JLWriter with json config string
 func (s *JLWriter) Init(jsonconfig string) error {
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Unmarshal([]byte(jsonconfig), s)
 }
 

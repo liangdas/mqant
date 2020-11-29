@@ -54,7 +54,7 @@ func (c *NatsClient) Delete(key string) (err error) {
 	c.callinfos.Delete(key)
 	return
 }
-func (c *NatsClient) CloseFch(fch chan rpcpb.ResultInfo) {
+func (c *NatsClient) CloseFch(fch chan *rpcpb.ResultInfo) {
 	defer func() {
 		if recover() != nil {
 			// close(ch) panic occur
@@ -86,7 +86,7 @@ func (c *NatsClient) Done() (err error) {
 /**
 消息请求
 */
-func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInfo) error {
+func (c *NatsClient) Call(callInfo *mqrpc.CallInfo, callback chan *rpcpb.ResultInfo) error {
 	//var err error
 	if c.callinfos == nil {
 		return fmt.Errorf("AMQPClient is closed")
@@ -100,7 +100,7 @@ func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 		timeout:        callInfo.RPCInfo.Expired,
 	}
 	c.callinfos.Set(correlation_id, *clinetCallInfo)
-	body, err := c.Marshal(&callInfo.RPCInfo)
+	body, err := c.Marshal(callInfo.RPCInfo)
 	if err != nil {
 		return err
 	}
@@ -110,8 +110,8 @@ func (c *NatsClient) Call(callInfo mqrpc.CallInfo, callback chan rpcpb.ResultInf
 /**
 消息请求 不需要回复
 */
-func (c *NatsClient) CallNR(callInfo mqrpc.CallInfo) error {
-	body, err := c.Marshal(&callInfo.RPCInfo)
+func (c *NatsClient) CallNR(callInfo *mqrpc.CallInfo) error {
+	body, err := c.Marshal(callInfo.RPCInfo)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (c *NatsClient) on_request_handle() error {
 			//删除
 			c.callinfos.Delete(correlation_id)
 			if clinetCallInfo != nil {
-				clinetCallInfo.(ClinetCallInfo).call <- *resultInfo
+				clinetCallInfo.(ClinetCallInfo).call <- resultInfo
 				c.CloseFch(clinetCallInfo.(ClinetCallInfo).call)
 			} else {
 				//可能客户端已超时了，但服务端处理完还给回调了

@@ -215,7 +215,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
 	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 
-	log.Info("mqant %v starting up", app.version)
+	log.Info("mqant %v starting up", app.opts.Version)
 
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
@@ -233,11 +233,13 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	if app.startup != nil {
 		app.startup(app)
 	}
+	log.Info("mqant %v started", app.opts.Version)
 	// close
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
-
+	log.BiBeego().Flush()
+	log.LogBeego().Flush()
 	//如果一分钟都关不了则强制关闭
 	timeout := time.NewTimer(app.opts.KillWaitTTL)
 	wait := make(chan struct{})
@@ -252,6 +254,8 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	case <-wait:
 		log.Info("mqant closing down (signal: %v)", sig)
 	}
+	log.BiBeego().Close()
+	log.LogBeego().Close()
 	return nil
 }
 

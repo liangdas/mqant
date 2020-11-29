@@ -225,8 +225,8 @@ func (age *agent) toResult(a *agent, Topic string, Result interface{}, Error str
 }
 
 func (age *agent) recoverworker(pack *mqtt.Pack) {
-	defer age.Finish()
 	defer func() {
+		age.Finish()
 		if r := recover(); r != nil {
 			buff := make([]byte, 1024)
 			runtime.Stack(buff, false)

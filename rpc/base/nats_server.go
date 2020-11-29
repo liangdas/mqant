@@ -94,8 +94,11 @@ func (s *NatsServer) Shutdown() (err error) {
 	return
 }
 
-func (s *NatsServer) Callback(callinfo mqrpc.CallInfo) error {
-	body, _ := s.MarshalResult(callinfo.Result)
+func (s *NatsServer) Callback(callinfo *mqrpc.CallInfo) error {
+	body, err := s.MarshalResult(callinfo.Result)
+	if err != nil {
+		return err
+	}
 	reply_to := callinfo.Props["reply_to"].(string)
 	return s.app.Transport().Publish(reply_to, body)
 }
@@ -148,7 +151,7 @@ func (s *NatsServer) on_request_handle() error {
 		rpcInfo, err := s.Unmarshal(m.Data)
 		if err == nil {
 			callInfo := &mqrpc.CallInfo{
-				RPCInfo: *rpcInfo,
+				RPCInfo: rpcInfo,
 			}
 			callInfo.Props = map[string]interface{}{
 				"reply_to": rpcInfo.ReplyTo,
@@ -156,7 +159,7 @@ func (s *NatsServer) on_request_handle() error {
 
 			callInfo.Agent = s //设置代理为NatsServer
 
-			s.server.Call(*callInfo)
+			s.server.Call(callInfo)
 		} else {
 			fmt.Println("error ", err)
 		}
@@ -179,8 +182,8 @@ func (s *NatsServer) Unmarshal(data []byte) (*rpcpb.RPCInfo, error) {
 }
 
 // goroutine safe
-func (s *NatsServer) MarshalResult(resultInfo rpcpb.ResultInfo) ([]byte, error) {
+func (s *NatsServer) MarshalResult(resultInfo *rpcpb.ResultInfo) ([]byte, error) {
 	//log.Error("",map2)
-	b, err := proto.Marshal(&resultInfo)
+	b, err := proto.Marshal(resultInfo)
 	return b, err
 }

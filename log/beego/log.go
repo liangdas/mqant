@@ -37,6 +37,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/json-iterator/go"
 	"log"
 	"os"
 	"runtime"
@@ -182,10 +183,11 @@ func DefineErrorLogFunc(processId string, loggerFuncCallDepth int) FormatFunc {
 			msgstruct.File = CallStack
 			msgstruct.Stack = ShortFile
 		} else {
-			_, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
+			//太耗性能
+			//_, ShortFile := GetCallStack(5, loggerFuncCallDepth, "")
 			//msgjson["file"] = ShortFile
 			//msgjson["stack"] = ""
-			msgstruct.File = ShortFile
+			//msgstruct.File = ShortFile
 			msgstruct.Stack = ""
 		}
 
@@ -207,6 +209,7 @@ func DefineErrorLogFunc(processId string, loggerFuncCallDepth int) FormatFunc {
 			msgstruct.TraceId = ""
 			msgstruct.TraceSpan = ""
 		}
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		msgbys, err := json.Marshal(msgstruct)
 		if err != nil {
 			return "", err
@@ -394,8 +397,9 @@ func (bl *BeeLogger) formatText(when time.Time, span *BeegoTraceSpan, logLevel i
 			CallStack, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
 			msg = "[" + ShortFile + "] " + msg + " " + CallStack
 		} else {
-			_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
-			msg = "[" + ShortFile + "] " + msg
+			//太耗性能
+			//_, ShortFile := GetCallStack(5, bl.loggerFuncCallDepth, "")
+			//msg = "[" + ShortFile + "] " + msg
 		}
 
 	}

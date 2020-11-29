@@ -18,5 +18,5 @@ import "github.com/liangdas/mqant/rpc/pb"
 type ClinetCallInfo struct {
 	correlation_id string
 	timeout        int64 //超时
-	call           chan rpcpb.ResultInfo
+	call           chan *rpcpb.ResultInfo
 }

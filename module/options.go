@@ -36,10 +36,10 @@ type Options struct {
 }
 
 // ClientRPCHandler 调用方RPC监控
-type ClientRPCHandler func(app App, server registry.Node, rpcinfo rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
+type ClientRPCHandler func(app App, server registry.Node, rpcinfo *rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
 
 // ServerRPCHandler 服务方RPC监控
-type ServerRPCHandler func(app App, module Module, callInfo mqrpc.CallInfo)
+type ServerRPCHandler func(app App, module Module, callInfo *mqrpc.CallInfo)
 
 // Version 应用版本
 func Version(v string) Option {

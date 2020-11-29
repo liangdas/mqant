@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/json-iterator/go"
 	"net/http"
 	"time"
 )
@@ -36,6 +37,7 @@ func (s *DingtalkWriter) WriteMsg(when time.Time, msg string, level int) error {
 			"content": fmt.Sprintf("%s %s", when.Format("2006-01-02 15:04:05"), msg),
 		},
 	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	text, err := json.Marshal(dingtalk)
 	if err != nil {
 		return err
