@@ -236,9 +236,10 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 	//time.Sleep(time.Second*time.Duration(t))
 	// f 为函数地址
 	var in []reflect.Value
-
+	var input []interface{}
 	if len(ArgsType) > 0 {
 		in = make([]reflect.Value, len(params))
+		input = make([]interface{}, len(params))
 		for k, v := range ArgsType {
 			rv := fInType[k]
 			var elemp reflect.Value
@@ -265,6 +266,7 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 					//接收值变量
 					in[k] = elemp.Elem()
 				}
+				input[k] = pb
 			} else if pb, ok := elemp.Interface().(proto.Message); ok {
 				err := proto.Unmarshal(params[k], pb)
 				if err != nil {
@@ -281,6 +283,7 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 					//接收值变量
 					in[k] = elemp.Elem()
 				}
+				input[k] = pb
 			} else {
 				//不是Marshaler 才尝试用 argsutil 解析
 				ty, err := argsutil.Bytes2Args(s.app, v, params[k])
@@ -308,6 +311,7 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 				default:
 					in[k] = reflect.ValueOf(ty)
 				}
+				input[k] = ty
 			}
 		}
 	}
@@ -331,6 +335,9 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 		for i, v := range out {
 			rs[i] = v.Interface()
 		}
+	}
+	if s.app.Options().RpcCompleteHandler != nil {
+		s.app.Options().RpcCompleteHandler(s.app, s.module, callInfo, input, rs, time.Since(start))
 	}
 	var rerr string
 	switch e := rs[1].(type) {

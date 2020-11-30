@@ -27,12 +27,13 @@ type Options struct {
 	Registry    registry.Registry
 	Selector    selector.Selector
 	// Register loop interval
-	RegisterInterval time.Duration
-	RegisterTTL      time.Duration
-	ClientRPChandler ClientRPCHandler
-	ServerRPCHandler ServerRPCHandler
-	RPCExpired       time.Duration
-	RPCMaxCoroutine  int
+	RegisterInterval   time.Duration
+	RegisterTTL        time.Duration
+	ClientRPChandler   ClientRPCHandler
+	ServerRPCHandler   ServerRPCHandler
+	RpcCompleteHandler RpcCompleteHandler
+	RPCExpired         time.Duration
+	RPCMaxCoroutine    int
 }
 
 // ClientRPCHandler 调用方RPC监控
@@ -40,6 +41,9 @@ type ClientRPCHandler func(app App, server registry.Node, rpcinfo *rpcpb.RPCInfo
 
 // ServerRPCHandler 服务方RPC监控
 type ServerRPCHandler func(app App, module Module, callInfo *mqrpc.CallInfo)
+
+// ServerRPCHandler 服务方RPC监控
+type RpcCompleteHandler func(app App, module Module, callInfo *mqrpc.CallInfo, input []interface{}, out []interface{}, execTime time.Duration)
 
 // Version 应用版本
 func Version(v string) Option {
@@ -145,6 +149,13 @@ func SetClientRPChandler(t ClientRPCHandler) Option {
 func SetServerRPCHandler(t ServerRPCHandler) Option {
 	return func(o *Options) {
 		o.ServerRPCHandler = t
+	}
+}
+
+// SetServerRPCCompleteHandler 服务RPC执行结果监控器
+func SetRpcCompleteHandler(t RpcCompleteHandler) Option {
+	return func(o *Options) {
+		o.RpcCompleteHandler = t
 	}
 }
 
