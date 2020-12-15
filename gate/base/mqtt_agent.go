@@ -226,6 +226,17 @@ func (age *agent) toResult(a *agent, Topic string, Result interface{}, Error str
 
 func (age *agent) recoverworker(pack *mqtt.Pack) {
 	defer func() {
+		age.lock.Lock()
+		interval := int64(age.lastStorageHeartbeatDataTime) + int64(age.gate.Options().Heartbeat) //单位纳秒
+		age.lock.Unlock()
+		if interval < time.Now().UnixNano() {
+			if age.gate.GetStorageHandler() != nil {
+				age.lock.Lock()
+				age.lastStorageHeartbeatDataTime = time.Duration(time.Now().UnixNano())
+				age.lock.Unlock()
+				age.gate.GetStorageHandler().Heartbeat(age.GetSession())
+			}
+		}
 		age.Finish()
 		if r := recover(); r != nil {
 			buff := make([]byte, 1024)
@@ -322,35 +333,21 @@ func (age *agent) recoverworker(pack *mqtt.Pack) {
 				}
 			}
 		}
-		//if age.GetSession().GetUserId() != "" {
-		//这个链接已经绑定Userid
-		age.lock.Lock()
-		interval := int64(age.lastStorageHeartbeatDataTime) + int64(age.gate.Options().Heartbeat) //单位纳秒
-		age.lock.Unlock()
-		if interval < time.Now().UnixNano() {
-			if age.gate.GetStorageHandler() != nil {
-				age.lock.Lock()
-				age.lastStorageHeartbeatDataTime = time.Duration(time.Now().UnixNano())
-				age.lock.Unlock()
-				age.gate.GetStorageHandler().Heartbeat(age.GetSession())
-			}
-		}
-		//}
 	case mqtt.PINGREQ:
 		//客户端发送的心跳包
 		//if age.GetSession().GetUserId() != "" {
 		//这个链接已经绑定Userid
-		age.lock.Lock()
-		interval := int64(age.lastStorageHeartbeatDataTime) + int64(age.gate.Options().Heartbeat) //单位纳秒
-		age.lock.Unlock()
-		if interval < time.Now().UnixNano() {
-			if age.gate.GetStorageHandler() != nil {
-				age.lock.Lock()
-				age.lastStorageHeartbeatDataTime = time.Duration(time.Now().UnixNano())
-				age.lock.Unlock()
-				age.gate.GetStorageHandler().Heartbeat(age.GetSession())
-			}
-		}
+		//age.lock.Lock()
+		//interval := int64(age.lastStorageHeartbeatDataTime) + int64(age.gate.Options().Heartbeat) //单位纳秒
+		//age.lock.Unlock()
+		//if interval < time.Now().UnixNano() {
+		//	if age.gate.GetStorageHandler() != nil {
+		//		age.lock.Lock()
+		//		age.lastStorageHeartbeatDataTime = time.Duration(time.Now().UnixNano())
+		//		age.lock.Unlock()
+		//		age.gate.GetStorageHandler().Heartbeat(age.GetSession())
+		//	}
+		//}
 		//}
 	}
 }

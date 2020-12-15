@@ -311,7 +311,7 @@ func (s *RPCServer) _runFunc(start time.Time, functionInfo *mqrpc.FunctionInfo, 
 				default:
 					in[k] = reflect.ValueOf(ty)
 				}
-				input[k] = ty
+				input[k] = in[k].Interface()
 			}
 		}
 	}
