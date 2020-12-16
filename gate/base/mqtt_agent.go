@@ -188,6 +188,10 @@ func (age *agent) OnClose() error {
 	return nil
 }
 
+func (age *agent) GetError() error{
+	return age.client.GetError()
+}
+
 func (age *agent) RevNum() int64 {
 	return age.revNum
 }

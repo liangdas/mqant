@@ -72,6 +72,14 @@ func (c *Client) Listen_loop() (e error) {
 }
 
 // Setting a mqtt pack's id.
+func (c *Client) GetError() error {
+	if c.queue==nil{
+		return nil
+	}
+	return c.queue.writeError
+}
+
+// Setting a mqtt pack's id.
 func (c *Client) getOnlineMsgId() int {
 	if c.curr_id == math.MaxUint16 {
 		c.curr_id = 1
