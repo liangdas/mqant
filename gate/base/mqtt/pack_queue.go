@@ -171,7 +171,13 @@ func (queue *PackQueue) ReadPackInLoop() {
 loop:
 	for queue.isConnected() {
 		if queue.alive > 0 {
-			queue.conn.SetDeadline(time.Now().Add(time.Second * time.Duration(int(float64(queue.alive)*1.5))))
+			timeout:=int(float64(queue.alive)*3)
+			if timeout>60{
+				timeout=60
+			}else if timeout<10{
+				timeout=10
+			}
+			queue.conn.SetDeadline(time.Now().Add(time.Second * time.Duration(timeout)))
 		} else {
 			queue.conn.SetDeadline(time.Now().Add(time.Second * 90))
 		}
