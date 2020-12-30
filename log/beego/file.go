@@ -15,7 +15,6 @@
 package logs
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -34,10 +33,9 @@ import (
 type fileLogWriter struct {
 	sync.RWMutex // write log order by order and  atomic incr maxLinesCurLines and maxSizeCurSize
 	// The opened file
-	Filename string `json:"filename"`
-	fd       *os.File
+	Filename   string `json:"filename"`
+	fileWriter *os.File
 
-	fileWriter *bufio.Writer
 	// Rotate at line
 	MaxLines         int `json:"maxlines"`
 	maxLinesCurLines int
@@ -122,16 +120,14 @@ func (w *fileLogWriter) Init(jsonConfig string) error {
 
 // start file logger. create log file and set to locker-inside file writer.
 func (w *fileLogWriter) startLogger() error {
-	fd, fileWriter, err := w.createLogFile()
+	file, err := w.createLogFile()
 	if err != nil {
 		return err
 	}
 	if w.fileWriter != nil {
-		w.fileWriter.Flush()
-		w.fd.Close()
+		w.fileWriter.Close()
 	}
-	w.fd = fd
-	w.fileWriter = fileWriter
+	w.fileWriter = file
 	return w.initFd()
 }
 
@@ -208,27 +204,22 @@ func (w *fileLogWriter) WriteOriginalMsg(when time.Time, msg string, level int) 
 	return err
 }
 
-func (w *fileLogWriter) createLogFile() (*os.File, *bufio.Writer, error) {
+func (w *fileLogWriter) createLogFile() (*os.File, error) {
 	// Open the log file
 	perm, err := strconv.ParseInt(w.Perm, 8, 64)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	fd, err := os.OpenFile(w.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.FileMode(perm))
 	if err == nil {
 		// Make sure file perm is user set perm cause of `os.OpenFile` will obey umask
 		os.Chmod(w.Filename, os.FileMode(perm))
 	}
-	bufWriter := bufio.NewWriterSize(fd, 8192)
-	return fd, bufWriter, err
+	return fd, err
 }
 
 func (w *fileLogWriter) initFd() error {
-	err := w.fileWriter.Flush()
-	if err != nil {
-		return err
-	}
-	fd := w.fd
+	fd := w.fileWriter
 	fInfo, err := fd.Stat()
 	if err != nil {
 		return fmt.Errorf("get stat err: %s", err)
@@ -329,8 +320,7 @@ func (w *fileLogWriter) doRotate(logTime time.Time) error {
 	}
 
 	// close fileWriter before rename
-	w.fileWriter.Flush()
-	w.fd.Close()
+	w.fileWriter.Close()
 
 	// Rename the file to its new found name
 	// even if occurs error,we MUST guarantee to  restart new logger
@@ -380,17 +370,14 @@ func (w *fileLogWriter) deleteOldLog() {
 
 // Destroy close the file description, close file writer.
 func (w *fileLogWriter) Destroy() {
-	w.fileWriter.Flush()
-	w.fd.Sync()
-	w.fd.Close()
+	w.fileWriter.Close()
 }
 
 // Flush flush file logger.
 // there are no buffering messages in file logger in memory.
 // flush file means sync file from disk.
 func (w *fileLogWriter) Flush() {
-	w.fileWriter.Flush()
-	w.fd.Sync()
+	w.fileWriter.Sync()
 }
 
 func init() {
