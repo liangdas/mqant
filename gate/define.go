@@ -180,6 +180,7 @@ type Agent interface {
 	RevNum() int64
 	SendNum() int64
 	IsClosed() bool
+	ProtocolOK() bool
 	GetError() error //连接断开的错误日志
 	GetSession() Session
 }

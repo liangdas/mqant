@@ -49,6 +49,7 @@ type agent struct {
 	client                       *mqtt.Client
 	ch                           chan int //控制模块可同时开启的最大协程数
 	isclose                      bool
+	protocol_ok                  bool
 	lock                         sync.Mutex
 	lastStorageHeartbeatDataTime time.Duration //上一次发送存储心跳时间
 	revNum                       int64
@@ -69,6 +70,7 @@ func (age *agent) OnInit(gate gate.Gate, conn network.Conn) error {
 	age.r = bufio.NewReaderSize(conn, gate.Options().BufSize)
 	age.w = bufio.NewWriterSize(conn, gate.Options().BufSize)
 	age.isclose = false
+	age.protocol_ok = false
 	age.revNum = 0
 	age.sendNum = 0
 	age.lastStorageHeartbeatDataTime = time.Duration(time.Now().UnixNano())
@@ -76,6 +78,10 @@ func (age *agent) OnInit(gate gate.Gate, conn network.Conn) error {
 }
 func (age *agent) IsClosed() bool {
 	return age.isclose
+}
+
+func (age *agent) ProtocolOK() bool {
+	return age.protocol_ok
 }
 
 func (age *agent) GetSession() gate.Session {
@@ -133,7 +139,7 @@ func (age *agent) Run() (err error) {
 	var pack *mqtt.Pack
 	pack, err = mqtt.ReadPack(age.r, age.gate.Options().MaxPackSize)
 	if err != nil {
-		log.Error("Read login pack error", err)
+		log.Error("Read login pack error %v", err)
 		return
 	}
 	if pack.GetType() != mqtt.CONNECT {
@@ -167,9 +173,11 @@ func (age *agent) Run() (err error) {
 	//回复客户端 CONNECT
 	err = mqtt.WritePack(mqtt.GetConnAckPack(0), age.w)
 	if err != nil {
+		log.Error("ConnAckPack error %v", err.Error())
 		return
 	}
 	age.connTime = time.Now()
+	age.protocol_ok = true
 	age.gate.GetAgentLearner().Connect(age) //发送连接成功的事件
 	c.Listen_loop()                         //开始监听,直到连接中断
 	return nil
@@ -188,7 +196,7 @@ func (age *agent) OnClose() error {
 	return nil
 }
 
-func (age *agent) GetError() error{
+func (age *agent) GetError() error {
 	return age.client.GetError()
 }
 

@@ -54,9 +54,12 @@ func (h *handler) Connect(a gate.Agent) {
 	}()
 	if a.GetSession() != nil {
 		h.sessions.Store(a.GetSession().GetSessionID(), a)
-		h.lock.Lock()
-		h.agentNum++
-		h.lock.Unlock()
+		//已经建联成功的才计算
+		if a.ProtocolOK() {
+			h.lock.Lock()
+			h.agentNum++
+			h.lock.Unlock()
+		}
 	}
 	if h.gate.GetSessionLearner() != nil {
 		go func() {
@@ -75,9 +78,12 @@ func (h *handler) DisConnect(a gate.Agent) {
 		}
 		if a.GetSession() != nil {
 			h.sessions.Delete(a.GetSession().GetSessionID())
-			h.lock.Lock()
-			h.agentNum--
-			h.lock.Unlock()
+			//已经建联成功的才计算
+			if a.ProtocolOK() {
+				h.lock.Lock()
+				h.agentNum--
+				h.lock.Unlock()
+			}
 		}
 	}()
 	if h.gate.GetSessionLearner() != nil {

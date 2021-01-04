@@ -73,7 +73,7 @@ func (c *Client) Listen_loop() (e error) {
 
 // Setting a mqtt pack's id.
 func (c *Client) GetError() error {
-	if c.queue==nil{
+	if c.queue == nil {
 		return nil
 	}
 	return c.queue.writeError
