@@ -3,6 +3,7 @@ package network
 import (
 	"crypto/tls"
 	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/utils/ip"
 	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
@@ -45,8 +46,6 @@ func (handler *WSHandler) echo(conn *websocket.Conn) {
 
 	// cleanup
 	wsConn.Close()
-	handler.mutexConns.Lock()
-	handler.mutexConns.Unlock()
 	agent.OnClose()
 }
 
@@ -113,7 +112,8 @@ func (server *WSServer) Start() {
 			} else {
 				scheme = "ws"
 			}
-			config.Origin, _ = url.ParseRequestURI(scheme + "://" + r.RemoteAddr + r.URL.RequestURI())
+			real_ip := iptool.RealIP(r)
+			config.Origin, _ = url.ParseRequestURI(scheme + "://" + real_ip + r.URL.RequestURI())
 			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
 			ptls := strings.Split(offeredProtocol, ",")
 			if len(ptls) > 0 {
