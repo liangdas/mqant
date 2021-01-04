@@ -8,8 +8,9 @@ import (
 )
 
 func RealIP(r *http.Request) string {
-	if !IsInnerIp(r.RemoteAddr) {
-		return r.RemoteAddr
+	remote:=strings.Split(r.RemoteAddr,":")[0]
+	if !IsInnerIp(remote) {
+		return remote
 	}
 	forwarded := r.Header.Get("X-Forwarded-For")
 	if len(forwarded) > 0 {
@@ -25,7 +26,7 @@ func RealIP(r *http.Request) string {
 			return ip
 		}
 	}
-	return r.RemoteAddr
+	return remote
 }
 
 func CheckIp(ipStr string) bool {
