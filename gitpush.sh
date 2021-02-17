@@ -1,4 +1,5 @@
 cd `pwd`/_book
+git push origin --delete gh-pages
 git init
 git checkout --orphan gh-pages
 git add .
