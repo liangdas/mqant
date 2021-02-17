@@ -1,0 +1,1304 @@
+
+<!DOCTYPE HTML>
+<html lang="zh-hans" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>编写第一个模块 · mqant 的文档库</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        <meta name="author" content="梁大帅 - liangds">
+        
+        
+    
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-mermaid-gb3/mermaid/mermaid.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-splitter/splitter.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-anchor-navigation-ex/style/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-expandable-chapters/expandable-chapters.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search-pro/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-pageview-count/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-donate/plugin.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-tbfed-pagefooter/footer.css">
+                
+            
+                
+                <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-flexible-alerts/style.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="first_handler.html" />
+    
+    
+    <link rel="prev" href="module_introduce.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="输入并搜索" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="Introduction.html">
+            
+                <a href="Introduction.html">
+            
+                    
+                    前言
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="Community.html">
+            
+                <a href="Community.html">
+            
+                    
+                    社区
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4" >
+            
+                <span>
+            
+                    
+                    概述
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="tool.html">
+            
+                <a href="tool.html">
+            
+                    
+                    介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="framework.html">
+            
+                <a href="framework.html">
+            
+                    
+                    架构
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" >
+            
+                <span>
+            
+                    
+                    第一章 起步
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.5.1" data-path="docker.html">
+            
+                <a href="docker.html">
+            
+                    
+                    docker
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.2" data-path="install_mqant.html">
+            
+                <a href="install_mqant.html">
+            
+                    
+                    搭建
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.3" data-path="app_introduce.html">
+            
+                <a href="app_introduce.html">
+            
+                    
+                    应用
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.4" data-path="module_introduce.html">
+            
+                <a href="module_introduce.html">
+            
+                    
+                    模块
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.5.5" data-path="first_module.html">
+            
+                <a href="first_module.html">
+            
+                    
+                    编写第一个模块
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5.6" data-path="first_handler.html">
+            
+                <a href="first_handler.html">
+            
+                    
+                    编写第一个handler
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" >
+            
+                <span>
+            
+                    
+                    第二章 模块间通信
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.6.1" data-path="rpc_introduce.html">
+            
+                <a href="rpc_introduce.html">
+            
+                    
+                    RPC介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.2" data-path="rpc_method.html">
+            
+                <a href="rpc_method.html">
+            
+                    
+                    RPC调用方式
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.3" data-path="rpc_data_structure.html">
+            
+                <a href="rpc_data_structure.html">
+            
+                    
+                    RPC传参数据结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.4" data-path="protocolbuffer.html">
+            
+                <a href="protocolbuffer.html">
+            
+                    
+                    protocolbuffer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.5" data-path="marshaler.html">
+            
+                <a href="marshaler.html">
+            
+                    
+                    自定义数据结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.6" data-path="data_structure_assertion.html">
+            
+                <a href="data_structure_assertion.html">
+            
+                    
+                    RPC返回结果断言
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" >
+            
+                <span>
+            
+                    
+                    第三章 服务发现
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.7.1" data-path="server_introduce.html">
+            
+                <a href="server_introduce.html">
+            
+                    
+                    服务续约
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.2" data-path="server_metadata.html">
+            
+                <a href="server_metadata.html">
+            
+                    
+                    服务元数据
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.3" data-path="selector.html">
+            
+                <a href="selector.html">
+            
+                    
+                    服务选择
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8" >
+            
+                <span>
+            
+                    
+                    第四章 配置
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.8.1" data-path="configuration_introduce.html">
+            
+                <a href="configuration_introduce.html">
+            
+                    
+                    配置文件结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.2" data-path="configuration_app.html">
+            
+                <a href="configuration_app.html">
+            
+                    
+                    应用级别配置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.3" data-path="configuration_module.html">
+            
+                <a href="configuration_module.html">
+            
+                    
+                    模块级别配置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8.4" data-path="configuration_log.html">
+            
+                <a href="configuration_log.html">
+            
+                    
+                    日志配置
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9" >
+            
+                <span>
+            
+                    
+                    第五章 部署
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.9.1" data-path="deployment_introduce.html">
+            
+                <a href="deployment_introduce.html">
+            
+                    
+                    部署概述
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.2" data-path="startup_parameter.html">
+            
+                <a href="startup_parameter.html">
+            
+                    
+                    启动参数
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9.3" data-path="service_discovery_parameter.html">
+            
+                <a href="service_discovery_parameter.html">
+            
+                    
+                    服务发现设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10" >
+            
+                <span>
+            
+                    
+                    第六章 RPC高级用法
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.10.1" data-path="dynamic_handler.html">
+            
+                <a href="dynamic_handler.html">
+            
+                    
+                    动态监听handler
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.10.2" data-path="global_monitoring_handler.html">
+            
+                <a href="global_monitoring_handler.html">
+            
+                    
+                    全局监听handler
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11" >
+            
+                <span>
+            
+                    
+                    第七章 长连接网关
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.11.1" data-path="gate_introduce.html">
+            
+                <a href="gate_introduce.html">
+            
+                    
+                    网关介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.2" data-path="mqtt.html">
+            
+                <a href="mqtt.html">
+            
+                    
+                    mqtt协议
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.3" data-path="first_gate.html">
+            
+                <a href="first_gate.html">
+            
+                    
+                    编写第一个网关
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.4" data-path="gateway_routing.html">
+            
+                <a href="gateway_routing.html">
+            
+                    
+                    网络路由协议
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.5" data-path="gateway_session.html">
+            
+                <a href="gateway_session.html">
+            
+                    
+                    session
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.6" data-path="data_structure_response.html">
+            
+                <a href="data_structure_response.html">
+            
+                    
+                    Response数据结构
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.7" data-path="custom_gateway_routing.html">
+            
+                <a href="custom_gateway_routing.html">
+            
+                    
+                    自定义网关路由
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.8" data-path="im_gateway_routing.html">
+            
+                <a href="im_gateway_routing.html">
+            
+                    
+                    IM通信协议示例
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.9" data-path="gateway_optional_settings.html">
+            
+                <a href="gateway_optional_settings.html">
+            
+                    
+                    网关可选设置
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.10" data-path="gateway_connect_monitor.html">
+            
+                <a href="gateway_connect_monitor.html">
+            
+                    
+                    连接建立与断连
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.11" data-path="gateway_message_interception.html">
+            
+                <a href="gateway_message_interception.html">
+            
+                    
+                    消息拦截
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.12" data-path="gateway_local_operation.html">
+            
+                <a href="gateway_local_operation.html">
+            
+                    
+                    网关本地操作
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.11.13" data-path="custom_agent.html">
+            
+                <a href="custom_agent.html">
+            
+                    
+                    自定义通信协议
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12" >
+            
+                <span>
+            
+                    
+                    第八章 HTTP网关
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.12.1" data-path="httpgate_introduce.html">
+            
+                <a href="httpgate_introduce.html">
+            
+                    
+                    网关介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.12.2" data-path="custom_httpgate_routing.html">
+            
+                <a href="custom_httpgate_routing.html">
+            
+                    
+                    网关自定义路由
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13" >
+            
+                <span>
+            
+                    
+                    第九章 游戏房间模块
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.13.1" data-path="room_module_introduce.html">
+            
+                <a href="room_module_introduce.html">
+            
+                    
+                    模块介绍
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.2" data-path="room_module_composition.html">
+            
+                <a href="room_module_composition.html">
+            
+                    
+                    模块组成
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.3" data-path="room_management.html">
+            
+                <a href="room_management.html">
+            
+                    
+                    房间管理
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.4" data-path="table_function_development.html">
+            
+                <a href="table_function_development.html">
+            
+                    
+                    桌子开发
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.5" data-path="room_BasePlayer.html">
+            
+                <a href="room_BasePlayer.html">
+            
+                    
+                    BasePlayer
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.6" data-path="room_module_initialize_settings.html">
+            
+                <a href="room_module_initialize_settings.html">
+            
+                    
+                    初始化设置说明
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.13.7" data-path="room_send_message.html">
+            
+                <a href="room_send_message.html">
+            
+                    
+                    用户管理
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.14" >
+            
+                <span>
+            
+                    
+                    后续
+            
+                </span>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.14.1" data-path="plan.html">
+            
+                <a href="plan.html">
+            
+                    
+                    后续计划
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            本书使用 GitBook 发布
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >编写第一个模块</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <div id="anchor-navigation-ex-navbar"><i class="fa fa-navicon"></i><ul><li><span class="title-icon "></span><a href="#&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;"><b></b>&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;</a></li><li><span class="title-icon "></span><a href="#&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;"><b></b>&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;</a></li><ul><li><span class="title-icon "></span><a href="#&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;"><b></b>&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;</a></li><li><span class="title-icon "></span><a href="#&#x8FD0;&#x884C;"><b></b>&#x8FD0;&#x884C;</a></li><li><span class="title-icon "></span><a href="#&#x505C;&#x6B62;"><b></b>&#x505C;&#x6B62;</a></li></ul></ul></div><a href="#&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;" id="anchorNavigationExGoTop"><i class="fa fa-arrow-up"></i></a><h1 id="&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;"><a name="&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;" class="anchor-navigation-ex-anchor" href="#&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;"><i class="fa fa-link" aria-hidden="true"></i></a>&#x4EE3;&#x7801;&#x7EC4;&#x7EC7;&#x7ED3;&#x6784;</h1>
+<blockquote>
+<p>&#x9996;&#x5148;&#x6211;&#x4EEC;&#x91CD;&#x65B0;&#x7EC4;&#x7EC7;&#x4E86;&#x4E00;&#x4E0B;&#x4EE3;&#x7801;&#x76EE;&#x5F55;&#x7ED3;&#x6784;&#xFF0C;&#x65B0;&#x589E;&#x4E86;&#x4E00;&#x4E2A;helloworld&#x76EE;&#x5F55;&#x7528;&#x6765;&#x5B58;&#x653E;&#x6A21;&#x5757;&#x4EE3;&#x7801;</p>
+</blockquote>
+<pre><code>    &#x5DE5;&#x7A0B;&#x76EE;&#x5F55;
+        |-bin
+            |-conf
+                |-server.conf
+        |-helloworld
+            |-module.go
+            |-xxx.go
+        |-main.go
+</code></pre><h1 id="&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;"><a name="&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;" class="anchor-navigation-ex-anchor" href="#&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;"><i class="fa fa-link" aria-hidden="true"></i></a>&#x7F16;&#x5199;&#x7B2C;&#x4E00;&#x4E2A;&#x6A21;&#x5757;</h1>
+<pre><code class="lang-go"><span class="hljs-keyword">package</span> helloworld
+
+<span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/liangdas/mqant/conf&quot;</span>
+    <span class="hljs-string">&quot;github.com/liangdas/mqant/log&quot;</span>
+    <span class="hljs-string">&quot;github.com/liangdas/mqant/module&quot;</span>
+    <span class="hljs-string">&quot;github.com/liangdas/mqant/module/base&quot;</span>
+)
+
+<span class="hljs-keyword">var</span> Module = <span class="hljs-keyword">func</span>() module.Module {
+    this := <span class="hljs-built_in">new</span>(HellWorld)
+    <span class="hljs-keyword">return</span> this
+}
+
+<span class="hljs-keyword">type</span> HellWorld <span class="hljs-keyword">struct</span> {
+    basemodule.BaseModule
+}
+
+<span class="hljs-keyword">func</span> (self *HellWorld) GetType() <span class="hljs-keyword">string</span> {
+    <span class="hljs-comment">//&#x5F88;&#x5173;&#x952E;,&#x9700;&#x8981;&#x4E0E;&#x914D;&#x7F6E;&#x6587;&#x4EF6;&#x4E2D;&#x7684;Module&#x914D;&#x7F6E;&#x5BF9;&#x5E94;</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;helloworld&quot;</span>
+}
+<span class="hljs-keyword">func</span> (self *HellWorld) Version() <span class="hljs-keyword">string</span> {
+    <span class="hljs-comment">//&#x53EF;&#x4EE5;&#x5728;&#x76D1;&#x63A7;&#x65F6;&#x4E86;&#x89E3;&#x4EE3;&#x7801;&#x7248;&#x672C;</span>
+    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;1.0.0&quot;</span>
+}
+<span class="hljs-keyword">func</span> (self *HellWorld) OnInit(app module.App, settings *conf.ModuleSettings) {
+    self.BaseModule.OnInit(self, app, settings)
+    log.Info(<span class="hljs-string">&quot;%v&#x6A21;&#x5757;&#x521D;&#x59CB;&#x5316;&#x5B8C;&#x6210;...&quot;</span>,self.GetType())
+}
+
+<span class="hljs-keyword">func</span> (self *HellWorld) Run(closeSig <span class="hljs-keyword">chan</span> <span class="hljs-keyword">bool</span>) {
+    log.Info(<span class="hljs-string">&quot;%v&#x6A21;&#x5757;&#x8FD0;&#x884C;&#x4E2D;...&quot;</span>,self.GetType())
+    log.Info(<span class="hljs-string">&quot;%v say hello world...&quot;</span>,self.GetType())
+    &lt;-closeSig
+    log.Info(<span class="hljs-string">&quot;%v&#x6A21;&#x5757;&#x5DF2;&#x505C;&#x6B62;...&quot;</span>,self.GetType())
+}
+
+<span class="hljs-keyword">func</span> (self *HellWorld) OnDestroy() {
+    <span class="hljs-comment">//&#x4E00;&#x5B9A;&#x522B;&#x5FD8;&#x4E86;&#x7EE7;&#x627F;</span>
+    <span class="hljs-comment">//self.BaseModule.OnDestroy()</span>
+    log.Info(<span class="hljs-string">&quot;%v&#x6A21;&#x5757;&#x5DF2;&#x56DE;&#x6536;...&quot;</span>,self.GetType())
+}
+</code></pre>
+<h2 id="&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;"><a name="&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;" class="anchor-navigation-ex-anchor" href="#&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;"><i class="fa fa-link" aria-hidden="true"></i></a>&#x5C1D;&#x8BD5;&#x8FD0;&#x884C;</h2>
+<pre><code>2020-05-03T18:27:19.224684+08:00 [-] [-] [] [E] nats agent: nats: no servers available for connection
+Server configuration path : //work/go/mqant-helloworld/bin/conf/server.json
+2020-05-03T18:27:19.225643+08:00 [-] [-] [development] [I] [app.go:203] mqant  starting up
+2020-05-03T18:27:19.225725+08:00 [-] [-] [development] [I] [ModuleManager.go:50] This service ModuleGroup(ProcessID) is [development]
+</code></pre><p>&#x8FD0;&#x884C;&#x4EE5;&#x540E;&#x6CA1;&#x6709;&#x770B;&#x5230;&#x6211;&#x4EEC;&#x5173;&#x6CE8;&#x7684;&#x6A21;&#x5757;&#x65E5;&#x5FD7;&#x3002;&#x539F;&#x56E0;&#x662F;&#x8FD8;&#x6709;&#x4E24;&#x9879;&#x5DE5;&#x4F5C;&#x6211;&#x4EEC;&#x6CA1;&#x6709;&#x5B8C;&#x6210;</p>
+<ol>
+<li><p>&#x5C06;&#x6A21;&#x5757;&#x52A0;&#x5165;main.go&#x5165;&#x53E3;&#x51FD;&#x6570;</p>
+<pre><code class="lang-go"> <span class="hljs-keyword">func</span> main() {
+     <span class="hljs-keyword">go</span> <span class="hljs-keyword">func</span>() {
+         http.ListenAndServe(<span class="hljs-string">&quot;0.0.0.0:6060&quot;</span>, <span class="hljs-literal">nil</span>)
+     }()
+     app := mqant.CreateApp(
+         module.Debug(<span class="hljs-literal">true</span>),<span class="hljs-comment">//&#x53EA;&#x6709;&#x662F;&#x5728;&#x8C03;&#x8BD5;&#x6A21;&#x5F0F;&#x4E0B;&#x624D;&#x4F1A;&#x5728;&#x63A7;&#x5236;&#x53F0;&#x6253;&#x5370;&#x65E5;&#x5FD7;, &#x975E;&#x8C03;&#x8BD5;&#x6A21;&#x5F0F;&#x4E0B;&#x53EA;&#x5728;&#x65E5;&#x5FD7;&#x6587;&#x4EF6;&#x4E2D;&#x8F93;&#x51FA;&#x65E5;&#x5FD7;</span>
+     )
+     err:= app.Run(
+         helloworld.Module(),
+     )
+     <span class="hljs-keyword">if</span> err!=<span class="hljs-literal">nil</span>{
+         log.Error(err.Error())
+     }
+ }
+</code></pre>
+</li>
+<li><p>&#x5728;&#x914D;&#x7F6E;&#x6587;&#x4EF6;&#x4E2D;&#x52A0;&#x5165;&#x6A21;&#x5757;&#x914D;&#x7F6E;</p>
+<pre><code class="lang-javascript">     {
+         <span class="hljs-string">&quot;Module&quot;</span>:{
+           <span class="hljs-string">&quot;helloworld&quot;</span>:[
+             {
+               <span class="hljs-string">&quot;Id&quot;</span>:<span class="hljs-string">&quot;helloworld&quot;</span>,
+               <span class="hljs-string">&quot;ProcessID&quot;</span>:<span class="hljs-string">&quot;development&quot;</span>
+             }
+           ]
+         },
+         &#x3002;&#x3002;&#x3002;
+     }
+</code></pre>
+<pre><code class="lang-html"> &#x914D;&#x7F6E;&#x8BF4;&#x660E;
+ Module
+     |-moduleType  &#x4E0E;func GetType() string &#x503C;&#x4FDD;&#x6301;&#x4E00;&#x81F4;
+         |-  ProcessID  &#x6A21;&#x5757;&#x5206;&#x7EC4;,&#x5728;&#x4ECA;&#x540E;&#x5206;&#x5E03;&#x5F0F;&#x90E8;&#x7F72;&#x65F6;&#x975E;&#x5E38;&#x6709;&#x7528;&#xFF0C;&#x9ED8;&#x8BA4;&#x5206;&#x7EC4;&#x4E3A;development
+</code></pre>
+</li>
+</ol>
+<h2 id="&#x8FD0;&#x884C;"><a name="&#x8FD0;&#x884C;" class="anchor-navigation-ex-anchor" href="#&#x8FD0;&#x884C;"><i class="fa fa-link" aria-hidden="true"></i></a>&#x8FD0;&#x884C;</h2>
+<pre><code>2020-05-03T18:42:09.465739+08:00 [-] [-] [] [E] nats agent: nats: no servers available for connection
+Server configuration path : //work/go/mqant-helloworld/bin/conf/server.json
+2020-05-03T18:42:09.466789+08:00 [-] [-] [development] [I] [app.go:203] mqant  starting up
+2020-05-03T18:42:09.466889+08:00 [-] [-] [development] [I] [ModuleManager.go:50] This service ModuleGroup(ProcessID) is [development]
+2020-05-03T18:42:09.467058+08:00 [-] [-] [development] [I] [rpc_server.go:142] Registering node: HelloWorld@1b0073cbbab33247
+2020-05-03T18:42:09.468696+08:00 [-] [-] [development] [I] [module.go:32] HelloWorld&#x6A21;&#x5757;&#x521D;&#x59CB;&#x5316;&#x5B8C;&#x6210;...
+2020-05-03T18:42:09.468907+08:00 [-] [-] [development] [I] [module.go:36] HelloWorld&#x6A21;&#x5757;&#x8FD0;&#x884C;&#x4E2D;...
+2020-05-03T18:42:09.468984+08:00 [-] [-] [development] [I] [module.go:37] HelloWorld say hello world...
+2020-05-03T18:42:09.468725+08:00 [-] [-] [development] [I] [rpc_server.go:142] Registering node: HelloWorld@1b0073cbbab33247
+</code></pre><h2 id="&#x505C;&#x6B62;"><a name="&#x505C;&#x6B62;" class="anchor-navigation-ex-anchor" href="#&#x505C;&#x6B62;"><i class="fa fa-link" aria-hidden="true"></i></a>&#x505C;&#x6B62;</h2>
+<pre><code>&#x8FFD;&#x52A0;&#x65E5;&#x5FD7;
+
+2020-05-03T18:42:31.347133+08:00 [-] [-] [development] [I] [module.go:39] HelloWorld&#x6A21;&#x5757;&#x5DF2;&#x505C;&#x6B62;...
+2020-05-03T18:42:31.347248+08:00 [-] [-] [development] [I] [module.go:45] HelloWorld&#x6A21;&#x5757;&#x5DF2;&#x56DE;&#x6536;...
+2020-05-03T18:42:31.34735+08:00 [-] [-] [development] [I] [app.go:238] mqant closing down (signal: interrupt)
+</code></pre><p><footer class="page-footer"><span class="copyright">Copyright &#xA9; &#x6881;&#x5927;&#x5E05; 2020 all right reserved&#xFF0C;powered by Gitbook</span><span class="footer-modification">&#x8BE5;&#x6587;&#x4EF6;&#x4FEE;&#x8BA2;&#x65F6;&#x95F4;&#xFF1A;
+2020-05-27 19:24:18
+</span></footer></p>
+<div id="gitalk-container"></div>
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="module_introduce.html" class="navigation navigation-prev " aria-label="Previous page: 模块">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="first_handler.html" class="navigation navigation-next " aria-label="Next page: 编写第一个handler">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"编写第一个模块","level":"1.5.5","depth":2,"next":{"title":"编写第一个handler","level":"1.5.6","depth":2,"path":"first_handler.md","ref":"first_handler.md","articles":[]},"previous":{"title":"模块","level":"1.5.4","depth":2,"path":"module_introduce.md","ref":"module_introduce.md","articles":[]},"dir":"ltr"},"config":{"plugins":["mermaid-gb3","splitter","anchor-navigation-ex","expandable-chapters","-lunr","-search","search-pro","pageview-count","donate","tbfed-pagefooter","baidu-tongji","anchor-navigation-ex","copy-code-button","mygitalk","flexible-alerts","livereload"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"tbfed-pagefooter":{"copyright":"Copyright &copy 梁大帅 2020","modify_label":"该文件修订时间：","modify_format":"YYYY-MM-DD HH:mm:ss"},"livereload":{},"baidu-tongji":{"url":"https://hm.baidu.com/hm.js","token":"7b647f4dc1639f0c64fc9ef2ec2adf03"},"splitter":{},"search-pro":{},"donate":{"alipay":"","alipayText":"支付宝打赏","button":"打赏","title":"","wechat":"http://docs.mqant.com/images/donation.png","wechatText":"微信打赏"},"fontsettings":{"theme":"white","family":"sans","size":2},"highlight":{},"mermaid-gb3":{},"anchor-navigation-ex":{"associatedWithSummary":true,"float":{"floatIcon":"fa fa-navicon","level1Icon":"","level2Icon":"","level3Icon":"","showLevelIcon":false},"mode":"float","multipleH1":true,"pageTop":{"level1Icon":"","level2Icon":"","level3Icon":"","showLevelIcon":false},"printLog":false,"showGoTop":true,"showLevel":false},"pageview-count":{},"flexible-alerts":{"danger":{"className":"danger","icon":"fa fa-ban","label":"Achtung"},"note":{"className":"info","icon":"fa fa-info-circle","label":"Hinweis"},"style":"callout","tip":{"className":"tip","icon":"fa fa-lightbulb-o","label":"Tipp"},"warning":{"className":"warning","icon":"fa fa-exclamation-triangle","label":"Warnung"}},"copy-code-button":{},"mygitalk":{"flipMoveOptions":{},"clientID":"d6839b4d64b01698553b","number":-1,"perPage":10,"proxy":"https://cors-anywhere.herokuapp.com/https://github.com/login/oauth/access_token","admin":["liangdas"],"createIssueManually":false,"distractionFreeMode":false,"repo":"mqant-chat","owner":"liangdas","enableHotKey":true,"clientSecret":"817ac7a23bc5209cada63e090953119952d38927","pagerDirection":"last","labels":["Gitalk"]},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false},"expandable-chapters":{}},"theme":"default","author":"梁大帅 - liangds","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"mqant 的文档库","language":"zh-hans","gitbook":"*","description":"mqant 的文档库. 里面包含了mqant框架的教程"},"file":{"path":"first_module.md","mtime":"2020-05-27T11:24:18.173Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2021-02-17T04:42:28.781Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-mermaid-gb3/book/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-splitter/splitter.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-expandable-chapters/expandable-chapters.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search-pro/jquery.mark.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search-pro/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-pageview-count/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-donate/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-baidu-tongji/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-copy-code-button/toggle.js"></script>
+        
+    
+        
+        <script src="https://cdn.bootcss.com/blueimp-md5/2.12.0/js/md5.min.js"></script>
+        
+    
+        
+        <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-mygitalk/mygitalk.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-flexible-alerts/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-livereload/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    <script src="gitbook/gitbook-plugin-mermaid-gb3/mermaid/mermaid.min.js"></script>
+
+    </body>
+</html>
+
