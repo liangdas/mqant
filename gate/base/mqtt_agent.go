@@ -380,9 +380,12 @@ func (age *agent) WriteMsg(topic string, body []byte) error {
 }
 
 func (age *agent) Close() {
-	if age.conn != nil {
-		age.conn.Close()
-	}
+	go func() {
+		//关闭连接部分情况下会阻塞超时，因此放协程去处理
+		if age.conn != nil {
+			age.conn.Close()
+		}
+	}()
 }
 
 func (age *agent) Destroy() {
