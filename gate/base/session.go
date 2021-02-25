@@ -24,7 +24,7 @@ import (
 	"github.com/liangdas/mqant/gate"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
-	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/utils"
 )
 
@@ -125,8 +125,36 @@ func (sesid *sessionagent) GetServerId() string {
 	return sesid.GetServerID()
 }
 
-func (sesid *sessionagent) GetSettings() map[string]string {
-	return sesid.session.GetSettings()
+func (sesid *sessionagent) SettingsRange(f func(k, v string) bool) {
+	sesid.lock.Lock()
+	defer sesid.lock.Unlock()
+	if sesid.session.GetSettings() == nil {
+		return
+	}
+	for k, v := range sesid.session.GetSettings() {
+		c := f(k, v)
+		if c == false {
+			return
+		}
+	}
+}
+
+//ImportSettings 合并两个map 并且以 agent.(Agent).GetSession().Settings 已有的优先
+func (sesid *sessionagent) ImportSettings(settings map[string]string) error {
+	sesid.lock.Lock()
+	if sesid.session.GetSettings() == nil {
+		sesid.session.Settings = settings
+	} else {
+		for k, v := range settings {
+			if _, ok := sesid.session.GetSettings()[k]; ok {
+				//不用替换
+			} else {
+				sesid.session.GetSettings()[k] = v
+			}
+		}
+	}
+	sesid.lock.Unlock()
+	return nil
 }
 
 func (sesid *sessionagent) LocalUserData() interface{} {
@@ -166,6 +194,15 @@ func (sesid *sessionagent) SetSettings(settings map[string]string) {
 	sesid.lock.Lock()
 	sesid.session.Settings = settings
 	sesid.lock.Unlock()
+}
+func (sesid *sessionagent) CloneSettings() map[string]string {
+	sesid.lock.Lock()
+	defer sesid.lock.Unlock()
+	tmp := map[string]string{}
+	for k, v := range sesid.session.Settings {
+		tmp[k] = v
+	}
+	return tmp
 }
 func (sesid *sessionagent) SetLocalKV(key, value string) error {
 	sesid.lock.Lock()
@@ -229,7 +266,11 @@ func (sesid *sessionagent) update(s gate.Session) error {
 	sesid.session.SessionId = Sessionid
 	Serverid := s.GetServerID()
 	sesid.session.ServerId = Serverid
-	Settings := s.GetSettings()
+	Settings := map[string]string{}
+	s.SettingsRange(func(k, v string) bool {
+		Settings[k] = v
+		return true
+	})
 	sesid.lock.Lock()
 	sesid.session.Settings = Settings
 	sesid.lock.Unlock()
@@ -415,13 +456,27 @@ func (sesid *sessionagent) SetBatch(settings map[string]string) (err string) {
 	return
 }
 func (sesid *sessionagent) Get(key string) (result string) {
+	sesid.lock.RLock()
 	if sesid.session.Settings == nil {
+		sesid.lock.RUnlock()
 		return
 	}
-	sesid.lock.RLock()
 	result = sesid.session.Settings[key]
 	sesid.lock.RUnlock()
 	return
+}
+
+func (sesid *sessionagent) Load(key string) (result string, ok bool) {
+	sesid.lock.RLock()
+	defer sesid.lock.RUnlock()
+	if sesid.session.Settings == nil {
+		return "", false
+	}
+	if result, ok = sesid.session.Settings[key]; ok {
+		return result, ok
+	} else {
+		return "", false
+	}
 }
 
 func (sesid *sessionagent) Remove(key string) (errStr string) {
