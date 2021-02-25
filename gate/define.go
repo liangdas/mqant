@@ -66,7 +66,10 @@ type Session interface {
 	// Deprecated: 因为命名规范问题函数将废弃,请用GetServerID代替
 	GetServerId() string
 	GetServerID() string
-	GetSettings() map[string]string
+	//SettingsRange 配合一个回调函数进行遍历操作，通过回调函数返回内部遍历出来的值。Range 参数中的回调函数的返回值功能是：需要继续迭代遍历时，返回 true；终止迭代遍历时，返回 false。
+	SettingsRange(func(k, v string) bool)
+	// 合并两个map 并且以 agent.(Agent).GetSession().Settings 已有的优先
+	ImportSettings(map[string]string) error
 	//网关本地的额外数据,不会再rpc中传递
 	LocalUserData() interface{}
 	SetIP(ip string)
@@ -82,6 +85,8 @@ type Session interface {
 	SetServerId(serverid string)
 	SetServerID(serverid string)
 	SetSettings(settings map[string]string)
+	//CloneSettings
+	CloneSettings() map[string]string
 	SetLocalKV(key, value string) error
 	RemoveLocalKV(key string) error
 	//网关本地的额外数据,不会再rpc中传递
@@ -95,6 +100,8 @@ type Session interface {
 	SetPush(key string, value string) (err string)    //设置值以后立即推送到gate网关,跟Set功能相同
 	SetBatch(settings map[string]string) (err string) //批量设置settings,跟当前已存在的settings合并,如果跟当前已存在的key重复则会被新value覆盖
 	Get(key string) (result string)
+	//Load 跟Get方法类似，但如果key不存在则 ok会返回false
+	Load(key string) (result string, ok bool)
 	Remove(key string) (err string)
 	Send(topic string, body []byte) (err string)
 	SendNR(topic string, body []byte) (err string)
