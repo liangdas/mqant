@@ -9,6 +9,8 @@ message RPCInfo {
     bool Reply = 6;
     repeated string ArgsType = 7;
     repeated bytes Args = 8;
+    string caller = 9;
+    string hostname =10;
 }
 
 message ResultInfo {

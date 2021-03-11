@@ -8,7 +8,7 @@ import (
 )
 
 func RealIP(r *http.Request) string {
-	remote:=strings.Split(r.RemoteAddr,":")[0]
+	remote := strings.Split(r.RemoteAddr, ":")[0]
 	if !IsInnerIp(remote) {
 		return remote
 	}
