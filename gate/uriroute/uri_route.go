@@ -139,7 +139,7 @@ func (u *URIRoute) OnRoute(session gate.Session, topic string, msg []byte) (bool
 	}
 
 	//默认参数
-	if msg[0] == '{' && msg[len(msg)-1] == '}' {
+	if len(msg)>0&&msg[0] == '{' && msg[len(msg)-1] == '}' {
 		//尝试解析为json为map
 		var obj interface{} // var obj map[string]interface{}
 		err := json.Unmarshal(msg, &obj)

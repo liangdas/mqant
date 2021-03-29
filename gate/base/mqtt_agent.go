@@ -303,7 +303,7 @@ func (age *agent) recoverworker(pack *mqtt.Pack) {
 				}
 				return
 			}
-			if pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
+			if len(pub.GetMsg())>0&&pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
 				//尝试解析为json为map
 				var obj interface{} // var obj map[string]interface{}
 				err := json.Unmarshal(pub.GetMsg(), &obj)
