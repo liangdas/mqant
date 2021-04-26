@@ -25,25 +25,25 @@ import (
 
 const (
 	Rserved = iota
-	CONNECT //1
-	CONNACK //2
+	CONNECT  //1
+	CONNACK  //2
 
-	PUBLISH //3
-	PUBACK  //4
-	PUBREC  //5
-	PUBREL  //6
-	PUBCOMP //7
+	PUBLISH  //3
+	PUBACK   //4
+	PUBREC   //5
+	PUBREL   //6
+	PUBCOMP  //7
 
-	SUBSCRIBE //8
-	SUBACK    //9
+	SUBSCRIBE  //8
+	SUBACK     //9
 
-	UNSUBSCRIBE //10
-	UNSUBACK    //11
+	UNSUBSCRIBE  //10
+	UNSUBACK     //11
 
-	PINGREQ  //12
-	PINGRESP //13
+	PINGREQ   //12
+	PINGRESP  //13
 
-	DISCONNECT //14
+	DISCONNECT  //14
 )
 
 var null_string = ""
@@ -442,17 +442,24 @@ func ReadPack(r *bufio.Reader, max_pack_length int) (pack *Pack, err error) {
 			break
 		}
 		vlen := pack.length - n - 2
-		if n < 1 || vlen < 2 {
+		if n < 1 {
 			err = fmt.Errorf("length error :%v", vlen)
 			break
 		}
 		if pack.GetQos() > 0 {
 			// Read the msg id
+			if vlen < 2 {
+				err = fmt.Errorf("length error publish :%v", vlen)
+				break
+			}
 			pub.mid, err = readInt(r, 2)
 			if err != nil {
 				break
 			}
 			vlen -= 2
+		}
+		if vlen <= 0 {
+			break
 		}
 		// Read the playload
 		pub.msg = make([]byte, vlen)
