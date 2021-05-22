@@ -15,8 +15,6 @@ package basegate
 
 import (
 	"bufio"
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/liangdas/mqant/conf"
@@ -25,10 +23,8 @@ import (
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/network"
-	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
@@ -265,86 +261,18 @@ func (age *agent) recoverworker(pack *mqtt.Pack) {
 		age.revNum = age.revNum + 1
 		age.lock.Unlock()
 		pub := pack.GetVariable().(*mqtt.Publish)
-		if age.gate.GetRouteHandler() != nil {
-			needreturn, result, err := age.gate.GetRouteHandler().OnRoute(age.GetSession(), *pub.GetTopic(), pub.GetMsg())
-			if err != nil {
-				if needreturn {
-					toResult(age, *pub.GetTopic(), result, err.Error())
-				}
-				return
-			}
-			if needreturn {
-				toResult(age, *pub.GetTopic(), result, "")
-			}
-		} else {
-			topics := strings.Split(*pub.GetTopic(), "/")
-			var msgid string
-			if len(topics) < 2 {
-				errorstr := "Topic must be [moduleType@moduleID]/[handler]|[moduleType@moduleID]/[handler]/[msgid]"
-				log.Error(errorstr)
-				toResult(age, *pub.GetTopic(), nil, errorstr)
-				return
-			} else if len(topics) == 3 {
-				msgid = topics[2]
-			}
-			startsWith := strings.HasPrefix(topics[1], "HD_")
-			if !startsWith {
-				if msgid != "" {
-					toResult(age, *pub.GetTopic(), nil, fmt.Sprintf("Method(%s) must begin with 'HD_'", topics[1]))
-				}
-				return
-			}
-			var ArgsType []string = make([]string, 2)
-			var args [][]byte = make([][]byte, 2)
-			serverSession, err := age.module.GetRouteServer(topics[0])
-			if err != nil {
-				if msgid != "" {
-					toResult(age, *pub.GetTopic(), nil, fmt.Sprintf("Service(type:%s) not found", topics[0]))
-				}
-				return
-			}
-			if len(pub.GetMsg())>0&&pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
-				//尝试解析为json为map
-				var obj interface{} // var obj map[string]interface{}
-				err := json.Unmarshal(pub.GetMsg(), &obj)
-				if err != nil {
-					if msgid != "" {
-						toResult(age, *pub.GetTopic(), nil, "The JSON format is incorrect")
-					}
-					return
-				}
-				ArgsType[1] = argsutil.MAP
-				args[1] = pub.GetMsg()
-			} else {
-				ArgsType[1] = argsutil.BYTES
-				args[1] = pub.GetMsg()
-			}
-			session := age.GetSession().Clone()
-			session.SetTopic(*pub.GetTopic())
-			if msgid != "" {
-				ArgsType[0] = RPCParamSessionType
-				b, err := session.Serializable()
-				if err != nil {
-					return
-				}
-				args[0] = b
-				ctx, _ := context.WithTimeout(context.TODO(), age.module.GetApp().Options().RPCExpired)
-				result, e := serverSession.CallArgs(ctx, topics[1], ArgsType, args)
-				toResult(age, *pub.GetTopic(), result, e)
-			} else {
-				ArgsType[0] = RPCParamSessionType
-				b, err := session.Serializable()
-				if err != nil {
-					return
-				}
-				args[0] = b
 
-				e := serverSession.CallNRArgs(topics[1], ArgsType, args)
-				if e != nil {
-					log.Warning("Gate rpc", e.Error())
-				}
+		needreturn, result, err := age.gate.GetRouteHandler().OnRoute(age.GetSession(), *pub.GetTopic(), pub.GetMsg())
+		if err != nil {
+			if needreturn {
+				toResult(age, *pub.GetTopic(), result, err.Error())
 			}
+			return
 		}
+		if needreturn {
+			toResult(age, *pub.GetTopic(), result, "")
+		}
+
 	case mqtt.PINGREQ:
 		//客户端发送的心跳包
 		//if age.GetSession().GetUserId() != "" {
