@@ -14,7 +14,8 @@ import (
 )
 
 type rpcServer struct {
-	exit chan chan error
+	//删除无效变量
+	//exit chan chan error
 
 	sync.RWMutex
 	opts Options
@@ -30,15 +31,23 @@ func newRPCServer(opts ...Option) Server {
 	options := newOptions(opts...)
 	return &rpcServer{
 		opts: options,
-		exit: make(chan chan error),
+		//exit: make(chan chan error),
 	}
 }
 
+//上锁，opts的Metadata是map引用类型。存在数据竞争关系,所以对map的数据修改，加SetAttribute方法
 func (s *rpcServer) Options() Options {
 	s.RLock()
 	opts := s.opts
 	s.RUnlock()
 	return opts
+}
+
+func (s *rpcServer) SetAttribute(key,value string) error{
+	s.Lock()
+	s.opts.Metadata[key] = value
+	s.Unlock()
+	return nil
 }
 
 func (s *rpcServer) Init(opts ...Option) error {

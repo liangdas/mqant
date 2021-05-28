@@ -26,6 +26,7 @@ type Server interface {
 	ID() string
 	// Deprecated: 因为命名规范问题函数将废弃,请用ID代替
 	Id() string
+	SetAttribute(key,value string) error
 }
 
 // Message RPC消息头

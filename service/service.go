@@ -132,7 +132,14 @@ func (s *service) Run() error {
 
 	// start reg loop
 	ex := make(chan bool)
-	go s.run(ex)
+
+	//必须保证定时器先退出，再调用s.stop()，防止注册与反注册同时进行
+	var wg  sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		s.run(ex)
+		wg.Done()
+	}()
 
 	//ch := make(chan os.Signal, 1)
 	//signal.Notify(ch, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
@@ -146,5 +153,6 @@ func (s *service) Run() error {
 
 	// exit reg loop
 	close(ex)
+	wg.Wait()
 	return s.Stop()
 }

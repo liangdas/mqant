@@ -130,9 +130,12 @@ func (m *BaseModule) OnInit(subclass module.RPCModule, app module.App, settings 
 	if err != nil {
 		log.Warning("server OnInit fail id(%s) error(%s)", m.GetServerID(), err)
 	}
+
 	hostname, _ := os.Hostname()
-	server.Options().Metadata["hostname"] = hostname
-	server.Options().Metadata["pid"] = fmt.Sprintf("%v", os.Getpid())
+	//server.Options().Metadata["hostname"] = hostname
+	//server.Options().Metadata["pid"] = fmt.Sprintf("%v", os.Getpid())
+	server.SetAttribute("hostname", hostname)
+	server.SetAttribute("pid", fmt.Sprintf("%v", os.Getpid()))
 	ctx, cancel := context.WithCancel(context.Background())
 	m.exit = cancel
 	m.serviceStopeds = make(chan bool)
