@@ -33,6 +33,7 @@ type NatsServer struct {
 	server    *RPCServer
 	done      chan bool
 	stopeds   chan bool
+	subs      *nats.Subscription
 	isClose   bool
 }
 
@@ -106,7 +107,7 @@ func (s *NatsServer) Callback(callinfo *mqrpc.CallInfo) error {
 /**
 接收请求信息
 */
-func (s *NatsServer) on_request_handle() error {
+func (s *NatsServer) on_request_handle() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -124,7 +125,7 @@ func (s *NatsServer) on_request_handle() error {
 			fmt.Println(errstr)
 		}
 	}()
-	subs, err := s.app.Transport().SubscribeSync(s.addr)
+	s.subs, err = s.app.Transport().SubscribeSync(s.addr)
 	if err != nil {
 		return err
 	}
@@ -134,17 +135,33 @@ func (s *NatsServer) on_request_handle() error {
 		case <-s.done:
 			//服务关闭
 		}
-		subs.Unsubscribe()
+		s.subs.Unsubscribe()
 	}()
 
 	for !s.isClose {
-		m, err := subs.NextMsg(time.Minute)
+		m, err := s.subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
 			//fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
+			if !s.subs.IsValid() {
+				//订阅已关闭，需要重新订阅
+				s.subs, err = s.app.Transport().SubscribeSync(s.addr)
+				if err != nil {
+					log.Error("NatsServer SubscribeSync[1] error with '%v'", err)
+					continue
+				}
+			}
 			continue
 		} else if err != nil {
 			log.Warning("NatsServer error with '%v'", err)
+			if !s.subs.IsValid() {
+				//订阅已关闭，需要重新订阅
+				s.subs, err = s.app.Transport().SubscribeSync(s.addr)
+				if err != nil {
+					log.Error("NatsServer SubscribeSync[2] error with '%v'", err)
+					continue
+				}
+			}
 			continue
 		}
 

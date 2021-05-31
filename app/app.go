@@ -212,14 +212,15 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	conf.LoadConfig(f.Name()) //加载配置文件
 	cof = conf.Conf
 	app.Configure(cof) //解析配置信息
-	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
-	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
-
-	log.Info("mqant %v starting up", app.opts.Version)
 
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
+
+	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
+	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
+
+	log.Info("mqant %v starting up", app.opts.Version)
 
 	manager := basemodule.NewModuleManager()
 	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行

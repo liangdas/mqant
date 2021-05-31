@@ -34,6 +34,7 @@ type NatsClient struct {
 	callbackqueueName string
 	app               module.App
 	done              chan error
+	subs              *nats.Subscription
 	isClose           bool
 	session           module.ServerSession
 }
@@ -121,7 +122,7 @@ func (c *NatsClient) CallNR(callInfo *mqrpc.CallInfo) error {
 /**
 接收应答信息
 */
-func (c *NatsClient) on_request_handle() error {
+func (c *NatsClient) on_request_handle() (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			var rn = ""
@@ -139,25 +140,41 @@ func (c *NatsClient) on_request_handle() error {
 			fmt.Println(errstr)
 		}
 	}()
-	subs, err := c.app.Transport().SubscribeSync(c.callbackqueueName)
+	c.subs, err = c.app.Transport().SubscribeSync(c.callbackqueueName)
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		<-c.done
-		subs.Unsubscribe()
+		c.subs.Unsubscribe()
 	}()
 
 	for !c.isClose {
-		m, err := subs.NextMsg(time.Minute)
+		m, err := c.subs.NextMsg(time.Minute)
 		if err != nil && err == nats.ErrTimeout {
 			//fmt.Println(err.Error())
 			//log.Warning("NatsServer error with '%v'",err)
+			if !c.subs.IsValid() {
+				//订阅已关闭，需要重新订阅
+				c.subs, err = c.app.Transport().SubscribeSync(c.callbackqueueName)
+				if err != nil {
+					log.Error("NatsClient SubscribeSync[1] error with '%v'", err)
+					continue
+				}
+			}
 			continue
 		} else if err != nil {
 			fmt.Println(fmt.Sprintf("%v rpcclient error: %v", time.Now().String(), err.Error()))
 			log.Error("NatsClient error with '%v'", err)
+			if !c.subs.IsValid() {
+				//订阅已关闭，需要重新订阅
+				c.subs, err = c.app.Transport().SubscribeSync(c.callbackqueueName)
+				if err != nil {
+					log.Error("NatsClient SubscribeSync[2] error with '%v'", err)
+					continue
+				}
+			}
 			continue
 		}
 

@@ -23,6 +23,7 @@ import (
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
+	"os"
 	"time"
 )
 
@@ -51,9 +52,14 @@ func (c *RPCClient) Done() (err error) {
 }
 
 func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []string, args [][]byte) (r interface{}, e string) {
-
+	caller, _ := os.Hostname()
+	if ctx != nil {
+		cr, ok := ctx.Value("caller").(string)
+		if ok {
+			caller = cr
+		}
+	}
 	start := time.Now()
-
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
@@ -62,6 +68,8 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
+		Caller:   *proto.String(caller),
+		Hostname: *proto.String(caller),
 	}
 	defer func() {
 		//异常日志都应该打印
@@ -116,6 +124,7 @@ func (c *RPCClient) close_callback_chan(ch chan *rpcpb.ResultInfo) {
 	close(ch) // panic if ch is closed
 }
 func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (err error) {
+	caller, _ := os.Hostname()
 	var correlation_id = uuid.Rand().Hex()
 	rpcInfo := &rpcpb.RPCInfo{
 		Fn:       *proto.String(_func),
@@ -124,6 +133,8 @@ func (c *RPCClient) CallNRArgs(_func string, ArgsType []string, args [][]byte) (
 		Cid:      *proto.String(correlation_id),
 		Args:     args,
 		ArgsType: ArgsType,
+		Caller:   *proto.String(caller),
+		Hostname: *proto.String(caller),
 	}
 	callInfo := &mqrpc.CallInfo{
 		RPCInfo: rpcInfo,

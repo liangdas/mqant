@@ -152,20 +152,12 @@ func (h *handler) Bind(span log.TraceSpan, Sessionid string, Userid string) (res
 			//有已持久化的数据,可能是上一次连接保存的
 			impSession, err := h.gate.NewSession(data)
 			if err == nil {
-				if agent.(gate.Agent).GetSession().GetSettings() == nil {
-					agent.(gate.Agent).GetSession().SetSettings(impSession.GetSettings())
+				if agent.(gate.Agent).GetSession() == nil {
+					agent.(gate.Agent).GetSession().SetSettings(impSession.CloneSettings())
 				} else {
 					//合并两个map 并且以 agent.(Agent).GetSession().Settings 已有的优先
-					settings := impSession.GetSettings()
-					if settings != nil {
-						for k, v := range settings {
-							if _, ok := agent.(gate.Agent).GetSession().GetSettings()[k]; ok {
-								//不用替换
-							} else {
-								_ = agent.(gate.Agent).GetSession().SetLocalKV(k, v)
-							}
-						}
-					}
+					settings := impSession.CloneSettings()
+					_ = agent.(gate.Agent).GetSession().ImportSettings(settings)
 				}
 			} else {
 				//解析持久化数据失败

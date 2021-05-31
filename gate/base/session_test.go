@@ -52,6 +52,7 @@ func TestSessionagent_Serializable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewSessionByMap error: %v", err)
 	}
+	settings := map[string]string{"a": "a"}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() { //開一個協程寫map
@@ -59,9 +60,22 @@ func TestSessionagent_Serializable(t *testing.T) {
 			_session := session.Clone()
 			session.Serializable()
 			session.SetLocalKV("ff", "sss")
+			session.ImportSettings(settings)
 			_session.Set("TestTopic", fmt.Sprintf("set %v", j))
 			_session.SetTopic("ttt")
 			_session.Serializable()
+			a, ok := session.Load("a")
+			if a != "a" || ok != true {
+				t.Fatalf("Load error: %v", err)
+			}
+			cs := session.CloneSettings()
+			for k, v := range settings {
+				if _, ok := cs[k]; ok {
+					//不用替换
+				} else {
+					cs[k] = v
+				}
+			}
 		}
 		wg.Done()
 	}()
@@ -71,6 +85,7 @@ func TestSessionagent_Serializable(t *testing.T) {
 			session.Clone()
 			session.Serializable()
 			session.SetLocalKV("ff", "sss")
+			session.ImportSettings(settings)
 			session.SetTopic("ttt")
 			//fmt.Println("Serializable", b)
 		}
