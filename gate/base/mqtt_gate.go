@@ -15,6 +15,7 @@ package basegate
 
 import (
 	"fmt"
+	dafaultrouter "github.com/liangdas/mqant/gate/defaultrouter"
 	"reflect"
 	"time"
 
@@ -95,6 +96,9 @@ func (gt *Gate) GetSessionLearner() gate.SessionLearner {
 	return gt.opts.SessionLearner
 }
 func (gt *Gate) GetRouteHandler() gate.RouteHandler {
+	if gt.opts.RouteHandler == nil {
+		gt.opts.RouteHandler = dafaultrouter.NewDefaultRouter(gt.GetModule())
+	}
 	return gt.opts.RouteHandler
 }
 func (gt *Gate) GetJudgeGuest() func(session gate.Session) bool {
