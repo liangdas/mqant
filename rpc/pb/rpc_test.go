@@ -14,7 +14,7 @@
 package rpcpb
 
 import (
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"testing"
 	"time"
 )
