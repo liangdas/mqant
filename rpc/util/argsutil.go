@@ -16,7 +16,7 @@ package argsutil
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
@@ -125,11 +125,7 @@ func ArgsTypeAnd2Bytes(app module.App, arg interface{}) (string, []byte, error) 
 					log.Error("proto.Marshal error")
 					return "", nil, fmt.Errorf("args [%s] proto.Marshal error %v", reflect.TypeOf(arg), err)
 				}
-				if v2.String() != "" {
-					return fmt.Sprintf("%v@%v", Proto, v2.String()), b, nil
-				} else {
-					return fmt.Sprintf("%v@%v", Proto, reflect.TypeOf(arg)), b, nil
-				}
+				return fmt.Sprintf("%v@%v", Proto, reflect.TypeOf(arg)), b, nil
 			}
 		}
 

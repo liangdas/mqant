@@ -3,7 +3,7 @@ package mqrpc
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 	"strconv"
 )

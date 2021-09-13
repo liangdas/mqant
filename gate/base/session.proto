@@ -1,5 +1,6 @@
 syntax = "proto3";
 package basegate;
+option go_package = "github.com/liangdas/mqant/gate/base/basegate";
 message sessionImp {
     string IP = 1;
     string Network = 2;

@@ -13,7 +13,7 @@ var (
 
 // Sprintf 字符串格式,可以替换map中的内容
 // eg 你的名字是{name}   extra=map[string]string{"name","mqant"}
-func Sprintf(format string, extra map[string]string) string {
+func Sprintf(format string, extra map[string]interface{}) string {
 	fields := regFields.FindAllString(format, -1)
 	ret := format
 	for _, fieldName := range fields {

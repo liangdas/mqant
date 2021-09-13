@@ -32,6 +32,9 @@ mqant是一款基于Golang语言的简洁,高效,高性能的分布式微服务�
  [mqant-docker](https://github.com/bjfumac/mqant-docker)
  [MQTT-Laya](https://github.com/bjfumac/MQTT-Laya)
 
+# 应用案例
+
+[恰玩-实时互动游戏社交app](https://tiyfr.com/)
 
 # 演示示例
 	mqant 项目只包含mqant的代码文件

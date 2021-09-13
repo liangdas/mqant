@@ -15,7 +15,7 @@ package basegate
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"sync"
 	"testing"
 )
