@@ -151,15 +151,6 @@ func Bytes(reply interface{}, err interface{}) ([]byte, error) {
 	return nil, fmt.Errorf("mqrpc: unexpected type for Bytes, got type %T", reply)
 }
 
-// Bool is a helper that converts a command reply to a boolean. If err is not
-// equal to nil, then Bool returns false, err. Otherwise Bool converts the
-// reply to boolean as follows:
-//
-//  Reply type      Result
-//  integer         value != 0, nil
-//  bulk string     strconv.ParseBool(reply)
-//  nil             false, ErrNil
-//  other           false, error
 func Bool(reply interface{}, err interface{}) (bool, error) {
 	switch e := err.(type) {
 	case string:
@@ -172,8 +163,8 @@ func Bool(reply interface{}, err interface{}) (bool, error) {
 		}
 	}
 	switch reply := reply.(type) {
-	case int64:
-		return reply != 0, nil
+	case bool:
+		return reply, nil
 	case nil:
 		return false, ErrNil
 	}
