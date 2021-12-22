@@ -18,11 +18,17 @@ package log
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/liangdas/mqant/log/beego"
+	"strings"
+
+	logs "github.com/liangdas/mqant/log/beego"
 )
 
 //NewBeegoLogger beego
 func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) *logs.BeeLogger {
+	var logName string
+	if logger != nil {
+		logName = logger.name
+	}
 	log := logs.NewLogger()
 	log.ProcessID = ProcessID
 	log.EnableFuncCallDepth(true)
@@ -45,6 +51,12 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		if suffix, ok := ff["suffix"]; ok {
 			Suffix = suffix.(string)
 		}
+		if logName != "" {
+			Suffix = logName
+			if !strings.HasSuffix(logName, ".log") {
+				Suffix = logName + ".log"
+			}
+		}
 		ff["filename"] = fmt.Sprintf("%s/%v%s%s", Logdir, Prefix, ProcessID, Suffix)
 		config, err := json.Marshal(ff)
 		if err != nil {
@@ -61,6 +73,12 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		Suffix := ".log"
 		if suffix, ok := multifile["suffix"]; ok {
 			Suffix = suffix.(string)
+		}
+		if logName != "" {
+			Suffix = logName
+			if !strings.HasSuffix(logName, ".log") {
+				Suffix = logName + ".log"
+			}
 		}
 		multifile["filename"] = fmt.Sprintf("%s/%v%s%s", Logdir, Prefix, ProcessID, Suffix)
 		config, err := json.Marshal(multifile)

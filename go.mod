@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/consul/api v1.1.0
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.7
+	github.com/manifoldco/promptui v0.8.0
 	github.com/mitchellh/hashstructure v1.0.0
 	github.com/nats-io/nats-server/v2 v2.1.0 // indirect
 	github.com/nats-io/nats.go v1.9.1
