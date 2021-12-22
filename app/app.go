@@ -20,17 +20,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/base"
-	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,6 +28,18 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	basemodule "github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
+	"github.com/liangdas/mqant/registry"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -139,7 +140,6 @@ func newOptions(opts ...module.Option) module.Options {
 			opt.LogDir = *Logdir
 		}
 	}
-
 	if opt.BIDir == "" {
 		if *BIdir == "" {
 			opt.BIDir = defaultBIPath
@@ -216,7 +216,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
-
+	log.NewLogger(app.opts.LogName)
 	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
 	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 

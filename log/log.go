@@ -17,11 +17,24 @@ package log
 
 import (
 	beegolog "github.com/liangdas/mqant/log/beego"
-	"github.com/liangdas/mqant/utils"
+	mqanttools "github.com/liangdas/mqant/utils"
 )
 
 var beego *beegolog.BeeLogger
 var bi *beegolog.BeeLogger
+var LogName string
+var logger *Logger
+
+type Logger struct {
+	name string
+}
+
+// NewLogger 初始化日志模块 方便后期进行日志封装
+func NewLogger(name string) {
+	logger = &Logger{
+		name: name,
+	}
+}
 
 // InitLog 初始化日志
 func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
