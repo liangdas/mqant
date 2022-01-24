@@ -20,17 +20,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/liangdas/mqant/conf"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	"github.com/liangdas/mqant/module/base"
-	"github.com/liangdas/mqant/module/modules"
-	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/selector"
-	"github.com/liangdas/mqant/selector/cache"
-	"github.com/nats-io/nats.go"
-	"github.com/pkg/errors"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,6 +28,18 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	basemodule "github.com/liangdas/mqant/module/base"
+	"github.com/liangdas/mqant/module/modules"
+	"github.com/liangdas/mqant/registry"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	"github.com/liangdas/mqant/selector"
+	"github.com/liangdas/mqant/selector/cache"
+	"github.com/nats-io/nats.go"
+	"github.com/pkg/errors"
 )
 
 type resultInfo struct {
@@ -217,9 +218,15 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		app.configurationLoaded(app)
 	}
 
-	log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
-	log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
-
+	// log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
+	// log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
+	log.Init(log.WithDebug(app.opts.Debug),
+		log.WithProcessID(app.opts.ProcessID),
+		log.WithBiDir(app.opts.BIDir),
+		log.WithLogDir(app.opts.LogDir),
+		log.WithLogFileName(app.opts.LogFileName),
+		log.WithBiSetting(cof.Log),
+		log.WithLogSetting(app.settings.BI))
 	log.Info("mqant %v starting up", app.opts.Version)
 
 	manager := basemodule.NewModuleManager()

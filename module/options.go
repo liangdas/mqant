@@ -1,12 +1,13 @@
 package module
 
 import (
+	"time"
+
 	"github.com/liangdas/mqant/registry"
-	"github.com/liangdas/mqant/rpc"
-	"github.com/liangdas/mqant/rpc/pb"
+	mqrpc "github.com/liangdas/mqant/rpc"
+	rpcpb "github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/selector"
 	"github.com/nats-io/nats.go"
-	"time"
 )
 
 // Option 配置项
@@ -34,6 +35,9 @@ type Options struct {
 	RpcCompleteHandler RpcCompleteHandler
 	RPCExpired         time.Duration
 	RPCMaxCoroutine    int
+	// 自定义日志文件名字
+	// 主要作用方便k8s映射日志不会被冲突，建议使用k8s pod实现
+	LogFileName string
 }
 
 // ClientRPCHandler 调用方RPC监控
@@ -177,5 +181,12 @@ func RPCExpired(t time.Duration) Option {
 func RPCMaxCoroutine(t int) Option {
 	return func(o *Options) {
 		o.RPCMaxCoroutine = t
+	}
+}
+
+// WithLogFile 日志文件名称
+func WithLogFile(fieName string) Option {
+	return func(o *Options) {
+		o.LogFileName = fieName
 	}
 }

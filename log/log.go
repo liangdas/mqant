@@ -17,20 +17,30 @@ package log
 
 import (
 	beegolog "github.com/liangdas/mqant/log/beego"
-	"github.com/liangdas/mqant/utils"
+	mqanttools "github.com/liangdas/mqant/utils"
 )
 
 var beego *beegolog.BeeLogger
 var bi *beegolog.BeeLogger
 
 // InitLog 初始化日志
-func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
-	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings)
+func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) {
+	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath...)
 }
 
 // InitBI 初始化BI日志
-func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]interface{}) {
-	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings)
+func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) {
+	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath...)
+}
+
+// Init 初始化配置
+func Init(cc ...Option) {
+	opt := &Options{}
+	for _, o := range cc {
+		o(opt)
+	}
+	InitBI(opt.Debug, opt.ProcessID, opt.BiDir, opt.BiSetting, opt.LogFileName)
+	InitLog(opt.Debug, opt.ProcessID, opt.LogDir, opt.LogSetting, opt.LogFileName)
 }
 
 // LogBeego LogBeego
