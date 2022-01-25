@@ -69,6 +69,8 @@ func newOptions(opts ...module.Option) module.Options {
 		RPCMaxCoroutine:  0, //不限制
 		Debug:            true,
 		Parse:            true,
+		LogFileName:      func(processID, logDir string, settings map[string]interface{}) string { return "" },
+		BIFileName:       func(processID, logDir string, settings map[string]interface{}) string { return "" },
 	}
 
 	for _, o := range opts {
@@ -224,8 +226,9 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		log.WithProcessID(app.opts.ProcessID),
 		log.WithBiDir(app.opts.BIDir),
 		log.WithLogDir(app.opts.LogDir),
-		log.WithLogFileName(app.opts.LogFileName),
+		log.WithLogFileName(app.opts.LogFileName(app.opts.ProcessID, app.opts.LogDir, app.settings.Log)),
 		log.WithBiSetting(cof.Log),
+		log.WithBIFileName(app.opts.BIFileName(app.opts.ProcessID, app.opts.BIDir, app.settings.BI)),
 		log.WithLogSetting(app.settings.BI))
 	log.Info("mqant %v starting up", app.opts.Version)
 

@@ -9,6 +9,7 @@ type Options struct {
 	LogDir      string
 	LogFileName string
 	BiDir       string
+	BIFileName  string
 	BiSetting   map[string]interface{}
 	LogSetting  map[string]interface{}
 }
@@ -69,6 +70,14 @@ func WithBiDir(v string) Option {
 	}
 }
 
+func WithBIFileName(v string) Option {
+	return func(cc *Options) Option {
+		previous := cc.BIFileName
+		cc.BIFileName = v
+		return WithBIFileName(previous)
+	}
+}
+
 func WithBiSetting(v map[string]interface{}) Option {
 	return func(cc *Options) Option {
 		previous := cc.BiSetting
@@ -113,6 +122,7 @@ func newDefaultOptions() *Options {
 		WithLogDir(""),
 		WithLogFileName(""),
 		WithBiDir(""),
+		WithBIFileName(""),
 		WithBiSetting(make(map[string]interface{}, 0)),
 		WithLogSetting(make(map[string]interface{}, 0)),
 	} {

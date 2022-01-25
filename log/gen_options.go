@@ -8,6 +8,7 @@ func OptionsOptionDeclareWithDefault() interface{} {
 		"LogDir":      "",
 		"LogFileName": "",
 		"BiDir":       "",
+		"BIFileName":  "",
 		"BiSetting":   map[string]interface{}{},
 		"LogSetting":  map[string]interface{}{},
 	}

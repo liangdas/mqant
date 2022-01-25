@@ -26,7 +26,7 @@ import (
 func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) *logs.BeeLogger {
 	var filename string
 	if len(logFilePath) != 0 {
-		filename = Logdir + "/" + logFilePath[0] + ".log"
+		filename = logFilePath[0]
 	}
 	log := logs.NewLogger()
 	log.ProcessID = ProcessID

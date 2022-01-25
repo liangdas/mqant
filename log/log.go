@@ -39,7 +39,7 @@ func Init(cc ...Option) {
 	for _, o := range cc {
 		o(opt)
 	}
-	InitBI(opt.Debug, opt.ProcessID, opt.BiDir, opt.BiSetting, opt.LogFileName)
+	InitBI(opt.Debug, opt.ProcessID, opt.BiDir, opt.BiSetting, opt.BIFileName)
 	InitLog(opt.Debug, opt.ProcessID, opt.LogDir, opt.LogSetting, opt.LogFileName)
 }
 

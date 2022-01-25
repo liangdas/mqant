@@ -37,8 +37,12 @@ type Options struct {
 	RPCMaxCoroutine    int
 	// 自定义日志文件名字
 	// 主要作用方便k8s映射日志不会被冲突，建议使用k8s pod实现
-	LogFileName string
+	LogFileName FileNameHandler
+	// 自定义BI日志名字
+	BIFileName FileNameHandler
 }
+
+type FileNameHandler func(processID, logDir string, settings map[string]interface{}) string
 
 // ClientRPCHandler 调用方RPC监控
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo *rpcpb.RPCInfo, result interface{}, err string, exec_time int64)
@@ -185,8 +189,15 @@ func RPCMaxCoroutine(t int) Option {
 }
 
 // WithLogFile 日志文件名称
-func WithLogFile(fieName string) Option {
+func WithLogFile(name FileNameHandler) Option {
 	return func(o *Options) {
-		o.LogFileName = fieName
+		o.LogFileName = name
+	}
+}
+
+// WithBIFile Bi日志名称
+func WithBIFile(name FileNameHandler) Option {
+	return func(o *Options) {
+		o.BIFileName = name
 	}
 }
