@@ -7,9 +7,9 @@ type Options struct {
 	Debug       bool
 	ProcessID   string
 	LogDir      string
-	LogFileName string
+	LogFileName func(logdir, prefix, processID, suffix string) string
 	BiDir       string
-	BIFileName  string
+	BIFileName  func(logdir, prefix, processID, suffix string) string
 	BiSetting   map[string]interface{}
 	LogSetting  map[string]interface{}
 }
@@ -54,7 +54,7 @@ func WithLogDir(v string) Option {
 	}
 }
 
-func WithLogFileName(v string) Option {
+func WithLogFileName(v func(logdir, prefix, processID, suffix string) string) Option {
 	return func(cc *Options) Option {
 		previous := cc.LogFileName
 		cc.LogFileName = v
@@ -70,7 +70,7 @@ func WithBiDir(v string) Option {
 	}
 }
 
-func WithBIFileName(v string) Option {
+func WithBIFileName(v func(logdir, prefix, processID, suffix string) string) Option {
 	return func(cc *Options) Option {
 		previous := cc.BIFileName
 		cc.BIFileName = v
@@ -120,9 +120,13 @@ func newDefaultOptions() *Options {
 		WithDebug(false),
 		WithProcessID(""),
 		WithLogDir(""),
-		WithLogFileName(""),
+		WithLogFileName(func(logdir, prefix, processID, suffix string) string {
+			return ""
+		}),
 		WithBiDir(""),
-		WithBIFileName(""),
+		WithBIFileName(func(logdir, prefix, processID, suffix string) string {
+			return ""
+		}),
 		WithBiSetting(make(map[string]interface{}, 0)),
 		WithLogSetting(make(map[string]interface{}, 0)),
 	} {

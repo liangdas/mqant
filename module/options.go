@@ -42,7 +42,7 @@ type Options struct {
 	BIFileName FileNameHandler
 }
 
-type FileNameHandler func(processID, logDir string, settings map[string]interface{}) string
+type FileNameHandler func(logdir, prefix, processID, suffix string) string
 
 // ClientRPCHandler 调用方RPC监控
 type ClientRPCHandler func(app App, server registry.Node, rpcinfo *rpcpb.RPCInfo, result interface{}, err string, exec_time int64)

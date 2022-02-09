@@ -23,11 +23,7 @@ import (
 )
 
 //NewBeegoLogger beego
-func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) *logs.BeeLogger {
-	var filename string
-	if len(logFilePath) != 0 {
-		filename = logFilePath[0]
-	}
+func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath func(logdir, prefix, processID, suffix string) string) *logs.BeeLogger {
 	log := logs.NewLogger()
 	log.ProcessID = ProcessID
 	log.EnableFuncCallDepth(true)
@@ -51,8 +47,8 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 			Suffix = suffix.(string)
 		}
 		ff["filename"] = fmt.Sprintf("%s/%v%s%s", Logdir, Prefix, ProcessID, Suffix)
-		if filename != "" {
-			ff["filename"] = filename
+		if logFilePath != nil {
+			ff["filename"] = logFilePath(Logdir, Prefix, ProcessID, Suffix)
 		}
 		config, err := json.Marshal(ff)
 		if err != nil {
@@ -71,8 +67,8 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 			Suffix = suffix.(string)
 		}
 		multifile["filename"] = fmt.Sprintf("%s/%v%s%s", Logdir, Prefix, ProcessID, Suffix)
-		if filename != "" {
-			multifile["filename"] = filename
+		if logFilePath != nil {
+			multifile["filename"] = logFilePath(Logdir, Prefix, ProcessID, Suffix)
 		}
 		config, err := json.Marshal(multifile)
 		if err != nil {

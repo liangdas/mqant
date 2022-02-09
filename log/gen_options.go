@@ -6,9 +6,9 @@ func OptionsOptionDeclareWithDefault() interface{} {
 		"Debug":       false,
 		"ProcessID":   "",
 		"LogDir":      "",
-		"LogFileName": "",
+		"LogFileName": func(logdir, prefix, processID, suffix string) string { return "" },
 		"BiDir":       "",
-		"BIFileName":  "",
+		"BIFileName":  func(logdir, prefix, processID, suffix string) string { return "" },
 		"BiSetting":   map[string]interface{}{},
 		"LogSetting":  map[string]interface{}{},
 	}

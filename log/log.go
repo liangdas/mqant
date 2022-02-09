@@ -24,13 +24,13 @@ var beego *beegolog.BeeLogger
 var bi *beegolog.BeeLogger
 
 // InitLog 初始化日志
-func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) {
-	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath...)
+func InitLog(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath func(logdir, prefix, processID, suffix string) string) {
+	beego = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath)
 }
 
 // InitBI 初始化BI日志
-func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath ...string) {
-	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath...)
+func InitBI(debug bool, ProcessID string, Logdir string, settings map[string]interface{}, logFilePath func(logdir, prefix, processID, suffix string) string) {
+	bi = NewBeegoLogger(debug, ProcessID, Logdir, settings, logFilePath)
 }
 
 // Init 初始化配置

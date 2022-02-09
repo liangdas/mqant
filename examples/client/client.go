@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/liangdas/mqant"
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/examples/proto/examples/greeter"
@@ -13,7 +15,9 @@ func main() {
 	// 服务实例
 	app := mqant.CreateApp(
 		module.Debug(false),
-		module.WithLogFile(func(processID, logDir string, settings map[string]interface{}) string { return logDir + "/tt.log" }),
+		module.WithLogFile(func(logdir, prefix, processID, suffix string) string {
+			return fmt.Sprintf("%s/%v%s%s%s", logdir, prefix, processID, "xxx", suffix)
+		}),
 	)
 	// 配置加载
 	app.OnConfigurationLoaded(func(app module.App) {

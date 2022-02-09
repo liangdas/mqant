@@ -32,10 +32,21 @@
             "daily": true,
             "rotate": true,
             "perm": "0600",
+            "prefix":"a",
             "separate": [
                 "error"
             ]
+            
+        },
+        "file": {
+            "maxLines": 0,
+            "maxsize": 0,
+            "daily": true,
+            "prefix":"n",
+            "rotate": true,
+            "perm": "0600"
         }
+       
     },
 	"Mqtt":{
 	    // 最大写入包队列缓存
