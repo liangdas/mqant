@@ -37,13 +37,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/json-iterator/go"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 // RFC5424 log message levels.

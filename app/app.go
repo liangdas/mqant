@@ -227,9 +227,9 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		log.WithBiDir(app.opts.BIDir),
 		log.WithLogDir(app.opts.LogDir),
 		log.WithLogFileName(app.opts.LogFileName(app.opts.ProcessID, app.opts.LogDir, app.settings.Log)),
-		log.WithBiSetting(cof.Log),
+		log.WithBiSetting(cof.BI),
 		log.WithBIFileName(app.opts.BIFileName(app.opts.ProcessID, app.opts.BIDir, app.settings.BI)),
-		log.WithLogSetting(app.settings.BI))
+		log.WithLogSetting(cof.Log))
 	log.Info("mqant %v starting up", app.opts.Version)
 
 	manager := basemodule.NewModuleManager()
