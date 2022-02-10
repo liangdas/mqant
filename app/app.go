@@ -69,8 +69,12 @@ func newOptions(opts ...module.Option) module.Options {
 		RPCMaxCoroutine:  0, //不限制
 		Debug:            true,
 		Parse:            true,
-		LogFileName:      func(logdir, prefix, processID, suffix string) string { return "" },
-		BIFileName:       func(logdir, prefix, processID, suffix string) string { return "" },
+		LogFileName: func(logdir, prefix, processID, suffix string) string {
+			return fmt.Sprintf("%s/%v%s%s", logdir, prefix, processID, suffix)
+		},
+		BIFileName: func(logdir, prefix, processID, suffix string) string {
+			return fmt.Sprintf("%s/%v%s%s", Logdir, prefix, processID, suffix)
+		},
 	}
 
 	for _, o := range opts {
