@@ -73,7 +73,7 @@ func newOptions(opts ...module.Option) module.Options {
 			return fmt.Sprintf("%s/%v%s%s", logdir, prefix, processID, suffix)
 		},
 		BIFileName: func(logdir, prefix, processID, suffix string) string {
-			return fmt.Sprintf("%s/%v%s%s", Logdir, prefix, processID, suffix)
+			return fmt.Sprintf("%s/%v%s%s", logdir, prefix, processID, suffix)
 		},
 	}
 
