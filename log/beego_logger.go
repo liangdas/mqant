@@ -18,6 +18,7 @@ package log
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/liangdas/mqant/log/conf"
 
 	logs "github.com/liangdas/mqant/log/beego"
 )
@@ -118,5 +119,27 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		}
 		log.SetLogger(logs.AdapterEs, string(config))
 	}
+	return log
+}
+
+// NewDefaultBeegoLogger 创建一个logger
+func NewDefaultBeegoLogger(opt *conf.Options) *logs.BeeLogger {
+	if opt == nil {
+		opt = conf.NewOptions()
+	}
+	log := logs.NewLogger()
+	log.SetLogFuncCallDepth(4)
+	if opt.Debug {
+		//控制台
+		_ = log.SetLogger(logs.AdapterConsole)
+		return log
+	}
+	log.SetContentType("application/json")
+	config, err := json.Marshal(opt)
+	if err != nil {
+		//logs.Error(err)
+		return nil
+	}
+	_ = log.SetLogger(logs.AdapterMultiFile, string(config))
 	return log
 }

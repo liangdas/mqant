@@ -16,12 +16,12 @@ package defaultrpc
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc/util"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 	"runtime"
 	"sync"
@@ -99,7 +99,7 @@ func (s *RPCServer) Register(id string, f interface{}) {
 
 }
 
-// you must call the function before calling Open and Go
+// RegisterGO you must call the function before calling Open and Go
 func (s *RPCServer) RegisterGO(id string, f interface{}) {
 
 	if _, ok := s.functions[id]; ok {
@@ -174,7 +174,7 @@ func (s *RPCServer) doCallback(callInfo *mqrpc.CallInfo) {
 	} else {
 		//对于不需要回复的消息,可以判断一下是否出现错误，打印一些警告
 		if callInfo.Result.Error != "" {
-			log.Warning("rpc callback erro :\n%s", callInfo.Result.Error)
+			log.Warning("rpc callback error :\n%s", callInfo.Result.Error)
 		}
 	}
 	if s.app.Options().ServerRPCHandler != nil {

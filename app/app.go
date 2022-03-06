@@ -31,6 +31,7 @@ import (
 
 	"github.com/liangdas/mqant/conf"
 	"github.com/liangdas/mqant/log"
+	logConf "github.com/liangdas/mqant/log/conf"
 	"github.com/liangdas/mqant/module"
 	basemodule "github.com/liangdas/mqant/module/base"
 	"github.com/liangdas/mqant/module/modules"
@@ -57,8 +58,6 @@ func (p *protocolMarshalImp) GetData() []byte {
 }
 
 func newOptions(opts ...module.Option) module.Options {
-	var wdPath, confPath, Logdir, BIdir *string
-	var ProcessID *string
 	opt := module.Options{
 		Registry:         registry.DefaultRegistry,
 		Selector:         cache.NewSelector(),
@@ -73,110 +72,17 @@ func newOptions(opts ...module.Option) module.Options {
 			return fmt.Sprintf("%s/%v%s%s", logdir, prefix, processID, suffix)
 		},
 		BIFileName: func(logdir, prefix, processID, suffix string) string {
-			return fmt.Sprintf("%s/%v%s%s", Logdir, prefix, processID, suffix)
+			return fmt.Sprintf("%s/%v%s%s", logdir, prefix, processID, suffix)
 		},
 	}
-
 	for _, o := range opts {
 		o(&opt)
 	}
-
-	if opt.Parse {
-		wdPath = flag.String("wd", "", "Server work directory")
-		confPath = flag.String("conf", "", "Server configuration file path")
-		ProcessID = flag.String("pid", "development", "Server ProcessID?")
-		Logdir = flag.String("log", "", "Log file directory?")
-		BIdir = flag.String("bi", "", "bi file directory?")
-		flag.Parse() //解析输入的参数
-	}
-
-	if opt.Nats == nil {
-		nc, err := nats.Connect(nats.DefaultURL)
-		if err != nil {
-			log.Error("nats agent: %s", err.Error())
-			//panic(fmt.Sprintf("nats agent: %s", err.Error()))
-		}
-		opt.Nats = nc
-	}
-
-	if opt.WorkDir == "" {
-		opt.WorkDir = *wdPath
-	}
-	if opt.ProcessID == "" {
-		opt.ProcessID = *ProcessID
-		if opt.ProcessID == "" {
-			opt.ProcessID = "development"
-		}
-	}
-	ApplicationDir := ""
-	if opt.WorkDir != "" {
-		_, err := os.Open(opt.WorkDir)
-		if err != nil {
-			panic(err)
-		}
-		os.Chdir(opt.WorkDir)
-		ApplicationDir, err = os.Getwd()
-	} else {
-		var err error
-		ApplicationDir, err = os.Getwd()
-		if err != nil {
-			file, _ := exec.LookPath(os.Args[0])
-			ApplicationPath, _ := filepath.Abs(file)
-			ApplicationDir, _ = filepath.Split(ApplicationPath)
-		}
-
-	}
-	opt.WorkDir = ApplicationDir
-	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
-	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
-	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
-
-	if opt.ConfPath == "" {
-		if *confPath == "" {
-			opt.ConfPath = defaultConfPath
-		} else {
-			opt.ConfPath = *confPath
-		}
-	}
-
-	if opt.LogDir == "" {
-		if *Logdir == "" {
-			opt.LogDir = defaultLogPath
-		} else {
-			opt.LogDir = *Logdir
-		}
-	}
-
-	if opt.BIDir == "" {
-		if *BIdir == "" {
-			opt.BIDir = defaultBIPath
-		} else {
-			opt.BIDir = *BIdir
-		}
-	}
-
-	_, err := os.Open(opt.ConfPath)
-	if err != nil {
-		//文件不存在
-		panic(fmt.Sprintf("config path error %v", err))
-	}
-	_, err = os.Open(opt.LogDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.LogDir, os.ModePerm) //
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-
-	_, err = os.Open(opt.BIDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.BIDir, os.ModePerm) //
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
+	// 默认注册beego日志
+	cc := logConf.NewOptions()
+	cc.Debug = opt.Debug
+	third := log.NewDefaultBeegoLogger(cc)
+	log.RegisterLogger(log.New(third))
 	return opt
 }
 
@@ -209,33 +115,15 @@ type DefaultApp struct {
 
 // Run 运行应用
 func (app *DefaultApp) Run(mods ...module.Module) error {
-	f, err := os.Open(app.opts.ConfPath)
-	if err != nil {
-		//文件不存在
-		panic(fmt.Sprintf("config path error %v", err))
-	}
-	var cof conf.Config
-	fmt.Println("Server configuration path :", app.opts.ConfPath)
-	conf.LoadConfig(f.Name()) //加载配置文件
-	cof = conf.Conf
-	app.Configure(cof) //解析配置信息
+	_ = app.LoadConfig()
 
 	if app.configurationLoaded != nil {
 		app.configurationLoaded(app)
 	}
-
-	// log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
-	// log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
-	log.Init(log.WithDebug(app.opts.Debug),
-		log.WithProcessID(app.opts.ProcessID),
-		log.WithBiDir(app.opts.BIDir),
-		log.WithLogDir(app.opts.LogDir),
-		log.WithLogFileName(app.opts.LogFileName),
-		log.WithBiSetting(cof.BI),
-		log.WithBIFileName(app.opts.BIFileName),
-		log.WithLogSetting(cof.Log))
+	if app.opts.Logger != nil {
+		log.RegisterLogger(app.opts.Logger())
+	}
 	log.Info("mqant %v starting up", app.opts.Version)
-
 	manager := basemodule.NewModuleManager()
 	manager.RegisterRunMod(modules.TimerModule()) //注册时间轮模块 每一个进程都默认运行
 	// module
@@ -243,7 +131,7 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		mods[i].OnAppConfigurationLoaded(app)
 		manager.Register(mods[i])
 	}
-	app.OnInit(app.settings)
+	_ = app.OnInit(app.settings)
 	manager.Init(app, app.opts.ProcessID)
 	if app.startup != nil {
 		app.startup(app)
@@ -253,8 +141,8 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 	sig := <-c
-	log.BiBeego().Flush()
-	log.LogBeego().Flush()
+	//log.BiBeego().Flush()
+	//log.LogBeego().Flush()
 	//如果一分钟都关不了则强制关闭
 	timeout := time.NewTimer(app.opts.KillWaitTTL)
 	wait := make(chan struct{})
@@ -269,8 +157,8 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 	case <-wait:
 		log.Info("mqant closing down (signal: %v)", sig)
 	}
-	log.BiBeego().Close()
-	log.LogBeego().Close()
+	//log.BiBeego().Close()
+	//log.LogBeego().Close()
 	return nil
 }
 
@@ -573,4 +461,141 @@ func (app *DefaultApp) NewProtocolMarshal(data []byte) module.ProtocolMarshal {
 	return &protocolMarshalImp{
 		data: data,
 	}
+}
+
+// LoadConfig 加载启动配置
+func (app *DefaultApp) LoadConfig() error {
+	err := app.LoadPath()
+	if err != nil {
+		//fmt.Println("xxxxxxx", err)
+		return err
+	}
+	f, err := os.Open(app.opts.ConfPath)
+	if err != nil {
+		//文件不存在
+		//log.Info("this service not use config then you can figure yours logger ")
+		return err
+	}
+	var cof conf.Config
+	conf.LoadConfig(f.Name()) //加载配置文件
+	cof = conf.Conf
+	_ = app.Configure(cof) //解析配置信息
+	// 初始化日志配置
+	log.Init(log.WithDebug(app.opts.Debug),
+		log.WithProcessID(app.opts.ProcessID),
+		log.WithBiDir(app.opts.BIDir),
+		log.WithLogDir(app.opts.LogDir),
+		log.WithLogFileName(app.opts.LogFileName),
+		log.WithBiSetting(cof.BI),
+		log.WithBIFileName(app.opts.BIFileName),
+		log.WithLogSetting(cof.Log))
+	return nil
+}
+
+// LoadPath 加载运行路径
+func (app *DefaultApp) LoadPath() error {
+	var wdPath, confPath, Logdir, BIdir *string
+	var ProcessID *string
+	opt := app.opts
+	if opt.Parse {
+		wdPath = flag.String("wd", "", "Server work directory")
+		confPath = flag.String("conf", "", "Server configuration file path")
+		ProcessID = flag.String("pid", "development", "Server ProcessID?")
+		Logdir = flag.String("log", "", "Log file directory?")
+		BIdir = flag.String("bi", "", "bi file directory?")
+		flag.Parse() //解析输入的参数
+	}
+	if opt.ConfPath == "" || confPath == nil {
+		return errors.New("has no point config ")
+	}
+	if opt.Nats == nil {
+		nc, err := nats.Connect(nats.DefaultURL)
+		if err != nil {
+			log.Error("nats agent: %s", err.Error())
+			//panic(fmt.Sprintf("nats agent: %s", err.Error()))
+		}
+		opt.Nats = nc
+	}
+
+	if opt.WorkDir == "" {
+		opt.WorkDir = *wdPath
+	}
+	if opt.ProcessID == "" {
+		opt.ProcessID = *ProcessID
+		if opt.ProcessID == "" {
+			opt.ProcessID = "development"
+		}
+	}
+	ApplicationDir := ""
+	if opt.WorkDir != "" {
+		_, err := os.Open(opt.WorkDir)
+		if err != nil {
+			panic(err)
+		}
+		os.Chdir(opt.WorkDir)
+		ApplicationDir, err = os.Getwd()
+	} else {
+		var err error
+		ApplicationDir, err = os.Getwd()
+		if err != nil {
+			file, _ := exec.LookPath(os.Args[0])
+			ApplicationPath, _ := filepath.Abs(file)
+			ApplicationDir, _ = filepath.Split(ApplicationPath)
+		}
+
+	}
+	opt.WorkDir = ApplicationDir
+	defaultConfPath := fmt.Sprintf("%s/bin/conf/server.json", ApplicationDir)
+	defaultLogPath := fmt.Sprintf("%s/bin/logs", ApplicationDir)
+	defaultBIPath := fmt.Sprintf("%s/bin/bi", ApplicationDir)
+
+	if opt.ConfPath == "" {
+		if *confPath == "" {
+			opt.ConfPath = defaultConfPath
+		} else {
+			opt.ConfPath = *confPath
+		}
+	}
+
+	if opt.LogDir == "" {
+		if *Logdir == "" {
+			opt.LogDir = defaultLogPath
+		} else {
+			opt.LogDir = *Logdir
+		}
+	}
+
+	if opt.BIDir == "" {
+		if *BIdir == "" {
+			opt.BIDir = defaultBIPath
+		} else {
+			opt.BIDir = *BIdir
+		}
+	}
+
+	_, err := os.Open(opt.ConfPath)
+	if err != nil {
+		//文件不存在
+		//log.Info("this service not use config then you can figure yours logger ")
+		return err
+	}
+	_, err = os.Open(opt.LogDir)
+	if err != nil {
+		//文件不存在
+		err := os.Mkdir(opt.LogDir, os.ModePerm) //
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	_, err = os.Open(opt.BIDir)
+	if err != nil {
+		//文件不存在
+		err := os.Mkdir(opt.BIDir, os.ModePerm) //
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+	app.opts = opt
+	return nil
 }

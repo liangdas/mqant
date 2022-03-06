@@ -1,34 +1,30 @@
 package main
 
 import (
-	"github.com/liangdas/mqant"
-	"github.com/liangdas/mqant/conf"
+	"fmt"
 	"github.com/liangdas/mqant/examples/proto/examples/greeter"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/module"
-	basemodule "github.com/liangdas/mqant/module/base"
+	beegolog "github.com/liangdas/mqant/log/beego"
 	"github.com/liangdas/mqant/registry"
 	"github.com/liangdas/mqant/registry/consul"
 	"github.com/nats-io/nats.go"
+	"time"
+
+	"github.com/liangdas/mqant"
+	"github.com/liangdas/mqant/conf"
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/module"
+	basemodule "github.com/liangdas/mqant/module/base"
 )
 
-type Greeter struct {
-}
-
-func (g *Greeter) Hello(in *greeter.Request) (out *greeter.Response, err error) {
-	log.LogBeego().Info("xxxxxx %s", "zouwo ")
-	out = &greeter.Response{
-		Msg: "success",
-	}
-	return
-}
-func (g *Greeter) Stream(in *greeter.Request) (out *greeter.Response, err error) {
-	return
-}
 func main() {
 	// 服务实例
 	app := mqant.CreateApp(
-		module.Debug(true),
+		module.Debug(false),
+		module.WithLogger(func() log.Logger {
+			bee := &Beego{}
+			return bee
+		}),
+		module.ProcessID("developments"),
 	)
 	// 配置加载
 	consulURL := "127.0.0.1:8500"
@@ -52,8 +48,47 @@ func main() {
 			module.Registry(rs), //指定服务发现
 		)
 	})
+	go func() {
+		// wait run
+		time.Sleep(5 * time.Second)
+		rsp, err := greeter.NewGreeterClient(app, "greeter").Hello(&greeter.Request{})
+		if err != nil {
+			log.Info("xxxx %s", err)
+			return
+		}
+		log.Info("xxxx %s", rsp)
+		return
+	}()
 	s := &Server{}
-	_ = app.Run(s)
+	app.Run(s)
+}
+
+type Beego struct {
+	*beegolog.BeeLogger
+}
+
+// Info 输出普通日志
+func (b *Beego) Info(format string, keyvals ...interface{}) {
+	fmt.Printf(format, keyvals...)
+	fmt.Printf("\n")
+}
+
+// Debug 输出调试日志
+func (b *Beego) Debug(format string, keyvals ...interface{}) {
+	fmt.Printf(format, keyvals...)
+	fmt.Printf("\n")
+}
+
+// Warning 输出警告日志
+func (b *Beego) Warning(format string, keyvals ...interface{}) {
+	fmt.Printf(format, keyvals...)
+	fmt.Printf("\n")
+}
+
+// Error 输出错误日志
+func (b *Beego) Error(format string, keyvals ...interface{}) {
+	fmt.Printf(format, keyvals...)
+	fmt.Printf("\n")
 }
 
 type Server struct {
@@ -71,8 +106,6 @@ func (m *Server) GetApp() module.App {
 // OnInit() 初始化配置
 func (s *Server) OnInit(app module.App, settings *conf.ModuleSettings) {
 	s.BaseModule.OnInit(s, app, settings)
-	srv := &Greeter{}
-	greeter.RegisterGreeterTcpHandler(&s.BaseModule, srv)
 }
 
 // Run() 运行服务
@@ -94,5 +127,5 @@ func (s *Server) Version() string {
 }
 
 func (s *Server) GetType() string {
-	return "greeter"
+	return "client"
 }

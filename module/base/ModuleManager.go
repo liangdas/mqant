@@ -57,23 +57,41 @@ func (mer *ModuleManager) RegisterRunMod(mi module.Module) {
 func (mer *ModuleManager) Init(app module.App, ProcessID string) {
 	log.Info("This service ModuleGroup(ProcessID) is [%s]", ProcessID)
 	mer.app = app
-	mer.CheckModuleSettings() //配置文件规则检查
-	for i := 0; i < len(mer.mods); i++ {
-		for Type, modSettings := range app.GetSettings().Module {
-			if mer.mods[i].mi.GetType() == Type {
-				//匹配
-				for _, setting := range modSettings {
-					//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
-					if ProcessID == setting.ProcessID {
-						mer.runMods = append(mer.runMods, mer.mods[i]) //这里加入能够运行的组件
-						mer.mods[i].settings = setting
-					}
-				}
-				break //跳出内部循环
-			}
-		}
-	}
+	//mer.CheckModuleSettings() //配置文件规则检查
+	//for i := 0; i < len(mer.mods); i++ {
+	//for Type, modSettings := range app.GetSettings().Module {
+	//	if mer.mods[i].mi.GetType() == Type {
+	//匹配
+	//for _, setting := range modSettings {
+	//这里可能有BUG 公网IP和局域网IP处理方式可能不一样,先不管
+	//if ProcessID == setting.ProcessID {
+	//mer.runMods = append(mer.runMods, mer.mods[i]) //这里加入能够运行的组件
+	//mer.mods[i].settings = setting
+	//}
+	//}
+	//break //跳出内部循环
+	//}
+	//}
+	//}
+	mer.runMods = mer.mods
+	for i := 0; i < len(mer.runMods); i++ {
+		m := mer.runMods[i]
+		m.mi.OnInit(app, m.settings)
 
+		if app.GetModuleInited() != nil {
+			app.GetModuleInited()(app, m.mi)
+		}
+
+		m.wg.Add(1)
+		go run(m)
+	}
+	//timer.SetTimer(3, mer.ReportStatistics, nil) //统计汇报定时任务
+}
+
+// Init 初始化
+func (mer *ModuleManager) InitWithOutConfig(app module.App, ProcessID string) {
+	log.Info("This service ModuleGroup(ProcessID) is [%s]", ProcessID)
+	mer.app = app
 	for i := 0; i < len(mer.runMods); i++ {
 		m := mer.runMods[i]
 		m.mi.OnInit(app, m.settings)

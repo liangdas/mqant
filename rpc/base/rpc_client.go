@@ -16,13 +16,13 @@ package defaultrpc
 import (
 	"context"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
+	"google.golang.org/protobuf/proto"
 	"os"
 	"time"
 )

@@ -37,14 +37,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	jsoniter "github.com/json-iterator/go"
 	"log"
 	"os"
 	"runtime"
 	"strings"
 	"sync"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // RFC5424 log message levels.
@@ -532,6 +531,42 @@ func (bl *BeeLogger) writeMsg(span *BeegoTraceSpan, logLevel int, msg string, v 
 	return nil
 }
 
+// writeMsgf 格式化
+//func (bl *BeeLogger) writeMsgf(span *BeegoTraceSpan, logLevel int, msg string, fileds  logv2.Fields) error {
+//	if !bl.init {
+//		bl.lock.Lock()
+//		bl.setLogger(AdapterConsole)
+//		bl.lock.Unlock()
+//	}
+//	when := time.Now()
+//	original := false
+//	var newMsg string
+//	// 组合日志组件
+//	if bl.contentType == "application/json" {
+//		fileds["msg"] = msg
+//		fileds["formatime"] = when
+//		mm, err := json.Marshal(fileds)
+//		if err != nil {
+//			return err
+//		}
+//		newMsg = string(mm)
+//		original = true
+//	} else {
+//		msg = LevelPrefix[logLevel] + "[ msg = " + msg + " "
+//		var newFil string
+//		for key, value := range fileds {
+//			newFil += fmt.Sprintf("%s=%s", key, value) + ","
+//		}
+//		newFil = strings.TrimRight(newFil, ",")
+//		v := newFil + " ]"
+//		msg += v
+//		newMsg = msg
+//		original = false
+//	}
+//	bl.writeToLoggers(original, when, newMsg, logLevel)
+//	return nil
+//}
+
 func (bl *BeeLogger) writeBiReport(msg string, logLevel int) error {
 	if !bl.init {
 		bl.lock.Lock()
@@ -719,6 +754,30 @@ func (bl *BeeLogger) Debug(span *BeegoTraceSpan, format string, v ...interface{}
 	bl.writeMsg(span, LevelDebug, format, v...)
 }
 
+// Debugf Log DEBUG level message.
+//func (bl *BeeLogger) Debugf(span *BeegoTraceSpan, format string, fileds logv2.Fields) {
+//	if LevelDebug > bl.level {
+//		return
+//	}
+//	bl.writeMsgf(span, LevelDebug, format, fileds)
+//}
+
+// Debugf Log DEBUG level message.
+//func (bl *BeeLogger) Warnf(span *BeegoTraceSpan, format string, fileds  logv2.Fields) {
+//	if LevelWarn > bl.level {
+//		return
+//	}
+//	bl.writeMsgf(span, LevelWarn, format, fileds)
+//}
+
+// Debugf Log DEBUG level message.
+//func (bl *BeeLogger) Errorf(span *BeegoTraceSpan, format string, fileds  logv2.Fields) {
+//	if LevelError > bl.level {
+//		return
+//	}
+//	bl.writeMsgf(span, LevelError, format, fileds)
+//}
+
 // Warn Log WARN level message.
 // compatibility alias for Warning()
 func (bl *BeeLogger) Warn(span *BeegoTraceSpan, format string, v ...interface{}) {
@@ -736,6 +795,14 @@ func (bl *BeeLogger) Info(span *BeegoTraceSpan, format string, v ...interface{})
 	}
 	bl.writeMsg(span, LevelInfo, format, v...)
 }
+
+//func (bl *BeeLogger) Infof(span *BeegoTraceSpan, format string) {
+//	if LevelInfo > bl.level {
+//		return
+//	}
+//
+//	bl.writeMsgf(span, LevelInfo, format, v)
+//}
 
 // Trace Log TRACE level message.
 // compatibility alias for Debug()

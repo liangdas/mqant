@@ -1,6 +1,7 @@
 package module
 
 import (
+	"github.com/liangdas/mqant/log"
 	"time"
 
 	"github.com/liangdas/mqant/registry"
@@ -15,13 +16,17 @@ type Option func(*Options)
 
 // Options 应用级别配置项
 type Options struct {
-	Nats        *nats.Conn
-	Version     string
-	Debug       bool
-	Parse       bool //是否由框架解析启动环境变量,默认为true
-	WorkDir     string
-	ConfPath    string
-	LogDir      string
+	Nats    *nats.Conn
+	Version string
+	Debug   bool
+	Parse   bool //是否由框架解析启动环境变量,默认为true
+	// Deprecated: 新版本废弃启动配置。无需指定工作目录
+	WorkDir string
+	// Deprecated: 新版本废弃启动配置。无需指定配置路径
+	ConfPath string
+	// Deprecated: 新版本废弃启动配置。无需指定日志路径
+	LogDir string
+	// Deprecated: 新版本废弃启动配置。无需指定bi路径
 	BIDir       string
 	ProcessID   string
 	KillWaitTTL time.Duration
@@ -40,7 +45,11 @@ type Options struct {
 	LogFileName FileNameHandler
 	// 自定义BI日志名字
 	BIFileName FileNameHandler
+	// 自定义日志组件 兼容1.13版本的重定义日志组件， 只能存在一种
+	Logger Logger
 }
+
+type Logger func() log.Logger
 
 type FileNameHandler func(logdir, prefix, processID, suffix string) string
 
@@ -50,7 +59,7 @@ type ClientRPCHandler func(app App, server registry.Node, rpcinfo *rpcpb.RPCInfo
 // ServerRPCHandler 服务方RPC监控
 type ServerRPCHandler func(app App, module Module, callInfo *mqrpc.CallInfo)
 
-// ServerRPCHandler 服务方RPC监控
+// RpcCompleteHandler 服务方RPC监控
 type RpcCompleteHandler func(app App, module Module, callInfo *mqrpc.CallInfo, input []interface{}, out []interface{}, execTime time.Duration)
 
 // Version 应用版本
@@ -68,6 +77,7 @@ func Debug(t bool) Option {
 }
 
 // WorkDir 进程工作目录
+// Deprecated: 新版本废弃启动配置。无需指定工作目录
 func WorkDir(v string) Option {
 	return func(o *Options) {
 		o.WorkDir = v
@@ -75,6 +85,7 @@ func WorkDir(v string) Option {
 }
 
 // Configure 配置路径
+// Deprecated: 新版本废弃启动配置。无需指定配置路径
 func Configure(v string) Option {
 	return func(o *Options) {
 		o.ConfPath = v
@@ -82,6 +93,7 @@ func Configure(v string) Option {
 }
 
 // LogDir 日志存储路径
+// Deprecated: 新版本废弃启动配置。无需指定log工作目录，如需指定请调用WithFile方法指定
 func LogDir(v string) Option {
 	return func(o *Options) {
 		o.LogDir = v
@@ -96,6 +108,7 @@ func ProcessID(v string) Option {
 }
 
 // BILogDir  BI日志路径
+// Deprecated: 新版本废弃启动配置。无需指定bi工作目录，如需指定请调用WithLogFile方法指定
 func BILogDir(v string) Option {
 	return func(o *Options) {
 		o.BIDir = v
@@ -160,7 +173,7 @@ func SetServerRPCHandler(t ServerRPCHandler) Option {
 	}
 }
 
-// SetServerRPCCompleteHandler 服务RPC执行结果监控器
+// SetRpcCompleteHandler 服务RPC执行结果监控器
 func SetRpcCompleteHandler(t RpcCompleteHandler) Option {
 	return func(o *Options) {
 		o.RpcCompleteHandler = t
@@ -174,14 +187,14 @@ func Parse(t bool) Option {
 	}
 }
 
-//RPC超时时间
+// RPCExpired RPC超时时间
 func RPCExpired(t time.Duration) Option {
 	return func(o *Options) {
 		o.RPCExpired = t
 	}
 }
 
-//单个节点RPC同时并发协程数
+// RPCMaxCoroutine 单个节点RPC同时并发协程数
 func RPCMaxCoroutine(t int) Option {
 	return func(o *Options) {
 		o.RPCMaxCoroutine = t
@@ -199,5 +212,12 @@ func WithLogFile(name FileNameHandler) Option {
 func WithBIFile(name FileNameHandler) Option {
 	return func(o *Options) {
 		o.BIFileName = name
+	}
+}
+
+// WithLogger 自定义日志
+func WithLogger(logger Logger) Option {
+	return func(o *Options) {
+		o.Logger = logger
 	}
 }
