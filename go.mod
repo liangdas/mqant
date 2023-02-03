@@ -3,7 +3,6 @@ module github.com/liangdas/mqant
 go 1.12
 
 require (
-	github.com/belogik/goes v0.0.0-20151229125003-e54d722c3aff
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.15+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect

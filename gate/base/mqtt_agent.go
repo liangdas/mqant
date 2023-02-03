@@ -164,6 +164,11 @@ func (age *agent) Run() (err error) {
 		"Serverid":  age.module.GetServerID(),
 		"Settings":  make(map[string]string),
 	})
+	netConn, ok := age.conn.(*network.WSConn)
+	if ok {
+		//如果是websocket连接 提取 User-Agent
+		age.session.SetLocalKV("User-Agent", netConn.Conn().Request().Header.Get("User-Agent"))
+	}
 	if err != nil {
 		log.Error("gate create agent fail", err.Error())
 		return
@@ -303,7 +308,7 @@ func (age *agent) recoverworker(pack *mqtt.Pack) {
 				}
 				return
 			}
-			if len(pub.GetMsg())>0&&pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
+			if len(pub.GetMsg()) > 0 && pub.GetMsg()[0] == '{' && pub.GetMsg()[len(pub.GetMsg())-1] == '}' {
 				//尝试解析为json为map
 				var obj interface{} // var obj map[string]interface{}
 				err := json.Unmarshal(pub.GetMsg(), &obj)

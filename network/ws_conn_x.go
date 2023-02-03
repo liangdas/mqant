@@ -48,6 +48,10 @@ func newWSConn(conn *websocket.Conn) *WSConn {
 	return wsConn
 }
 
+func (wsConn *WSConn) Conn() *websocket.Conn {
+	return wsConn.conn
+}
+
 func (wsConn *WSConn) doDestroy() {
 	wsConn.conn.Close()
 	if !wsConn.closeFlag {

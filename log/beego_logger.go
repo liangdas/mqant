@@ -111,12 +111,5 @@ func NewBeegoLogger(debug bool, ProcessID string, Logdir string, settings map[st
 		}
 		log.SetLogger(logs.AdapterMail, string(config))
 	}
-	if es, ok := settings["es"]; ok {
-		config, err := json.Marshal(es)
-		if err != nil {
-			logs.Error(err)
-		}
-		log.SetLogger(logs.AdapterEs, string(config))
-	}
 	return log
 }
