@@ -69,7 +69,6 @@ const (
 	AdapterMultiFile = "multifile"
 	AdapterMail      = "smtp"
 	AdapterConn      = "conn"
-	AdapterEs        = "es"
 	AdapterJianLiao  = "jianliao"
 	AdapterSlack     = "slack"
 	AdapterDingtalk  = "dingtalk"
