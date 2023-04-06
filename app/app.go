@@ -155,25 +155,16 @@ func newOptions(opts ...module.Option) module.Options {
 		}
 	}
 
-	_, err := os.Open(opt.ConfPath)
-	if err != nil {
-		//文件不存在
+	if _, err := os.Stat(opt.ConfPath); os.IsNotExist(err) {
 		panic(fmt.Sprintf("config path error %v", err))
 	}
-	_, err = os.Open(opt.LogDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.LogDir, os.ModePerm) //
-		if err != nil {
+	if _, err := os.Stat(opt.LogDir); os.IsNotExist(err) {
+		if err := os.Mkdir(opt.LogDir, os.ModePerm); err != nil {
 			fmt.Println(err)
 		}
 	}
-
-	_, err = os.Open(opt.BIDir)
-	if err != nil {
-		//文件不存在
-		err := os.Mkdir(opt.BIDir, os.ModePerm) //
-		if err != nil {
+	if _, err := os.Stat(opt.BIDir); os.IsNotExist(err) {
+		if err := os.Mkdir(opt.BIDir, os.ModePerm); err != nil {
 			fmt.Println(err)
 		}
 	}
@@ -209,14 +200,9 @@ type DefaultApp struct {
 
 // Run 运行应用
 func (app *DefaultApp) Run(mods ...module.Module) error {
-	f, err := os.Open(app.opts.ConfPath)
-	if err != nil {
-		//文件不存在
-		panic(fmt.Sprintf("config path error %v", err))
-	}
 	var cof conf.Config
 	fmt.Println("Server configuration path :", app.opts.ConfPath)
-	conf.LoadConfig(f.Name()) //加载配置文件
+	conf.LoadConfig(app.opts.ConfPath) //加载配置文件
 	cof = conf.Conf
 	app.Configure(cof) //解析配置信息
 

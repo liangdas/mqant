@@ -16,13 +16,13 @@ package defaultrpc
 import (
 	"context"
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"github.com/liangdas/mqant/log"
 	"github.com/liangdas/mqant/module"
 	"github.com/liangdas/mqant/rpc"
 	"github.com/liangdas/mqant/rpc/pb"
 	"github.com/liangdas/mqant/rpc/util"
 	"github.com/liangdas/mqant/utils/uuid"
+	"google.golang.org/protobuf/proto"
 	"os"
 	"time"
 )
@@ -105,8 +105,8 @@ func (c *RPCClient) CallArgs(ctx context.Context, _func string, ArgsType []strin
 		}
 		return result, resultInfo.Error
 	case <-ctx.Done():
+		_ = c.nats_client.Delete(rpcInfo.Cid)
 		c.close_callback_chan(callback)
-		c.nats_client.Delete(rpcInfo.Cid)
 		return nil, "deadline exceeded"
 		//case <-time.After(time.Second * time.Duration(c.app.GetSettings().rpc.RPCExpired)):
 		//	close(callback)
