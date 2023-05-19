@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	basegate "github.com/liangdas/mqant/gate/base"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -210,6 +211,9 @@ func (app *DefaultApp) Run(mods ...module.Module) error {
 		app.configurationLoaded(app)
 	}
 
+	app.AddRPCSerialize("gate", &basegate.SessionSerialize{
+		App: app,
+	})
 	// log.InitLog(app.opts.Debug, app.opts.ProcessID, app.opts.LogDir, cof.Log)
 	// log.InitBI(app.opts.Debug, app.opts.ProcessID, app.opts.BIDir, cof.BI)
 	log.Init(log.WithDebug(app.opts.Debug),
