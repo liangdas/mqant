@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,7 +32,7 @@ func TestConnet(t *testing.T) {
 	}
 	r := bufio.NewReader(conn)
 	w := bufio.NewWriter(conn)
-	pack, err := ReadPack(r)
+	pack, err := ReadPack(r, 2048)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestConnet(t *testing.T) {
 		return
 	}
 
-	if _, err := ReadPack(r); err != nil {
+	if _, err := ReadPack(r, 2048); err != nil {
 		t.Error(err)
 	}
 }
