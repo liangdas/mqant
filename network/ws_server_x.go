@@ -2,15 +2,16 @@ package network
 
 import (
 	"crypto/tls"
-	"github.com/liangdas/mqant/log"
-	"github.com/liangdas/mqant/utils/ip"
-	"golang.org/x/net/websocket"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/liangdas/mqant/log"
+	"github.com/liangdas/mqant/utils/ip"
+	"golang.org/x/net/websocket"
 )
 
 // WSServer websocket服务器
@@ -115,12 +116,17 @@ func (server *WSServer) Start() {
 			real_ip := iptool.RealIP(r)
 			config.Origin, _ = url.ParseRequestURI(scheme + "://" + real_ip + r.URL.RequestURI())
 			offeredProtocol := r.Header.Get("Sec-WebSocket-Protocol")
-			ptls := strings.Split(offeredProtocol, ",")
-			if len(ptls) > 0 {
-				config.Protocol = []string{ptls[0]}
+			if offeredProtocol == "" {
+				config.Protocol = nil
 			} else {
-				config.Protocol = []string{"mqtt"}
+				ptls := strings.Split(offeredProtocol, ",")
+				if len(ptls) > 0 {
+					config.Protocol = []string{ptls[0]}
+				} else {
+					config.Protocol = []string{"mqtt"}
+				}
 			}
+
 			return nil
 		},
 	}
